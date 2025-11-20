@@ -301,12 +301,12 @@ EMAIL_PASSWORD=fhep djny iclx hcil
 
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://cope:SqAOde0FpToTcT1k@voyar.dmpasv7.mongodb.net/voyar?retryWrites=true&w=majority&appName=Voyar
+MONGODB_URI=
 JWT_SECRET=voyar-super-secret-jwt-key-2025
-ADMIN_PASSWORD=admin123
+ADMIN_PASSWORD=
 NODE_ENV=development
-EMAIL_ID=sayancodder731@gmail.com
-EMAIL_PASSWORD=fhep djny iclx hcil
+EMAIL_ID=
+EMAIL_PASSWORD=
 ```
 
 ---
