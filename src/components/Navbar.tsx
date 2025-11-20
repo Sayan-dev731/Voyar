@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Search, Menu, X } from 'lucide-react'
+import { ShoppingCart, Search, Menu, X, User, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
+import { useCart } from '@/context/CartContext'
+import { useAuth } from '@/context/AuthContext'
 
 export const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [showSearch, setShowSearch] = useState(false)
+    const [showUserMenu, setShowUserMenu] = useState(false)
+    const navigate = useNavigate()
+    const { totalItems } = useCart()
+    const { user, isAuthenticated, logout } = useAuth()
 
     useEffect(() => {
         const handleScroll = () => {
@@ -16,11 +25,31 @@ export const Navbar = () => {
     }, [])
 
     const navLinks = [
-        { name: 'Eyeglasses', href: '#eyeglasses' },
-        { name: 'Sunglasses', href: '#sunglasses' },
-        { name: 'Collection', href: '#collection' },
-        { name: 'About', href: '#about' },
+        { name: 'Eyeglasses', href: '/#eyeglasses' },
+        { name: 'Sunglasses', href: '/#sunglasses' },
+        { name: 'Collections', href: '/collections' },
+        { name: 'About', href: '/#about' },
     ]
+
+    const handleLogout = () => {
+        logout()
+        setShowUserMenu(false)
+        navigate('/')
+    }
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (searchQuery.trim()) {
+            navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
+            setShowSearch(false)
+            setSearchQuery('')
+        }
+    }
+
+    const handleLogoClick = () => {
+        navigate('/')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
 
     return (
         <>
@@ -33,7 +62,7 @@ export const Navbar = () => {
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16 sm:h-20">
                         {/* Logo */}
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 cursor-pointer" onClick={handleLogoClick}>
                             <h1 className="text-xl sm:text-2xl font-[600] tracking-tight text-black">
                                 Voyar
                             </h1>
@@ -58,15 +87,89 @@ export const Navbar = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="hidden md:flex h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                onClick={() => setShowSearch(!showSearch)}
                             >
                                 <Search className="h-4 w-4" />
                             </Button>
+
+                            {/* User Menu */}
+                            {isAuthenticated ? (
+                                <div className="relative">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors flex"
+                                        onClick={() => setShowUserMenu(!showUserMenu)}
+                                    >
+                                        <User className="h-4 w-4" />
+                                    </Button>
+
+                                    {showUserMenu && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-black/10 py-1 z-50">
+                                            <div className="px-4 py-2 border-b border-black/10">
+                                                <p className="text-sm font-medium text-black truncate">{user?.name}</p>
+                                                <p className="text-xs text-black/60 truncate">{user?.email}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    navigate('/profile')
+                                                    setShowUserMenu(false)
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
+                                            >
+                                                My Profile
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    navigate('/orders')
+                                                    setShowUserMenu(false)
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
+                                            >
+                                                My Orders
+                                            </button>
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                                Logout
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <Button
+                                        variant="ghost"
+                                        className="hidden sm:flex text-sm font-medium text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                        onClick={() => navigate('/login')}
+                                    >
+                                        Login
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="flex sm:hidden h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                        onClick={() => navigate('/login')}
+                                    >
+                                        <User className="h-4 w-4" />
+                                    </Button>
+                                </>
+                            )}
+
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                className="h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors relative"
+                                onClick={() => navigate('/cart')}
                             >
                                 <ShoppingCart className="h-4 w-4" />
+                                {totalItems > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                                        {totalItems}
+                                    </span>
+                                )}
                             </Button>
                             <Button
                                 variant="ghost"
@@ -84,10 +187,42 @@ export const Navbar = () => {
                     </div>
                 </div>
 
+                {/* Search Bar */}
+                {showSearch && (
+                    <div className="border-t border-black/10 bg-white backdrop-blur-xl">
+                        <div className="px-4 py-4">
+                            <form onSubmit={handleSearch} className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search for eyeglasses, sunglasses..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full px-4 py-3 pl-10 pr-4 bg-amber-50/50 border border-amber-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm"
+                                    autoFocus
+                                />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                            </form>
+                        </div>
+                    </div>
+                )}
+
                 {/* Mobile Menu */}
                 {isMobileMenuOpen && (
                     <div className="lg:hidden border-t border-black/10 bg-white backdrop-blur-xl shadow-lg">
                         <div className="px-4 pt-4 pb-6 space-y-1">
+                            {/* Mobile Search */}
+                            <div className="mb-4">
+                                <form onSubmit={handleSearch} className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full px-4 py-2 pl-10 pr-4 bg-amber-50/50 border border-amber-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm"
+                                    />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                                </form>
+                            </div>
                             {navLinks.map((link) => (
                                 <a
                                     key={link.name}

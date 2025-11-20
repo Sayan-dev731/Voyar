@@ -1,63 +1,14 @@
 import { useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
-
-// Using local images from assets folder
-const products = [
-    {
-        id: 1,
-        name: 'Classic Aviator',
-        category: 'Sunglasses',
-        price: '$149',
-        image: '/images/20251013_022418.jpg',
-        description: 'Timeless design meets modern comfort',
-    },
-    {
-        id: 2,
-        name: 'Executive Frame',
-        category: 'Eyeglasses',
-        price: '$99',
-        image: '/images/20251013_023354.jpg',
-        description: 'Professional style for everyday wear',
-    },
-    {
-        id: 3,
-        name: 'Sport Vision',
-        category: 'Sunglasses',
-        price: '$129',
-        image: '/images/20251013_024018.jpg',
-        description: 'Performance eyewear for active lifestyles',
-    },
-    {
-        id: 4,
-        name: 'Blue Light Block',
-        category: 'Computer Glasses',
-        price: '$79',
-        image: '/images/20251013_024158.jpg',
-        description: 'Protect your eyes from digital strain',
-    },
-    {
-        id: 5,
-        name: 'Retro Round',
-        category: 'Eyeglasses',
-        price: '$89',
-        image: '/images/20251013_024419.jpg',
-        description: 'Vintage-inspired circular frames',
-    },
-    {
-        id: 6,
-        name: 'Polarized Pro',
-        category: 'Sunglasses',
-        price: '$169',
-        image: '/images/20251013_024532.jpg',
-        description: 'Ultimate sun protection technology',
-    },
-]
+import { products } from '@/data/products'
 
 export const ProductGrid = () => {
     const sectionRef = useRef<HTMLDivElement>(null)
     const titleRef = useRef<HTMLHeadingElement>(null)
     const cardsRef = useRef<HTMLDivElement>(null)
+    const navigate = useNavigate()
 
     return (
         <div ref={sectionRef} id="collection" className="py-24 sm:py-32 lg:py-40 bg-gradient-to-b from-white via-amber-50/30 to-white">
@@ -96,13 +47,16 @@ export const ProductGrid = () => {
                                             </p>
                                         </div>
                                         <div className="text-lg sm:text-xl font-[600] text-amber-600">
-                                            {product.price}
+                                            ${product.price}
                                         </div>
                                     </div>
                                     <p className="text-xs sm:text-sm text-black/60 mb-5 leading-relaxed">
                                         {product.description}
                                     </p>
-                                    <Button className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 h-11 text-sm font-medium transition-all duration-200 shadow-md shadow-amber-200">
+                                    <Button
+                                        onClick={() => navigate(`/product/${product.id}`)}
+                                        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 h-11 text-sm font-medium transition-all duration-200 shadow-md shadow-amber-200"
+                                    >
                                         View Details
                                     </Button>
                                 </div>
