@@ -19,7 +19,7 @@ connectDB();
 // Middleware
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-        ? 'https://your-domain.com'
+        ? 'https://voyar.vercel.app'
         : 'http://localhost:5173',
     credentials: true
 }));
