@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Navbar } from './components/Navbar'
 import { Footer } from './components/Footer'
 import { Home } from './pages/Home'
@@ -13,7 +13,20 @@ import VerifyEmail from './pages/VerifyEmail'
 import Collections from './pages/Collections'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
+import { Outlet } from 'react-router-dom'
 import './App.css'
+
+function PublicLayout() {
+  return (
+    <div className="min-h-screen bg-white overflow-x-hidden">
+      <Navbar />
+      <main>
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  )
+}
 
 function App() {
   return (
@@ -31,19 +44,16 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
 
             {/* Public Routes - With Navbar/Footer */}
-            <Route path="/*" element={
-              <div className="min-h-screen bg-white overflow-x-hidden">
-                <Navbar />
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/search" element={<SearchResults />} />
-                  <Route path="/collections" element={<Collections />} />
-                </Routes>
-                <Footer />
-              </div>
-            } />
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/search" element={<SearchResults />} />
+              <Route path="/collections" element={<Collections />} />
+            </Route>
+
+            {/* optional: 404 route */}
+            <Route path="*" element={<div>404 - Page not found</div>} />
           </Routes>
         </Router>
       </CartProvider>
