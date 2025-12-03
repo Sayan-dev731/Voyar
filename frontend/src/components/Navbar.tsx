@@ -40,7 +40,7 @@ export const Navbar = () => {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
         if (searchQuery.trim()) {
-            navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
+            navigate(`/collections?q=${encodeURIComponent(searchQuery)}`)
             setShowSearch(false)
             setSearchQuery('')
         }
