@@ -57,3 +57,37 @@ html {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+@keyframes hero-marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.hero-marquee {
+  display: flex;
+  gap: 1.5rem;
+  min-width: max-content;
+  animation: hero-marquee-scroll 45s linear infinite;
+}
+
+.hero-marquee--reverse {
+  animation-direction: reverse;
+  animation-duration: 55s;
+}
+
+.hero-marquee-card {
+  width: clamp(160px, 18vw, 320px);
+  height: clamp(100px, 12vw, 220px);
+  border-radius: 24px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  opacity: 0.9;
+  filter: saturate(0.9);
+}
