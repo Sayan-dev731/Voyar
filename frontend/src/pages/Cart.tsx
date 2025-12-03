@@ -4,6 +4,33 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useCart } from '@/context/CartContext'
 
+// Helper function to convert Google Drive link to direct image URL
+const convertGoogleDriveLink = (url: string): string => {
+    if (!url) return url;
+
+    if (url.includes('drive.google.com/thumbnail')) {
+        return url;
+    }
+
+    const drivePatterns = [
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/,
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)/,
+        /https:\/\/drive\.google\.com\/open\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?export=view&id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/thumbnail\?id=([^&]+)/
+    ];
+
+    for (const pattern of drivePatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+        }
+    }
+
+    return url;
+};
+
 export const Cart = () => {
     const navigate = useNavigate()
     const { items, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart()
@@ -67,9 +94,12 @@ export const Cart = () => {
                                             onClick={() => navigate(`/product/${item._id || item.id}`)}
                                         >
                                             <img
-                                                src={item.image}
+                                                src={convertGoogleDriveLink(item.image)}
                                                 alt={item.name}
                                                 className="w-full h-full object-cover mix-blend-multiply hover:scale-105 transition-transform duration-300"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/128?text=No+Image'
+                                                }}
                                             />
                                         </div>
 

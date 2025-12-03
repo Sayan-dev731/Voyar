@@ -1,6 +1,63 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+const cartItemSchema = new mongoose.Schema({
+    product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required: true,
+    },
+    quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+        default: 1,
+    },
+    selectedColor: {
+        type: String,
+    },
+}, { _id: false });
+
+const addressSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+    },
+    phone: {
+        type: String,
+        required: true,
+    },
+    street: {
+        type: String,
+        required: true,
+    },
+    city: {
+        type: String,
+        required: true,
+    },
+    state: {
+        type: String,
+        required: true,
+    },
+    zipCode: {
+        type: String,
+        required: true,
+    },
+    country: {
+        type: String,
+        default: 'India',
+    },
+    isDefault: {
+        type: Boolean,
+        default: false,
+    },
+    type: {
+        type: String,
+        enum: ['home', 'work', 'other'],
+        default: 'home',
+    },
+});
+
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -27,31 +84,38 @@ const userSchema = new mongoose.Schema({
     },
     verificationToken: {
         type: String,
-        select: false,
     },
     verificationTokenExpires: {
         type: Date,
-        select: false,
     },
     resetPasswordToken: {
         type: String,
-        select: false,
     },
     resetPasswordExpires: {
         type: Date,
-        select: false,
     },
     phone: {
         type: String,
         trim: true,
     },
-    address: {
-        street: String,
-        city: String,
-        state: String,
-        zipCode: String,
-        country: String,
+    gender: {
+        type: String,
+        enum: ['male', 'female', 'other', ''],
+        default: '',
     },
+    dateOfBirth: {
+        type: Date,
+    },
+    profileImage: {
+        type: String,
+        default: '',
+    },
+    addresses: [addressSchema],
+    cart: [cartItemSchema],
+    wishlist: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+    }],
     orders: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Order',

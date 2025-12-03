@@ -7,6 +7,59 @@ import { useCart } from '@/context/CartContext'
 import { API_URL } from '@/config/api'
 import type { Product } from '@/types/product'
 
+// Helper function to convert Google Drive link to direct image URL
+const convertGoogleDriveLink = (url: string): string => {
+    if (!url) return url;
+
+    // Check if it's already in thumbnail format
+    if (url.includes('drive.google.com/thumbnail')) {
+        return url;
+    }
+
+    // Patterns to extract Google Drive file ID
+    const drivePatterns = [
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/,
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)/,
+        /https:\/\/drive\.google\.com\/open\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?export=view&id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/thumbnail\?id=([^&]+)/
+    ];
+
+    for (const pattern of drivePatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            // Use thumbnail format which works better for rendering
+            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+        }
+    }
+
+    // Return original URL if not a Google Drive link
+    return url;
+};
+
+// Get all product images including main image
+const getProductImages = (mainImage: string, additionalImages?: string[]): string[] => {
+    const images: string[] = [];
+
+    // Add main image first
+    if (mainImage) {
+        images.push(convertGoogleDriveLink(mainImage));
+    }
+
+    // Add additional images (avoiding duplicates)
+    if (additionalImages && additionalImages.length > 0) {
+        additionalImages.forEach(img => {
+            const convertedImg = convertGoogleDriveLink(img);
+            if (convertedImg && !images.includes(convertedImg)) {
+                images.push(convertedImg);
+            }
+        });
+    }
+
+    return images;
+};
+
 export const ProductDetail = () => {
     const { id } = useParams()
     const navigate = useNavigate()
@@ -77,7 +130,8 @@ export const ProductDetail = () => {
         setTimeout(() => setAddedToCart(false), 2000)
     }
 
-    const images = product.images || [product.image]
+    // Get all images including main image, with Google Drive links converted
+    const images = getProductImages(product.image, product.images)
 
     return (
         <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white">

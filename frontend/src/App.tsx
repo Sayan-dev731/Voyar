@@ -10,6 +10,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import VerifyEmail from './pages/VerifyEmail'
 import Collections from './pages/Collections'
+import Profile from './pages/Profile'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
 import { Outlet } from 'react-router-dom'
@@ -48,6 +49,7 @@ function App() {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/collections" element={<Collections />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
 
             {/* optional: 404 route */}

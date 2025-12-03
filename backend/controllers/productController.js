@@ -6,6 +6,7 @@ export const getAllProducts = async (req, res) => {
         const products = await Product.find().sort({ createdAt: -1 });
         res.json(products);
     } catch (error) {
+        console.error('Error fetching products:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -19,6 +20,7 @@ export const getProductById = async (req, res) => {
         }
         res.json(product);
     } catch (error) {
+        console.error('Error fetching product:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -26,10 +28,62 @@ export const getProductById = async (req, res) => {
 // Create product (Admin only)
 export const createProduct = async (req, res) => {
     try {
-        const product = new Product(req.body);
+        console.log('Creating product:', req.body);
+
+        const {
+            name,
+            category,
+            price,
+            image,
+            images,
+            description,
+            detailedDescription,
+            features,
+            specifications,
+            colors,
+            inStock,
+            rating,
+            reviews
+        } = req.body;
+
+        // Validation
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: 'Product name is required' });
+        }
+        if (!category) {
+            return res.status(400).json({ message: 'Category is required' });
+        }
+        if (!price || isNaN(price) || price <= 0) {
+            return res.status(400).json({ message: 'Valid price is required' });
+        }
+        if (!image || !image.trim()) {
+            return res.status(400).json({ message: 'Main product image is required' });
+        }
+        if (!description || !description.trim()) {
+            return res.status(400).json({ message: 'Description is required' });
+        }
+
+        const product = new Product({
+            name: name.trim(),
+            category,
+            price: Number(price),
+            image: image.trim(),
+            images: images || [],
+            description: description.trim(),
+            detailedDescription: detailedDescription?.trim() || '',
+            features: features || [],
+            specifications: specifications || {},
+            colors: colors || [],
+            inStock: inStock !== false,
+            rating: Number(rating) || 0,
+            reviews: Number(reviews) || 0
+        });
+
         const savedProduct = await product.save();
+        console.log('Product created successfully:', savedProduct._id);
         res.status(201).json(savedProduct);
     } catch (error) {
+        console.error('Error creating product:', error);
         res.status(400).json({ message: error.message });
     }
 };
@@ -37,16 +91,67 @@ export const createProduct = async (req, res) => {
 // Update product (Admin only)
 export const updateProduct = async (req, res) => {
     try {
+        console.log('Updating product:', req.params.id, req.body);
+
+        const {
+            name,
+            category,
+            price,
+            image,
+            images,
+            description,
+            detailedDescription,
+            features,
+            specifications,
+            colors,
+            inStock,
+            rating,
+            reviews
+        } = req.body;
+
+        // Validation
+        if (name !== undefined && !name.trim()) {
+            return res.status(400).json({ message: 'Product name cannot be empty' });
+        }
+        if (price !== undefined && (isNaN(price) || price <= 0)) {
+            return res.status(400).json({ message: 'Valid price is required' });
+        }
+        if (image !== undefined && !image.trim()) {
+            return res.status(400).json({ message: 'Main product image cannot be empty' });
+        }
+        if (description !== undefined && !description.trim()) {
+            return res.status(400).json({ message: 'Description cannot be empty' });
+        }
+
+        const updateData = {};
+        if (name !== undefined) updateData.name = name.trim();
+        if (category !== undefined) updateData.category = category;
+        if (price !== undefined) updateData.price = Number(price);
+        if (image !== undefined) updateData.image = image.trim();
+        if (images !== undefined) updateData.images = images;
+        if (description !== undefined) updateData.description = description.trim();
+        if (detailedDescription !== undefined) updateData.detailedDescription = detailedDescription?.trim() || '';
+        if (features !== undefined) updateData.features = features;
+        if (specifications !== undefined) updateData.specifications = specifications;
+        if (colors !== undefined) updateData.colors = colors;
+        if (inStock !== undefined) updateData.inStock = inStock;
+        if (rating !== undefined) updateData.rating = Number(rating) || 0;
+        if (reviews !== undefined) updateData.reviews = Number(reviews) || 0;
+
         const product = await Product.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updateData,
             { new: true, runValidators: true }
         );
+
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
+
+        console.log('Product updated successfully:', product._id);
         res.json(product);
     } catch (error) {
+        console.error('Error updating product:', error);
         res.status(400).json({ message: error.message });
     }
 };
@@ -54,12 +159,17 @@ export const updateProduct = async (req, res) => {
 // Delete product (Admin only)
 export const deleteProduct = async (req, res) => {
     try {
+        console.log('Deleting product:', req.params.id);
+
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
-        res.json({ message: 'Product deleted successfully' });
+
+        console.log('Product deleted successfully:', req.params.id);
+        res.json({ message: 'Product deleted successfully', deletedProduct: product });
     } catch (error) {
+        console.error('Error deleting product:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -96,6 +206,58 @@ export const searchProducts = async (req, res) => {
         const products = await Product.find(query).sort(sortOption);
         res.json(products);
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get product statistics (Admin only)
+export const getProductStats = async (req, res) => {
+    try {
+        const totalProducts = await Product.countDocuments();
+        const inStockProducts = await Product.countDocuments({ inStock: true });
+        const outOfStockProducts = await Product.countDocuments({ inStock: false });
+
+        // Get category breakdown
+        const categoryStats = await Product.aggregate([
+            {
+                $group: {
+                    _id: '$category',
+                    count: { $sum: 1 },
+                    avgPrice: { $avg: '$price' },
+                    totalValue: { $sum: '$price' }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // Get price range
+        const priceStats = await Product.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    minPrice: { $min: '$price' },
+                    maxPrice: { $max: '$price' },
+                    avgPrice: { $avg: '$price' }
+                }
+            }
+        ]);
+
+        // Get recent products
+        const recentProducts = await Product.find()
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .select('name category price image createdAt');
+
+        res.json({
+            totalProducts,
+            inStockProducts,
+            outOfStockProducts,
+            categoryStats,
+            priceStats: priceStats[0] || { minPrice: 0, maxPrice: 0, avgPrice: 0 },
+            recentProducts
+        });
+    } catch (error) {
+        console.error('Error fetching product stats:', error);
         res.status(500).json({ message: error.message });
     }
 };

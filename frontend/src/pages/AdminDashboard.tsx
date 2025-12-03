@@ -9,7 +9,12 @@ import {
     Edit,
     Trash2,
     LogOut,
-    Eye
+    Eye,
+    X,
+    Image,
+    Link,
+    AlertCircle,
+    Check
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,6 +42,87 @@ interface Stats {
     totalRevenue: number
 }
 
+interface ProductFormData {
+    name: string
+    category: string
+    price: string
+    image: string
+    images: string[]
+    description: string
+    detailedDescription: string
+    features: string[]
+    specifications: {
+        frameWidth: string
+        lensWidth: string
+        bridgeWidth: string
+        templeLength: string
+        material: string
+        weight: string
+        lensType: string
+        uvProtection: string
+    }
+    colors: { name: string; value: string }[]
+    inStock: boolean
+    rating: string
+    reviews: string
+}
+
+const initialProductForm: ProductFormData = {
+    name: '',
+    category: 'Sunglasses',
+    price: '',
+    image: '',
+    images: [],
+    description: '',
+    detailedDescription: '',
+    features: [''],
+    specifications: {
+        frameWidth: '',
+        lensWidth: '',
+        bridgeWidth: '',
+        templeLength: '',
+        material: '',
+        weight: '',
+        lensType: '',
+        uvProtection: ''
+    },
+    colors: [{ name: '', value: '#000000' }],
+    inStock: true,
+    rating: '0',
+    reviews: '0'
+}
+
+// Helper function to convert Google Drive link to direct image URL
+const convertGoogleDriveLink = (url: string): string => {
+    if (!url) return url;
+
+    // Check if it's already in thumbnail format
+    if (url.includes('drive.google.com/thumbnail')) {
+        return url;
+    }
+
+    // Patterns to extract Google Drive file ID
+    const drivePatterns = [
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/,
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)/,
+        /https:\/\/drive\.google\.com\/open\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?export=view&id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/thumbnail\?id=([^&]+)/
+    ];
+
+    for (const pattern of drivePatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            // Use thumbnail format which works better for rendering
+            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+        }
+    }
+
+    // Return original URL if not a Google Drive link
+    return url;
+}
+
 export const AdminDashboard = () => {
     const navigate = useNavigate()
     const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders'>('overview')
@@ -50,6 +136,12 @@ export const AdminDashboard = () => {
     })
     const [loading, setLoading] = useState(true)
     const [showAddProduct, setShowAddProduct] = useState(false)
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+    const [productForm, setProductForm] = useState<ProductFormData>(initialProductForm)
+    const [newImageUrl, setNewImageUrl] = useState('')
+    const [formError, setFormError] = useState('')
+    const [formSuccess, setFormSuccess] = useState('')
+    const [saving, setSaving] = useState(false)
 
     useEffect(() => {
         const token = localStorage.getItem('adminToken')
@@ -132,6 +224,193 @@ export const AdminDashboard = () => {
             }
         } catch (error) {
             console.error('Error updating order:', error)
+        }
+    }
+
+    // Product Form Handlers
+    const resetProductForm = () => {
+        setProductForm(initialProductForm)
+        setEditingProduct(null)
+        setFormError('')
+        setFormSuccess('')
+        setNewImageUrl('')
+    }
+
+    const openAddProductModal = () => {
+        resetProductForm()
+        setShowAddProduct(true)
+    }
+
+    const openEditProductModal = (product: Product) => {
+        setEditingProduct(product)
+        setProductForm({
+            name: product.name || '',
+            category: product.category || 'Sunglasses',
+            price: String(product.price || ''),
+            image: product.image || '',
+            images: product.images || [],
+            description: product.description || '',
+            detailedDescription: product.detailedDescription || '',
+            features: product.features?.length ? product.features : [''],
+            specifications: {
+                frameWidth: product.specifications?.frameWidth || '',
+                lensWidth: product.specifications?.lensWidth || '',
+                bridgeWidth: product.specifications?.bridgeWidth || '',
+                templeLength: product.specifications?.templeLength || '',
+                material: product.specifications?.material || '',
+                weight: product.specifications?.weight || '',
+                lensType: product.specifications?.lensType || '',
+                uvProtection: product.specifications?.uvProtection || ''
+            },
+            colors: product.colors?.length ? product.colors : [{ name: '', value: '#000000' }],
+            inStock: product.inStock !== false,
+            rating: String(product.rating || '0'),
+            reviews: String(product.reviews || '0')
+        })
+        setShowAddProduct(true)
+    }
+
+    const closeProductModal = () => {
+        setShowAddProduct(false)
+        resetProductForm()
+    }
+
+    const handleAddImageUrl = () => {
+        if (!newImageUrl.trim()) return
+        const convertedUrl = convertGoogleDriveLink(newImageUrl.trim())
+        setProductForm(prev => ({
+            ...prev,
+            images: [...prev.images, convertedUrl]
+        }))
+        setNewImageUrl('')
+    }
+
+    const handleRemoveImage = (index: number) => {
+        setProductForm(prev => ({
+            ...prev,
+            images: prev.images.filter((_, i) => i !== index)
+        }))
+    }
+
+    const handleSetMainImage = (url: string) => {
+        setProductForm(prev => ({ ...prev, image: url }))
+    }
+
+    const handleAddFeature = () => {
+        setProductForm(prev => ({
+            ...prev,
+            features: [...prev.features, '']
+        }))
+    }
+
+    const handleRemoveFeature = (index: number) => {
+        setProductForm(prev => ({
+            ...prev,
+            features: prev.features.filter((_, i) => i !== index)
+        }))
+    }
+
+    const handleFeatureChange = (index: number, value: string) => {
+        setProductForm(prev => ({
+            ...prev,
+            features: prev.features.map((f, i) => i === index ? value : f)
+        }))
+    }
+
+    const handleAddColor = () => {
+        setProductForm(prev => ({
+            ...prev,
+            colors: [...prev.colors, { name: '', value: '#000000' }]
+        }))
+    }
+
+    const handleRemoveColor = (index: number) => {
+        setProductForm(prev => ({
+            ...prev,
+            colors: prev.colors.filter((_, i) => i !== index)
+        }))
+    }
+
+    const handleColorChange = (index: number, field: 'name' | 'value', value: string) => {
+        setProductForm(prev => ({
+            ...prev,
+            colors: prev.colors.map((c, i) => i === index ? { ...c, [field]: value } : c)
+        }))
+    }
+
+    const handleSubmitProduct = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setFormError('')
+        setFormSuccess('')
+
+        // Validation
+        if (!productForm.name.trim()) {
+            setFormError('Product name is required')
+            return
+        }
+        if (!productForm.price || isNaN(Number(productForm.price)) || Number(productForm.price) <= 0) {
+            setFormError('Valid price is required')
+            return
+        }
+        if (!productForm.image.trim()) {
+            setFormError('Main product image is required')
+            return
+        }
+        if (!productForm.description.trim()) {
+            setFormError('Description is required')
+            return
+        }
+
+        setSaving(true)
+        const token = localStorage.getItem('adminToken')
+
+        // Prepare data
+        const productData = {
+            name: productForm.name.trim(),
+            category: productForm.category,
+            price: Number(productForm.price),
+            image: convertGoogleDriveLink(productForm.image.trim()),
+            images: productForm.images.filter(img => img.trim()),
+            description: productForm.description.trim(),
+            detailedDescription: productForm.detailedDescription.trim(),
+            features: productForm.features.filter(f => f.trim()),
+            specifications: productForm.specifications,
+            colors: productForm.colors.filter(c => c.name.trim()),
+            inStock: productForm.inStock,
+            rating: Number(productForm.rating) || 0,
+            reviews: Number(productForm.reviews) || 0
+        }
+
+        try {
+            const url = editingProduct
+                ? `${API_URL}/products/${editingProduct._id || editingProduct.id}`
+                : `${API_URL}/products`
+
+            const response = await fetch(url, {
+                method: editingProduct ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(productData)
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                setFormSuccess(editingProduct ? 'Product updated successfully!' : 'Product added successfully!')
+                fetchData()
+                setTimeout(() => {
+                    closeProductModal()
+                }, 1500)
+            } else {
+                setFormError(data.message || 'Failed to save product')
+            }
+        } catch (error) {
+            console.error('Error saving product:', error)
+            setFormError('Network error. Please try again.')
+        } finally {
+            setSaving(false)
         }
     }
 
@@ -289,7 +568,7 @@ export const AdminDashboard = () => {
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-[600] text-black">Manage Products</h2>
                             <Button
-                                onClick={() => setShowAddProduct(true)}
+                                onClick={openAddProductModal}
                                 className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
                             >
                                 <Plus className="mr-2 h-4 w-4" />
@@ -306,11 +585,20 @@ export const AdminDashboard = () => {
                                                 src={product.image}
                                                 alt={product.name}
                                                 className="w-full h-full object-cover mix-blend-multiply"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=No+Image'
+                                                }}
                                             />
                                         </div>
                                         <h3 className="font-[600] text-black mb-1">{product.name}</h3>
                                         <p className="text-sm text-black/60 mb-2">{product.category}</p>
-                                        <p className="text-lg font-[600] text-amber-600 mb-4">${product.price}</p>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <p className="text-lg font-[600] text-amber-600">${product.price}</p>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.inStock !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                {product.inStock !== false ? 'In Stock' : 'Out of Stock'}
+                                            </span>
+                                        </div>
                                         <div className="flex gap-2">
                                             <Button
                                                 variant="outline"
@@ -324,7 +612,7 @@ export const AdminDashboard = () => {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => alert('Edit functionality coming soon! For now, use the API directly.')}
+                                                onClick={() => openEditProductModal(product)}
                                                 className="flex-1 border-amber-200 hover:border-amber-400 hover:bg-amber-50"
                                             >
                                                 <Edit className="mr-1 h-3 w-3" />
@@ -396,22 +684,497 @@ export const AdminDashboard = () => {
                 )}
             </div>
 
-            {/* Add Product Modal - Placeholder */}
+            {/* Add/Edit Product Modal */}
             {showAddProduct && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <Card className="w-full max-w-2xl border-amber-200/60 rounded-2xl max-h-[90vh] overflow-y-auto">
-                        <CardContent className="p-6">
-                            <h2 className="text-2xl font-[600] text-black mb-4">Add New Product</h2>
-                            <p className="text-black/60 mb-4">
-                                Product form will be implemented here. For now, use the API directly or seed script.
-                            </p>
+                    <Card className="w-full max-w-4xl border-amber-200/60 rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-amber-200/60 flex items-center justify-between">
+                            <h2 className="text-2xl font-[600] text-black">
+                                {editingProduct ? 'Edit Product' : 'Add New Product'}
+                            </h2>
                             <Button
-                                onClick={() => setShowAddProduct(false)}
-                                className="bg-amber-600 text-white hover:bg-amber-700"
+                                variant="ghost"
+                                size="sm"
+                                onClick={closeProductModal}
+                                className="hover:bg-amber-50"
                             >
-                                Close
+                                <X className="h-5 w-5" />
                             </Button>
-                        </CardContent>
+                        </div>
+
+                        <form onSubmit={handleSubmitProduct} className="overflow-y-auto flex-1 p-6">
+                            {/* Error/Success Messages */}
+                            {formError && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+                                    <AlertCircle className="h-4 w-4" />
+                                    {formError}
+                                </div>
+                            )}
+                            {formSuccess && (
+                                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+                                    <Check className="h-4 w-4" />
+                                    {formSuccess}
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Left Column */}
+                                <div className="space-y-4">
+                                    {/* Basic Info */}
+                                    <div className="space-y-4">
+                                        <h3 className="font-[600] text-black border-b border-amber-200/60 pb-2">Basic Information</h3>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-black/70 mb-1">Product Name *</label>
+                                            <input
+                                                type="text"
+                                                value={productForm.name}
+                                                onChange={(e) => setProductForm(prev => ({ ...prev, name: e.target.value }))}
+                                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                placeholder="Enter product name"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">Category *</label>
+                                                <select
+                                                    value={productForm.category}
+                                                    onChange={(e) => setProductForm(prev => ({ ...prev, category: e.target.value }))}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                >
+                                                    <option value="Sunglasses">Sunglasses</option>
+                                                    <option value="Eyeglasses">Eyeglasses</option>
+                                                    <option value="Computer Glasses">Computer Glasses</option>
+                                                    <option value="Sports Glasses">Sports Glasses</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">Price ($) *</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={productForm.price}
+                                                    onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">Rating</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="5"
+                                                    value={productForm.rating}
+                                                    onChange={(e) => setProductForm(prev => ({ ...prev, rating: e.target.value }))}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">Reviews</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={productForm.reviews}
+                                                    onChange={(e) => setProductForm(prev => ({ ...prev, reviews: e.target.value }))}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                            <div className="flex items-end">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={productForm.inStock}
+                                                        onChange={(e) => setProductForm(prev => ({ ...prev, inStock: e.target.checked }))}
+                                                        className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                                                    />
+                                                    <span className="text-sm font-medium text-black/70">In Stock</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-black/70 mb-1">Short Description *</label>
+                                            <textarea
+                                                value={productForm.description}
+                                                onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
+                                                rows={2}
+                                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+                                                placeholder="Brief product description"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-black/70 mb-1">Detailed Description</label>
+                                            <textarea
+                                                value={productForm.detailedDescription}
+                                                onChange={(e) => setProductForm(prev => ({ ...prev, detailedDescription: e.target.value }))}
+                                                rows={3}
+                                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+                                                placeholder="Detailed product description"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Features */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-[600] text-black">Features</h3>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleAddFeature}
+                                                className="border-amber-200 hover:border-amber-400"
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Add
+                                            </Button>
+                                        </div>
+                                        {productForm.features.map((feature, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={feature}
+                                                    onChange={(e) => handleFeatureChange(index, e.target.value)}
+                                                    className="flex-1 px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="Feature description"
+                                                />
+                                                {productForm.features.length > 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleRemoveFeature(index)}
+                                                        className="border-red-200 hover:border-red-400 text-red-600"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Colors */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-[600] text-black">Colors</h3>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleAddColor}
+                                                className="border-amber-200 hover:border-amber-400"
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Add
+                                            </Button>
+                                        </div>
+                                        {productForm.colors.map((color, index) => (
+                                            <div key={index} className="flex gap-2 items-center">
+                                                <input
+                                                    type="text"
+                                                    value={color.name}
+                                                    onChange={(e) => handleColorChange(index, 'name', e.target.value)}
+                                                    className="flex-1 px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="Color name"
+                                                />
+                                                <input
+                                                    type="color"
+                                                    value={color.value}
+                                                    onChange={(e) => handleColorChange(index, 'value', e.target.value)}
+                                                    className="w-10 h-10 border border-amber-200 rounded-lg cursor-pointer"
+                                                />
+                                                {productForm.colors.length > 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleRemoveColor(index)}
+                                                        className="border-red-200 hover:border-red-400 text-red-600"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Right Column */}
+                                <div className="space-y-4">
+                                    {/* Images Section */}
+                                    <div className="space-y-4">
+                                        <h3 className="font-[600] text-black border-b border-amber-200/60 pb-2">
+                                            <div className="flex items-center gap-2">
+                                                <Image className="h-4 w-4" />
+                                                Product Images
+                                            </div>
+                                        </h3>
+
+                                        <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-200/60">
+                                            <p className="text-sm text-black/60 mb-3">
+                                                <strong>How to add images:</strong> Upload your images to Google Drive,
+                                                make them public (Anyone with the link), and paste the share link below.
+                                            </p>
+
+                                            {/* Main Image */}
+                                            <div className="mb-4">
+                                                <label className="block text-sm font-medium text-black/70 mb-1">
+                                                    Main Image URL *
+                                                </label>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={productForm.image}
+                                                        onChange={(e) => setProductForm(prev => ({ ...prev, image: e.target.value }))}
+                                                        className="flex-1 px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                        placeholder="Paste Google Drive or image URL"
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => setProductForm(prev => ({ ...prev, image: convertGoogleDriveLink(prev.image) }))}
+                                                        className="border-amber-200 hover:border-amber-400"
+                                                    >
+                                                        <Link className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            {/* Main Image Preview */}
+                                            {productForm.image && (
+                                                <div className="mb-4">
+                                                    <p className="text-sm font-medium text-black/70 mb-2">Main Image Preview:</p>
+                                                    <div className="w-32 h-24 bg-white rounded-lg border border-amber-200 overflow-hidden">
+                                                        <img
+                                                            src={convertGoogleDriveLink(productForm.image)}
+                                                            alt="Main preview"
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/128x96?text=Invalid+URL'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Additional Images */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">
+                                                    Additional Images
+                                                </label>
+                                                <div className="flex gap-2 mb-3">
+                                                    <input
+                                                        type="text"
+                                                        value={newImageUrl}
+                                                        onChange={(e) => setNewImageUrl(e.target.value)}
+                                                        className="flex-1 px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                        placeholder="Paste image URL and click Add"
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault()
+                                                                handleAddImageUrl()
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        onClick={handleAddImageUrl}
+                                                        className="bg-amber-600 text-white hover:bg-amber-700"
+                                                    >
+                                                        <Plus className="h-4 w-4 mr-1" />
+                                                        Add
+                                                    </Button>
+                                                </div>
+
+                                                {/* Additional Images Grid */}
+                                                {productForm.images.length > 0 && (
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {productForm.images.map((img, index) => (
+                                                            <div key={index} className="relative group">
+                                                                <div className="aspect-square bg-white rounded-lg border border-amber-200 overflow-hidden">
+                                                                    <img
+                                                                        src={img}
+                                                                        alt={`Product ${index + 1}`}
+                                                                        className="w-full h-full object-cover"
+                                                                        onError={(e) => {
+                                                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/100?text=Error'
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                                                                    <Button
+                                                                        type="button"
+                                                                        size="sm"
+                                                                        onClick={() => handleSetMainImage(img)}
+                                                                        className="bg-green-600 hover:bg-green-700 text-white p-1 h-7 w-7"
+                                                                        title="Set as main image"
+                                                                    >
+                                                                        <Check className="h-3 w-3" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        type="button"
+                                                                        size="sm"
+                                                                        onClick={() => handleRemoveImage(index)}
+                                                                        className="bg-red-600 hover:bg-red-700 text-white p-1 h-7 w-7"
+                                                                        title="Remove image"
+                                                                    >
+                                                                        <X className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Specifications */}
+                                    <div className="space-y-3">
+                                        <h3 className="font-[600] text-black border-b border-amber-200/60 pb-2">Specifications</h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">Frame Width</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.frameWidth}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, frameWidth: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., 140mm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">Lens Width</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.lensWidth}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, lensWidth: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., 52mm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">Bridge Width</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.bridgeWidth}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, bridgeWidth: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., 18mm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">Temple Length</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.templeLength}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, templeLength: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., 145mm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">Material</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.material}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, material: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., Titanium"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">Weight</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.weight}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, weight: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., 25g"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">Lens Type</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.lensType}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, lensType: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., Polarized"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-black/70 mb-1">UV Protection</label>
+                                                <input
+                                                    type="text"
+                                                    value={productForm.specifications.uvProtection}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        specifications: { ...prev.specifications, uvProtection: e.target.value }
+                                                    }))}
+                                                    className="w-full px-3 py-1.5 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="e.g., UV400"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Form Actions */}
+                            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-amber-200/60">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={closeProductModal}
+                                    className="border-amber-200 hover:border-amber-400"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 min-w-[120px]"
+                                >
+                                    {saving ? (
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            Saving...
+                                        </span>
+                                    ) : (
+                                        editingProduct ? 'Update Product' : 'Add Product'
+                                    )}
+                                </Button>
+                            </div>
+                        </form>
                     </Card>
                 </div>
             )}

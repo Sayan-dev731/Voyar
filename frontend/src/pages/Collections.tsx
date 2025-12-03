@@ -6,6 +6,33 @@ import { Card, CardContent } from '@/components/ui/card';
 import { API_URL } from '@/config/api';
 import type { Product } from '@/types/product';
 
+// Helper function to convert Google Drive link to direct image URL
+const convertGoogleDriveLink = (url: string): string => {
+    if (!url) return url;
+
+    if (url.includes('drive.google.com/thumbnail')) {
+        return url;
+    }
+
+    const drivePatterns = [
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/,
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)/,
+        /https:\/\/drive\.google\.com\/open\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?export=view&id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/thumbnail\?id=([^&]+)/
+    ];
+
+    for (const pattern of drivePatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+        }
+    }
+
+    return url;
+};
+
 export default function Collections() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState<Product[]>([]);
@@ -255,9 +282,12 @@ const ProductCard = ({ product, navigate }: ProductCardProps) => {
             <CardContent className="p-0">
                 <div className="aspect-[4/3] bg-gradient-to-br from-amber-50 to-white overflow-hidden">
                     <img
-                        src={product.image}
+                        src={convertGoogleDriveLink(product.image)}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 mix-blend-multiply"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=No+Image'
+                        }}
                     />
                 </div>
                 <div className="p-6">

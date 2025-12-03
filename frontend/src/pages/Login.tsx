@@ -4,6 +4,7 @@ import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { API_URL } from '@/config/api';
 
 export default function Login() {
@@ -13,6 +14,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const { login } = useAuth();
+    const { syncCartWithServer } = useCart();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,6 +37,10 @@ export default function Login() {
             }
 
             login(data.token, data.user);
+
+            // Sync cart with server after login
+            await syncCartWithServer();
+
             navigate('/');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
