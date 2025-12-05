@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     customerName: {
         type: String,
         required: true
@@ -41,6 +45,8 @@ const orderSchema = new mongoose.Schema({
         default: 'pending'
     },
     shippingAddress: {
+        name: String,
+        phone: String,
         street: String,
         city: String,
         state: String,
@@ -49,13 +55,16 @@ const orderSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['card', 'paypal', 'cash'],
+        enum: ['card', 'paypal', 'cash', 'demo'],
         default: 'card'
     },
     paymentStatus: {
         type: String,
         enum: ['pending', 'paid', 'failed'],
         default: 'pending'
+    },
+    paymentId: {
+        type: String
     },
     notes: String
 }, {

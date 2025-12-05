@@ -2,17 +2,23 @@ import express from 'express';
 import {
     createOrder,
     getAllOrders,
+    getUserOrders,
     getOrderById,
     updateOrderStatus,
     deleteOrder,
     getOrderStats
 } from '../controllers/orderController.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Public routes
 router.post('/', createOrder);
+
+// User routes - must be before :id route
+router.get('/my-orders', protect, getUserOrders);
+
+// Public route to get single order
 router.get('/:id', getOrderById);
 
 // Admin routes

@@ -43,12 +43,25 @@ interface Order {
             name: string;
             image: string;
             price: number;
-        };
+        } | string;
+        productName: string;
+        productImage: string;
         quantity: number;
+        price: number;
     }>;
     totalAmount: number;
     status: string;
+    paymentStatus: string;
     createdAt: string;
+    shippingAddress: {
+        name: string;
+        phone: string;
+        street: string;
+        city: string;
+        state: string;
+        zipCode: string;
+        country: string;
+    };
 }
 
 type TabType = 'profile' | 'addresses' | 'orders' | 'security';
@@ -101,30 +114,44 @@ export default function Profile() {
             navigate('/login');
             return;
         }
-        fetchProfile();
-    }, [token, navigate]);
 
-    const fetchProfile = async () => {
-        try {
-            const response = await fetch(`${API_URL}/users/profile`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setAddresses(data.user.addresses || []);
-                setOrders(data.user.orders || []);
-                setProfileForm({
-                    name: data.user.name || '',
-                    phone: data.user.phone || '',
-                    gender: data.user.gender || '',
-                    dateOfBirth: data.user.dateOfBirth ? data.user.dateOfBirth.split('T')[0] : '',
+        const loadData = async () => {
+            // Fetch profile
+            try {
+                const response = await fetch(`${API_URL}/users/profile`, {
+                    headers: { Authorization: `Bearer ${token}` },
                 });
+                const data = await response.json();
+                if (response.ok) {
+                    setAddresses(data.user.addresses || []);
+                    setProfileForm({
+                        name: data.user.name || '',
+                        phone: data.user.phone || '',
+                        gender: data.user.gender || '',
+                        dateOfBirth: data.user.dateOfBirth ? data.user.dateOfBirth.split('T')[0] : '',
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch profile:', error);
+                setMessage({ type: 'error', text: 'Failed to load profile data' });
             }
-        } catch (error) {
-            console.error('Failed to fetch profile:', error);
-            setMessage({ type: 'error', text: 'Failed to load profile data' });
-        }
-    };
+
+            // Fetch orders
+            try {
+                const response = await fetch(`${API_URL}/orders/my-orders`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setOrders(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch orders:', error);
+            }
+        };
+
+        loadData();
+    }, [token, navigate]);
 
     const handleUpdateProfile = async () => {
         setLoading(true);
@@ -171,6 +198,8 @@ export default function Profile() {
                 setIsAddingAddress(false);
                 resetAddressForm();
                 setMessage({ type: 'success', text: 'Address added successfully!' });
+                // Refresh profile to sync addresses across app
+                await refreshProfile();
             } else {
                 setMessage({ type: 'error', text: data.message });
             }
@@ -199,6 +228,8 @@ export default function Profile() {
                 setEditingAddressId(null);
                 resetAddressForm();
                 setMessage({ type: 'success', text: 'Address updated successfully!' });
+                // Refresh profile to sync addresses across app
+                await refreshProfile();
             } else {
                 setMessage({ type: 'error', text: data.message });
             }
@@ -223,6 +254,8 @@ export default function Profile() {
             if (response.ok) {
                 setAddresses(data.addresses);
                 setMessage({ type: 'success', text: 'Address deleted successfully!' });
+                // Refresh profile to sync addresses across app
+                await refreshProfile();
             } else {
                 setMessage({ type: 'error', text: data.message });
             }
@@ -371,10 +404,16 @@ export default function Profile() {
                                         return (
                                             <button
                                                 key={tab.id}
-                                                onClick={() => setActiveTab(tab.id)}
+                                                onClick={() => {
+                                                    if (tab.id === 'orders') {
+                                                        navigate('/orders');
+                                                    } else {
+                                                        setActiveTab(tab.id);
+                                                    }
+                                                }}
                                                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${activeTab === tab.id
-                                                        ? 'bg-amber-100 text-amber-700'
-                                                        : 'text-black/60 hover:bg-amber-50 hover:text-amber-600'
+                                                    ? 'bg-amber-100 text-amber-700'
+                                                    : 'text-black/60 hover:bg-amber-50 hover:text-amber-600'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
@@ -714,9 +753,9 @@ export default function Profile() {
                                                                 </p>
                                                             </div>
                                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                                                                    order.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
-                                                                        order.status === 'processing' ? 'bg-amber-100 text-amber-700' :
-                                                                            'bg-gray-100 text-gray-700'
+                                                                order.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
+                                                                    order.status === 'processing' ? 'bg-amber-100 text-amber-700' :
+                                                                        'bg-gray-100 text-gray-700'
                                                                 }`}>
                                                                 {order.status}
                                                             </span>

@@ -199,7 +199,10 @@ export const Cart = () => {
                                     </div>
                                 </div>
 
-                                <Button className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 text-base font-medium shadow-lg shadow-amber-200 mb-3">
+                                <Button
+                                    onClick={() => navigate('/checkout')}
+                                    className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 text-base font-medium shadow-lg shadow-amber-200 mb-3"
+                                >
                                     Proceed to Checkout
                                 </Button>
 

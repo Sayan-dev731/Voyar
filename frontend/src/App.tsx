@@ -4,6 +4,8 @@ import { Footer } from './components/Footer'
 import { Home } from './pages/Home'
 import { ProductDetail } from './pages/ProductDetail'
 import { Cart } from './pages/Cart'
+import Checkout from './pages/Checkout'
+import Orders from './pages/Orders'
 import { AdminLogin } from './pages/AdminLogin'
 import { AdminDashboard } from './pages/AdminDashboard'
 import Login from './pages/Login'
@@ -48,6 +50,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/orders" element={<Orders />} />
               <Route path="/collections" element={<Collections />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

@@ -14,7 +14,18 @@ import {
     Image,
     Link,
     AlertCircle,
-    Check
+    Check,
+    Settings,
+    Shield,
+    RefreshCw,
+    Calendar,
+    Mail,
+    Phone,
+    Clock,
+    Activity,
+    UserCheck,
+    UserX,
+    Download
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -25,6 +36,7 @@ interface Order {
     _id: string
     customerName: string
     customerEmail: string
+    customerPhone?: string
     items: Array<{
         productName: string
         quantity: number
@@ -32,7 +44,32 @@ interface Order {
     }>
     totalAmount: number
     status: string
+    paymentStatus?: string
+    paymentMethod?: string
+    paymentId?: string
+    shippingAddress?: {
+        name: string
+        phone: string
+        street: string
+        city: string
+        state: string
+        zipCode: string
+        country: string
+    }
     createdAt: string
+}
+
+interface User {
+    _id: string
+    name: string
+    email: string
+    phone?: string
+    isVerified: boolean
+    createdAt: string
+    addresses?: Array<{
+        city: string
+        state: string
+    }>
 }
 
 interface Stats {
@@ -125,9 +162,10 @@ const convertGoogleDriveLink = (url: string): string => {
 
 export const AdminDashboard = () => {
     const navigate = useNavigate()
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders'>('overview')
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'settings'>('overview')
     const [products, setProducts] = useState<Product[]>([])
     const [orders, setOrders] = useState<Order[]>([])
+    const [users, setUsers] = useState<User[]>([])
     const [stats, setStats] = useState<Stats>({
         totalOrders: 0,
         pendingOrders: 0,
@@ -142,6 +180,9 @@ export const AdminDashboard = () => {
     const [formError, setFormError] = useState('')
     const [formSuccess, setFormSuccess] = useState('')
     const [saving, setSaving] = useState(false)
+    const [showChangePassword, setShowChangePassword] = useState(false)
+    const [currentPassword, setCurrentPassword] = useState('')
+    const [newPassword, setNewPassword] = useState('')
 
     useEffect(() => {
         const token = localStorage.getItem('adminToken')
@@ -168,6 +209,15 @@ export const AdminDashboard = () => {
             if (ordersRes.ok) {
                 const ordersData = await ordersRes.json()
                 setOrders(ordersData)
+            }
+
+            // Fetch users
+            const usersRes = await fetch(`${API_URL}/admin/users`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            if (usersRes.ok) {
+                const usersData = await usersRes.json()
+                setUsers(usersData.users || [])
             }
 
             // Fetch stats
@@ -227,6 +277,79 @@ export const AdminDashboard = () => {
         }
     }
 
+    // Refresh data
+    const handleRefresh = () => {
+        fetchData()
+    }
+
+    // Export data to CSV
+    const exportToCSV = (type: 'products' | 'orders' | 'users') => {
+        let csvContent = ''
+        let filename = ''
+
+        if (type === 'products') {
+            csvContent = 'ID,Name,Category,Price,Status\n'
+            products.forEach(p => {
+                csvContent += `"${p._id || p.id}","${p.name}","${p.category}","${p.price}","${p.inStock ? 'In Stock' : 'Out of Stock'}"\n`
+            })
+            filename = 'products_export.csv'
+        } else if (type === 'orders') {
+            csvContent = 'Order ID,Customer,Email,Total,Status,Date\n'
+            orders.forEach(o => {
+                csvContent += `"${o._id}","${o.customerName || 'N/A'}","${o.customerEmail || 'N/A'}","₹${o.totalAmount}","${o.status}","${new Date(o.createdAt).toLocaleDateString()}"\n`
+            })
+            filename = 'orders_export.csv'
+        } else if (type === 'users') {
+            csvContent = 'ID,Name,Email,Phone,Verified,Joined\n'
+            users.forEach(u => {
+                csvContent += `"${u._id}","${u.name}","${u.email}","${u.phone || 'N/A'}","${u.isVerified ? 'Yes' : 'No'}","${new Date(u.createdAt).toLocaleDateString()}"\n`
+            })
+            filename = 'users_export.csv'
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = filename
+        link.click()
+    }
+
+    // Change admin password
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword) {
+            alert('Please fill in both password fields')
+            return
+        }
+        if (newPassword.length < 6) {
+            alert('New password must be at least 6 characters')
+            return
+        }
+
+        const token = localStorage.getItem('adminToken')
+        try {
+            const response = await fetch(`${API_URL}/admin/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            })
+            const data = await response.json()
+            if (response.ok) {
+                alert('Password changed successfully!')
+                setCurrentPassword('')
+                setNewPassword('')
+                setShowChangePassword(false)
+            } else {
+                alert(data.message || 'Failed to change password')
+            }
+        } catch (error) {
+            console.error('Error changing password:', error)
+            alert('Error changing password')
+        }
+    }
+
     // Product Form Handlers
     const resetProductForm = () => {
         setProductForm(initialProductForm)
@@ -242,6 +365,7 @@ export const AdminDashboard = () => {
     }
 
     const openEditProductModal = (product: Product) => {
+        console.log('Opening edit modal for product:', product._id || product.id, product.name)
         setEditingProduct(product)
         setProductForm({
             name: product.name || '',
@@ -267,6 +391,8 @@ export const AdminDashboard = () => {
             rating: String(product.rating || '0'),
             reviews: String(product.reviews || '0')
         })
+        setFormError('')
+        setFormSuccess('')
         setShowAddProduct(true)
     }
 
@@ -382,9 +508,12 @@ export const AdminDashboard = () => {
         }
 
         try {
+            const productId = editingProduct?._id || editingProduct?.id
             const url = editingProduct
-                ? `${API_URL}/products/${editingProduct._id || editingProduct.id}`
+                ? `${API_URL}/products/${productId}`
                 : `${API_URL}/products`
+
+            console.log('Submitting product:', editingProduct ? 'UPDATE' : 'CREATE', url, productData)
 
             const response = await fetch(url, {
                 method: editingProduct ? 'PUT' : 'POST',
@@ -396,10 +525,11 @@ export const AdminDashboard = () => {
             })
 
             const data = await response.json()
+            console.log('Response:', response.status, data)
 
             if (response.ok) {
                 setFormSuccess(editingProduct ? 'Product updated successfully!' : 'Product added successfully!')
-                fetchData()
+                await fetchData() // Wait for data to refresh
                 setTimeout(() => {
                     closeProductModal()
                 }, 1500)
@@ -432,14 +562,24 @@ export const AdminDashboard = () => {
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <h1 className="text-2xl font-[600] text-black">Voyar Admin</h1>
-                        <Button
-                            variant="ghost"
-                            onClick={handleLogout}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Logout
-                        </Button>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="ghost"
+                                onClick={handleRefresh}
+                                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                title="Refresh Data"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={handleLogout}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Logout
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -476,6 +616,26 @@ export const AdminDashboard = () => {
                     >
                         <Users className="mr-2 h-4 w-4" />
                         Orders ({orders.length})
+                    </Button>
+                    <Button
+                        onClick={() => setActiveTab('users')}
+                        className={`${activeTab === 'users'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-white text-black/60 hover:bg-amber-50'
+                            }`}
+                    >
+                        <Users className="mr-2 h-4 w-4" />
+                        Users ({users.length})
+                    </Button>
+                    <Button
+                        onClick={() => setActiveTab('settings')}
+                        className={`${activeTab === 'settings'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-white text-black/60 hover:bg-amber-50'
+                            }`}
+                    >
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
                     </Button>
                 </div>
 
@@ -642,24 +802,45 @@ export const AdminDashboard = () => {
                             {orders.map((order) => (
                                 <Card key={order._id} className="border-amber-200/60 rounded-2xl">
                                     <CardContent className="p-6">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex items-center gap-2 mb-2 flex-wrap">
                                                     <h3 className="font-[600] text-black">{order.customerName}</h3>
                                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
                                                         order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
                                                             order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
-                                                                'bg-orange-100 text-orange-700'
+                                                                order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                                    'bg-orange-100 text-orange-700'
                                                         }`}>
                                                         {order.status}
                                                     </span>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                                                        order.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'
+                                                        }`}>
+                                                        {order.paymentStatus || 'pending'}
+                                                    </span>
                                                 </div>
-                                                <p className="text-sm text-black/60 mb-2">{order.customerEmail}</p>
+                                                <p className="text-sm text-black/60 mb-1">{order.customerEmail}</p>
+                                                {order.customerPhone && (
+                                                    <p className="text-sm text-black/60 mb-2">{order.customerPhone}</p>
+                                                )}
                                                 <p className="text-sm text-black/60">
-                                                    {order.items.length} items • ${order.totalAmount}
+                                                    {order.items.length} items • ${order.totalAmount.toFixed(2)}
                                                 </p>
+                                                {order.shippingAddress && (
+                                                    <p className="text-xs text-black/40 mt-2">
+                                                        📍 {order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.zipCode}
+                                                    </p>
+                                                )}
                                                 <p className="text-xs text-black/40 mt-1">
-                                                    {new Date(order.createdAt).toLocaleDateString()}
+                                                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
                                                 </p>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
@@ -679,6 +860,239 @@ export const AdminDashboard = () => {
                                     </CardContent>
                                 </Card>
                             ))}
+                            {orders.length === 0 && (
+                                <div className="text-center py-12 text-black/40">
+                                    <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>No orders yet</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                            <Button
+                                onClick={() => exportToCSV('orders')}
+                                className="bg-amber-600 hover:bg-amber-700 text-white"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Export Orders
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Users Tab */}
+                {activeTab === 'users' && (
+                    <div>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-[600] text-black">Manage Users</h2>
+                            <Button
+                                onClick={() => exportToCSV('users')}
+                                className="bg-amber-600 hover:bg-amber-700 text-white"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Export Users
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {users.map((user) => (
+                                <Card key={user._id} className="border-amber-200/60 rounded-2xl hover:shadow-lg transition-shadow">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-[600] text-black truncate">{user.name}</h3>
+                                                    {user.isVerified ? (
+                                                        <UserCheck className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                                    ) : (
+                                                        <UserX className="h-4 w-4 text-red-600 flex-shrink-0" />
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-black/60 flex items-center gap-1 mt-1 truncate">
+                                                    <Mail className="h-3 w-3" />
+                                                    {user.email}
+                                                </p>
+                                                {user.phone && (
+                                                    <p className="text-sm text-black/60 flex items-center gap-1 mt-1">
+                                                        <Phone className="h-3 w-3" />
+                                                        {user.phone}
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-black/40 flex items-center gap-1 mt-2">
+                                                    <Calendar className="h-3 w-3" />
+                                                    Joined {new Date(user.createdAt).toLocaleDateString('en-IN', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        year: 'numeric'
+                                                    })}
+                                                </p>
+                                                <div className="flex gap-2 mt-3">
+                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${user.isVerified
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : 'bg-red-100 text-red-700'
+                                                        }`}>
+                                                        {user.isVerified ? 'Verified' : 'Unverified'}
+                                                    </span>
+                                                    {user.addresses && user.addresses.length > 0 && (
+                                                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                                            {user.addresses.length} Address{user.addresses.length > 1 ? 'es' : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                        {users.length === 0 && (
+                            <div className="text-center py-12 text-black/40">
+                                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>No users found</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Settings Tab */}
+                {activeTab === 'settings' && (
+                    <div>
+                        <h2 className="text-2xl font-[600] text-black mb-6">Admin Settings</h2>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Admin Profile */}
+                            <Card className="border-amber-200/60 rounded-2xl">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Shield className="h-5 w-5 text-amber-600" />
+                                        <h3 className="text-lg font-[600] text-black">Admin Profile</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+                                            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                A
+                                            </div>
+                                            <div>
+                                                <p className="font-[600] text-black">Administrator</p>
+                                                <p className="text-sm text-black/60">Full Access</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-black/60">
+                                            <p className="flex items-center gap-2 py-1">
+                                                <Clock className="h-4 w-4" />
+                                                Session started: {new Date().toLocaleTimeString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Security Settings */}
+                            <Card className="border-amber-200/60 rounded-2xl">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Shield className="h-5 w-5 text-amber-600" />
+                                        <h3 className="text-lg font-[600] text-black">Security</h3>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <Button
+                                            onClick={() => setShowChangePassword(!showChangePassword)}
+                                            variant="outline"
+                                            className="w-full justify-start border-amber-200 hover:bg-amber-50"
+                                        >
+                                            Change Password
+                                        </Button>
+                                        {showChangePassword && (
+                                            <div className="space-y-3 p-4 bg-amber-50/50 rounded-lg">
+                                                <input
+                                                    type="password"
+                                                    placeholder="Current Password"
+                                                    value={currentPassword}
+                                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                                <input
+                                                    type="password"
+                                                    placeholder="New Password (min 6 characters)"
+                                                    value={newPassword}
+                                                    onChange={(e) => setNewPassword(e.target.value)}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                                <Button
+                                                    onClick={handleChangePassword}
+                                                    className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                                                >
+                                                    Update Password
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Quick Stats */}
+                            <Card className="border-amber-200/60 rounded-2xl">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Activity className="h-5 w-5 text-amber-600" />
+                                        <h3 className="text-lg font-[600] text-black">Quick Stats</h3>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3 bg-amber-50 rounded-lg text-center">
+                                            <p className="text-2xl font-[600] text-amber-600">{products.length}</p>
+                                            <p className="text-xs text-black/60">Products</p>
+                                        </div>
+                                        <div className="p-3 bg-amber-50 rounded-lg text-center">
+                                            <p className="text-2xl font-[600] text-amber-600">{orders.length}</p>
+                                            <p className="text-xs text-black/60">Orders</p>
+                                        </div>
+                                        <div className="p-3 bg-amber-50 rounded-lg text-center">
+                                            <p className="text-2xl font-[600] text-amber-600">{users.length}</p>
+                                            <p className="text-xs text-black/60">Users</p>
+                                        </div>
+                                        <div className="p-3 bg-amber-50 rounded-lg text-center">
+                                            <p className="text-2xl font-[600] text-amber-600">₹{stats.totalRevenue?.toLocaleString() || 0}</p>
+                                            <p className="text-xs text-black/60">Revenue</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Data Management */}
+                            <Card className="border-amber-200/60 rounded-2xl">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Download className="h-5 w-5 text-amber-600" />
+                                        <h3 className="text-lg font-[600] text-black">Data Export</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <Button
+                                            onClick={() => exportToCSV('products')}
+                                            variant="outline"
+                                            className="w-full justify-start border-amber-200 hover:bg-amber-50"
+                                        >
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Export Products (CSV)
+                                        </Button>
+                                        <Button
+                                            onClick={() => exportToCSV('orders')}
+                                            variant="outline"
+                                            className="w-full justify-start border-amber-200 hover:bg-amber-50"
+                                        >
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Export Orders (CSV)
+                                        </Button>
+                                        <Button
+                                            onClick={() => exportToCSV('users')}
+                                            variant="outline"
+                                            className="w-full justify-start border-amber-200 hover:bg-amber-50"
+                                        >
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Export Users (CSV)
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
                 )}

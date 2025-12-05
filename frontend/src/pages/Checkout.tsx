@@ -1,0 +1,777 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+    ArrowLeft,
+    MapPin,
+    Plus,
+    CreditCard,
+    Check,
+    Loader2,
+    Shield,
+    Package,
+    AlertCircle,
+    X
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { API_URL } from '@/config/api';
+
+interface Address {
+    _id: string;
+    name: string;
+    phone: string;
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    type: 'home' | 'work' | 'other';
+    isDefault: boolean;
+}
+
+interface AddressForm {
+    name: string;
+    phone: string;
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    type: 'home' | 'work' | 'other';
+    isDefault: boolean;
+}
+
+const initialAddressForm: AddressForm = {
+    name: '',
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'India',
+    type: 'home',
+    isDefault: false
+};
+
+// Helper function to convert Google Drive link
+const convertGoogleDriveLink = (url: string): string => {
+    if (!url) return url;
+    if (url.includes('drive.google.com/thumbnail')) return url;
+
+    const drivePatterns = [
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/,
+        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)/,
+        /https:\/\/drive\.google\.com\/uc\?id=([^&]+)/,
+    ];
+
+    for (const pattern of drivePatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+        }
+    }
+    return url;
+};
+
+export default function Checkout() {
+    const navigate = useNavigate();
+    const { items, totalPrice, clearCart } = useCart();
+    const { user, token, isAuthenticated, refreshProfile } = useAuth();
+
+    const [step, setStep] = useState<'address' | 'payment' | 'processing' | 'success'>('address');
+    const [addresses, setAddresses] = useState<Address[]>([]);
+    const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+    const [showAddAddress, setShowAddAddress] = useState(false);
+    const [addressForm, setAddressForm] = useState<AddressForm>(initialAddressForm);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [orderId, setOrderId] = useState('');
+
+    // Demo payment state
+    const [cardNumber, setCardNumber] = useState('');
+    const [cardExpiry, setCardExpiry] = useState('');
+    const [cardCvv, setCardCvv] = useState('');
+    const [cardName, setCardName] = useState('');
+
+    const totalAmount = totalPrice * 1.1; // Including 10% tax
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: '/checkout' } });
+            return;
+        }
+
+        if (items.length === 0) {
+            navigate('/cart');
+            return;
+        }
+
+        // Fetch addresses from API to ensure we have the latest data
+        const fetchAddresses = async () => {
+            try {
+                const response = await fetch(`${API_URL}/users/profile`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const userAddresses = data.user.addresses || [];
+                    setAddresses(userAddresses);
+                    const defaultAddr = userAddresses.find((a: Address) => a.isDefault);
+                    if (defaultAddr) {
+                        setSelectedAddress(defaultAddr);
+                    } else if (userAddresses.length > 0) {
+                        setSelectedAddress(userAddresses[0]);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch addresses:', error);
+                // Fallback to user context addresses
+                if (user?.addresses) {
+                    setAddresses(user.addresses);
+                    const defaultAddr = user.addresses.find(a => a.isDefault);
+                    if (defaultAddr) setSelectedAddress(defaultAddr);
+                }
+            }
+        };
+
+        fetchAddresses();
+    }, [isAuthenticated, items, navigate, token, user]);
+
+    const handleAddAddress = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            const response = await fetch(`${API_URL}/users/addresses`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(addressForm)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                await refreshProfile();
+                setShowAddAddress(false);
+                setAddressForm(initialAddressForm);
+                // Refresh addresses
+                if (data.addresses) {
+                    setAddresses(data.addresses);
+                    if (!selectedAddress && data.addresses.length > 0) {
+                        setSelectedAddress(data.addresses[data.addresses.length - 1]);
+                    }
+                }
+            } else {
+                setError(data.message || 'Failed to add address');
+            }
+        } catch (err) {
+            console.error('Add address error:', err);
+            setError('Network error. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleProceedToPayment = () => {
+        if (!selectedAddress) {
+            setError('Please select a delivery address');
+            return;
+        }
+        setError('');
+        setStep('payment');
+    };
+
+    const formatCardNumber = (value: string) => {
+        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+        const matches = v.match(/\d{4,16}/g);
+        const match = (matches && matches[0]) || '';
+        const parts = [];
+        for (let i = 0, len = match.length; i < len; i += 4) {
+            parts.push(match.substring(i, i + 4));
+        }
+        return parts.length ? parts.join(' ') : value;
+    };
+
+    const formatExpiry = (value: string) => {
+        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+        if (v.length >= 2) {
+            return v.substring(0, 2) + '/' + v.substring(2, 4);
+        }
+        return v;
+    };
+
+    const handleDemoPayment = async () => {
+        // Validate payment details
+        if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
+            setError('Please enter a valid card number (use 4242 4242 4242 4242 for demo)');
+            return;
+        }
+        if (!cardExpiry || cardExpiry.length < 5) {
+            setError('Please enter a valid expiry date');
+            return;
+        }
+        if (!cardCvv || cardCvv.length < 3) {
+            setError('Please enter a valid CVV');
+            return;
+        }
+        if (!cardName.trim()) {
+            setError('Please enter cardholder name');
+            return;
+        }
+
+        setError('');
+        setStep('processing');
+
+        // Simulate payment processing
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Create order
+        try {
+            const orderData = {
+                userId: user?.id,
+                customerName: user?.name,
+                customerEmail: user?.email,
+                customerPhone: selectedAddress?.phone || user?.phone,
+                items: items.map(item => ({
+                    product: item._id || item.id,
+                    productName: item.name,
+                    productImage: item.image,
+                    quantity: item.quantity,
+                    price: item.price,
+                    selectedColor: item.selectedColor
+                })),
+                totalAmount: totalAmount,
+                shippingAddress: {
+                    name: selectedAddress?.name,
+                    phone: selectedAddress?.phone,
+                    street: selectedAddress?.street,
+                    city: selectedAddress?.city,
+                    state: selectedAddress?.state,
+                    zipCode: selectedAddress?.zipCode,
+                    country: selectedAddress?.country
+                },
+                paymentMethod: 'card',
+                paymentStatus: 'paid',
+                paymentId: 'DEMO_' + Date.now(),
+                status: 'processing'
+            };
+
+            const response = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setOrderId(data._id);
+                clearCart();
+                setStep('success');
+            } else {
+                setError(data.message || 'Failed to create order');
+                setStep('payment');
+            }
+        } catch (err) {
+            console.error('Order creation error:', err);
+            setError('Failed to process order. Please try again.');
+            setStep('payment');
+        }
+    };
+
+    // Redirect if not authenticated or cart is empty
+    if (!isAuthenticated || items.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white">
+            <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Header */}
+                <div className="mb-8">
+                    <Button
+                        variant="ghost"
+                        onClick={() => step === 'address' ? navigate('/cart') : setStep('address')}
+                        className="mb-4 text-black/60 hover:text-amber-600 hover:bg-amber-50"
+                        disabled={step === 'processing' || step === 'success'}
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        {step === 'address' ? 'Back to Cart' : 'Back to Address'}
+                    </Button>
+                    <h1 className="text-4xl sm:text-5xl font-[600] text-black">Checkout</h1>
+                </div>
+
+                {/* Progress Steps */}
+                <div className="flex items-center justify-center gap-4 mb-8">
+                    <div className={`flex items-center gap-2 ${step === 'address' ? 'text-amber-600' : 'text-green-600'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'address' ? 'bg-amber-600 text-white' : 'bg-green-600 text-white'
+                            }`}>
+                            {step !== 'address' ? <Check className="h-4 w-4" /> : '1'}
+                        </div>
+                        <span className="text-sm font-medium">Address</span>
+                    </div>
+                    <div className="w-12 h-px bg-amber-200" />
+                    <div className={`flex items-center gap-2 ${step === 'payment' ? 'text-amber-600' :
+                        step === 'processing' || step === 'success' ? 'text-green-600' : 'text-black/40'
+                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'payment' ? 'bg-amber-600 text-white' :
+                            step === 'processing' || step === 'success' ? 'bg-green-600 text-white' : 'bg-gray-200 text-black/40'
+                            }`}>
+                            {step === 'success' ? <Check className="h-4 w-4" /> : '2'}
+                        </div>
+                        <span className="text-sm font-medium">Payment</span>
+                    </div>
+                    <div className="w-12 h-px bg-amber-200" />
+                    <div className={`flex items-center gap-2 ${step === 'success' ? 'text-green-600' : 'text-black/40'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'success' ? 'bg-green-600 text-white' : 'bg-gray-200 text-black/40'
+                            }`}>
+                            {step === 'success' ? <Check className="h-4 w-4" /> : '3'}
+                        </div>
+                        <span className="text-sm font-medium">Complete</span>
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
+                        <AlertCircle className="h-5 w-5" />
+                        {error}
+                    </div>
+                )}
+
+                <div className="grid lg:grid-cols-3 gap-8">
+                    {/* Main Content */}
+                    <div className="lg:col-span-2">
+                        {/* Address Step */}
+                        {step === 'address' && (
+                            <div className="space-y-6">
+                                <Card className="border-amber-200/60 rounded-2xl">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h2 className="text-xl font-[600] text-black flex items-center gap-2">
+                                                <MapPin className="h-5 w-5 text-amber-600" />
+                                                Delivery Address
+                                            </h2>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setShowAddAddress(true)}
+                                                className="border-amber-200 hover:border-amber-400"
+                                            >
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                Add New
+                                            </Button>
+                                        </div>
+
+                                        {addresses.length === 0 ? (
+                                            <div className="text-center py-8">
+                                                <MapPin className="h-12 w-12 text-amber-200 mx-auto mb-3" />
+                                                <p className="text-black/60 mb-4">No saved addresses</p>
+                                                <Button
+                                                    onClick={() => setShowAddAddress(true)}
+                                                    className="bg-amber-600 text-white hover:bg-amber-700"
+                                                >
+                                                    Add Address
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid gap-4">
+                                                {addresses.map((addr) => (
+                                                    <div
+                                                        key={addr._id}
+                                                        onClick={() => setSelectedAddress(addr)}
+                                                        className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedAddress?._id === addr._id
+                                                            ? 'border-amber-500 bg-amber-50'
+                                                            : 'border-amber-200/60 hover:border-amber-400'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className="font-medium text-black">{addr.name}</span>
+                                                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full uppercase">
+                                                                        {addr.type}
+                                                                    </span>
+                                                                    {addr.isDefault && (
+                                                                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                                                            Default
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-sm text-black/60">{addr.phone}</p>
+                                                                <p className="text-sm text-black/60 mt-1">
+                                                                    {addr.street}, {addr.city}, {addr.state} - {addr.zipCode}
+                                                                </p>
+                                                                <p className="text-sm text-black/60">{addr.country}</p>
+                                                            </div>
+                                                            {selectedAddress?._id === addr._id && (
+                                                                <Check className="h-5 w-5 text-amber-600" />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Button
+                                    onClick={handleProceedToPayment}
+                                    disabled={!selectedAddress}
+                                    className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 text-base font-medium shadow-lg shadow-amber-200"
+                                >
+                                    Continue to Payment
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Payment Step */}
+                        {step === 'payment' && (
+                            <div className="space-y-6">
+                                <Card className="border-amber-200/60 rounded-2xl">
+                                    <CardContent className="p-6">
+                                        <h2 className="text-xl font-[600] text-black flex items-center gap-2 mb-6">
+                                            <CreditCard className="h-5 w-5 text-amber-600" />
+                                            Payment Details
+                                        </h2>
+
+                                        <div className="bg-amber-50 p-4 rounded-xl mb-6">
+                                            <p className="text-sm text-amber-800">
+                                                <strong>Demo Mode:</strong> Use card number <code className="bg-amber-100 px-1 rounded">4242 4242 4242 4242</code> with any future expiry date and any 3-digit CVV.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">
+                                                    Card Number
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={cardNumber}
+                                                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                                                    maxLength={19}
+                                                    placeholder="4242 4242 4242 4242"
+                                                    className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-black/70 mb-1">
+                                                        Expiry Date
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={cardExpiry}
+                                                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                                                        maxLength={5}
+                                                        placeholder="MM/YY"
+                                                        className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-black/70 mb-1">
+                                                        CVV
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={cardCvv}
+                                                        onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                                        maxLength={4}
+                                                        placeholder="123"
+                                                        className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">
+                                                    Cardholder Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={cardName}
+                                                    onChange={(e) => setCardName(e.target.value)}
+                                                    placeholder="John Doe"
+                                                    className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Delivery Address Summary */}
+                                        <div className="mt-6 pt-6 border-t border-amber-200">
+                                            <h3 className="text-sm font-medium text-black/70 mb-2">Delivering to:</h3>
+                                            <p className="text-sm text-black">{selectedAddress?.name}</p>
+                                            <p className="text-sm text-black/60">
+                                                {selectedAddress?.street}, {selectedAddress?.city}, {selectedAddress?.state} - {selectedAddress?.zipCode}
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Button
+                                    onClick={handleDemoPayment}
+                                    className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 text-base font-medium shadow-lg shadow-amber-200"
+                                >
+                                    <Shield className="mr-2 h-5 w-5" />
+                                    Pay ${totalAmount.toFixed(2)}
+                                </Button>
+
+                                <p className="text-center text-xs text-black/50">
+                                    Your payment is secure and encrypted
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Processing Step */}
+                        {step === 'processing' && (
+                            <Card className="border-amber-200/60 rounded-2xl">
+                                <CardContent className="p-12 text-center">
+                                    <Loader2 className="h-16 w-16 animate-spin text-amber-600 mx-auto mb-6" />
+                                    <h2 className="text-2xl font-[600] text-black mb-2">Processing Payment</h2>
+                                    <p className="text-black/60">Please wait while we verify your payment...</p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Success Step */}
+                        {step === 'success' && (
+                            <Card className="border-amber-200/60 rounded-2xl">
+                                <CardContent className="p-12 text-center">
+                                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Check className="h-10 w-10 text-green-600" />
+                                    </div>
+                                    <h2 className="text-3xl font-[600] text-black mb-2">Order Confirmed!</h2>
+                                    <p className="text-black/60 mb-6">
+                                        Thank you for your purchase. Your order has been placed successfully.
+                                    </p>
+                                    {orderId && (
+                                        <p className="text-sm text-black/50 mb-6">
+                                            Order ID: <span className="font-mono text-amber-600">{orderId}</span>
+                                        </p>
+                                    )}
+                                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                        <Button
+                                            onClick={() => navigate('/orders')}
+                                            className="bg-amber-600 text-white hover:bg-amber-700"
+                                        >
+                                            <Package className="mr-2 h-4 w-4" />
+                                            View Orders
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => navigate('/')}
+                                            className="border-amber-200 hover:border-amber-400"
+                                        >
+                                            Continue Shopping
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+
+                    {/* Order Summary */}
+                    {step !== 'success' && (
+                        <div className="lg:col-span-1">
+                            <Card className="border-amber-200/60 rounded-2xl sticky top-24">
+                                <CardContent className="p-6">
+                                    <h2 className="text-xl font-[600] text-black mb-4">Order Summary</h2>
+
+                                    {/* Items */}
+                                    <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+                                        {items.map((item) => (
+                                            <div key={item._id || item.id} className="flex gap-3">
+                                                <div className="w-16 h-16 rounded-lg overflow-hidden bg-amber-50 flex-shrink-0">
+                                                    <img
+                                                        src={convertGoogleDriveLink(item.image)}
+                                                        alt={item.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-black truncate">{item.name}</p>
+                                                    <p className="text-xs text-black/50">Qty: {item.quantity}</p>
+                                                    <p className="text-sm font-medium text-amber-600">
+                                                        ${(item.price * item.quantity).toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="border-t border-amber-200 pt-4 space-y-2">
+                                        <div className="flex justify-between text-sm text-black/70">
+                                            <span>Subtotal</span>
+                                            <span>${totalPrice.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm text-black/70">
+                                            <span>Shipping</span>
+                                            <span className="text-green-600">Free</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm text-black/70">
+                                            <span>Tax (10%)</span>
+                                            <span>${(totalPrice * 0.1).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-lg font-[600] text-black pt-2 border-t border-amber-200">
+                                            <span>Total</span>
+                                            <span className="text-amber-600">${totalAmount.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Add Address Modal */}
+            {showAddAddress && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-lg border-amber-200/60 rounded-2xl">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-[600] text-black">Add New Address</h2>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowAddAddress(false)}
+                                >
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </div>
+
+                            <form onSubmit={handleAddAddress} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-black/70 mb-1">Full Name</label>
+                                        <input
+                                            type="text"
+                                            value={addressForm.name}
+                                            onChange={(e) => setAddressForm(prev => ({ ...prev, name: e.target.value }))}
+                                            required
+                                            className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-black/70 mb-1">Phone</label>
+                                        <input
+                                            type="tel"
+                                            value={addressForm.phone}
+                                            onChange={(e) => setAddressForm(prev => ({ ...prev, phone: e.target.value }))}
+                                            required
+                                            className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-black/70 mb-1">Street Address</label>
+                                    <input
+                                        type="text"
+                                        value={addressForm.street}
+                                        onChange={(e) => setAddressForm(prev => ({ ...prev, street: e.target.value }))}
+                                        required
+                                        className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-black/70 mb-1">City</label>
+                                        <input
+                                            type="text"
+                                            value={addressForm.city}
+                                            onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
+                                            required
+                                            className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-black/70 mb-1">State</label>
+                                        <input
+                                            type="text"
+                                            value={addressForm.state}
+                                            onChange={(e) => setAddressForm(prev => ({ ...prev, state: e.target.value }))}
+                                            required
+                                            className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-black/70 mb-1">PIN Code</label>
+                                        <input
+                                            type="text"
+                                            value={addressForm.zipCode}
+                                            onChange={(e) => setAddressForm(prev => ({ ...prev, zipCode: e.target.value }))}
+                                            required
+                                            className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-black/70 mb-1">Address Type</label>
+                                        <select
+                                            value={addressForm.type}
+                                            onChange={(e) => setAddressForm(prev => ({ ...prev, type: e.target.value as 'home' | 'work' | 'other' }))}
+                                            className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                        >
+                                            <option value="home">Home</option>
+                                            <option value="work">Work</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isDefault"
+                                        checked={addressForm.isDefault}
+                                        onChange={(e) => setAddressForm(prev => ({ ...prev, isDefault: e.target.checked }))}
+                                        className="w-4 h-4 text-amber-600 border-amber-300 rounded"
+                                    />
+                                    <label htmlFor="isDefault" className="text-sm text-black/70">
+                                        Set as default address
+                                    </label>
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setShowAddAddress(false)}
+                                        className="flex-1 border-amber-200"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex-1 bg-amber-600 text-white hover:bg-amber-700"
+                                    >
+                                        {loading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            'Save Address'
+                                        )}
+                                    </Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+        </div>
+    );
+}

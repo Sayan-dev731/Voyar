@@ -12,6 +12,18 @@ export const createOrder = async (req, res) => {
     }
 };
 
+// Get user's orders
+export const getUserOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({ userId: req.user.id })
+            .populate('items.product')
+            .sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Get all orders (Admin only)
 export const getAllOrders = async (req, res) => {
     try {
