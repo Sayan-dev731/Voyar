@@ -11,7 +11,7 @@ export const safeLocalStorage = {
             return null;
         }
     },
-    
+
     setItem: (key: string, value: string): void => {
         try {
             if (typeof window !== 'undefined' && window.localStorage) {
@@ -21,7 +21,7 @@ export const safeLocalStorage = {
             console.warn(`Error setting localStorage for key "${key}":`, error);
         }
     },
-    
+
     removeItem: (key: string): void => {
         try {
             if (typeof window !== 'undefined' && window.localStorage) {
