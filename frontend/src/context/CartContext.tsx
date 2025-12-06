@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import type { ReactNode } from 'react'
 import type { Product, CartItem } from '@/types/product'
 import { API_URL } from '@/config/api'
+import { safeLocalStorage } from '@/lib/storage'
 
 interface CartContextType {
     items: CartItem[]
@@ -31,18 +32,18 @@ interface CartProviderProps {
 
 export const CartProvider = ({ children }: CartProviderProps) => {
     const [items, setItems] = useState<CartItem[]>(() => {
-        const saved = localStorage.getItem('cart')
+        const saved = safeLocalStorage.getItem('cart')
         return saved ? JSON.parse(saved) : []
     })
     const [loading, setLoading] = useState(false)
 
     // Save to localStorage whenever items change
     useEffect(() => {
-        localStorage.setItem('cart', JSON.stringify(items))
+        safeLocalStorage.setItem('cart', JSON.stringify(items))
     }, [items])
 
     // Get token from localStorage
-    const getToken = () => localStorage.getItem('userToken')
+    const getToken = () => safeLocalStorage.getItem('userToken')
 
     // Sync cart with server (called on login)
     const syncCartWithServer = useCallback(async () => {
@@ -52,7 +53,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         setLoading(true)
         try {
             // Get local cart items
-            const localCart = JSON.parse(localStorage.getItem('cart') || '[]')
+            const localCart = JSON.parse(safeLocalStorage.getItem('cart') || '[]')
 
             if (localCart.length > 0) {
                 // Sync local cart to server
