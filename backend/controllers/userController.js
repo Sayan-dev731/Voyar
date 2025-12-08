@@ -17,6 +17,13 @@ export const signup = async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
+        // Validate input
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                message: 'Please provide name, email, and password'
+            });
+        }
+
         // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -36,13 +43,16 @@ export const signup = async (req, res) => {
             verificationTokenExpires,
         });
 
-        // Send verification email
-        try {
-            await sendVerificationEmail(email, name, verificationToken);
-        } catch (emailError) {
-            console.error('Email sending failed:', emailError);
-            // Continue with registration even if email fails
-        }
+        // Send verification email (non-blocking)
+        // If email fails, user can still sign up
+        sendVerificationEmail(email, name, verificationToken)
+            .then(() => {
+                console.log(`Verification email sent to ${email}`);
+            })
+            .catch((emailError) => {
+                console.error('Email sending failed:', emailError.message);
+                // Don't fail the signup if email fails
+            });
 
         res.status(201).json({
             message: 'Registration successful! Please check your email to verify your account.',
@@ -55,7 +65,26 @@ export const signup = async (req, res) => {
         });
     } catch (error) {
         console.error('Signup error:', error);
-        res.status(500).json({ message: error.message || 'Server error during registration' });
+
+        // Handle duplicate key error
+        if (error.code === 11000) {
+            return res.status(400).json({
+                message: 'User already exists with this email'
+            });
+        }
+
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({
+                message: messages.join('. ')
+            });
+        }
+
+        res.status(500).json({
+            message: 'Server error during registration. Please try again later.',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 

@@ -2,26 +2,42 @@ import nodemailer from 'nodemailer';
 
 // Create transporter
 const createTransporter = () => {
+  // Check if email credentials are configured
+  if (!process.env.EMAIL_ID || !process.env.EMAIL_PASSWORD) {
+    console.warn('Email credentials not configured. Email sending will be disabled.');
+    return null;
+  }
+
+  try {
     return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_ID,
-            pass: process.env.EMAIL_PASSWORD,
-        },
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_ID,
+        pass: process.env.EMAIL_PASSWORD,
+      },
     });
+  } catch (error) {
+    console.error('Failed to create email transporter:', error);
+    return null;
+  }
 };
 
 // Send verification email
 export const sendVerificationEmail = async (email, name, token) => {
-    const transporter = createTransporter();
+  const transporter = createTransporter();
 
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+  if (!transporter) {
+    console.warn('Email transporter not available. Skipping email send.');
+    return Promise.resolve(); // Don't throw error, just skip
+  }
 
-    const mailOptions = {
-        from: `"Voyar Eyewear" <${process.env.EMAIL_ID}>`,
-        to: email,
-        subject: 'Verify Your Email - Voyar Eyewear',
-        html: `
+  const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+
+  const mailOptions = {
+    from: `"Voyar Eyewear" <${process.env.EMAIL_ID}>`,
+    to: email,
+    subject: 'Verify Your Email - Voyar Eyewear',
+    html: `
       <!DOCTYPE html>
       <html>
         <head>
@@ -59,28 +75,33 @@ export const sendVerificationEmail = async (email, name, token) => {
         </body>
       </html>
     `,
-    };
+  };
 
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Verification email sent to ${email}`);
-    } catch (error) {
-        console.error('Error sending email:', error);
-        throw new Error('Failed to send verification email');
-    }
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Verification email sent to ${email}`);
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw new Error('Failed to send verification email');
+  }
 };
 
 // Send password reset email
 export const sendPasswordResetEmail = async (email, name, token) => {
-    const transporter = createTransporter();
+  const transporter = createTransporter();
 
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/reset-password?token=${token}`;
+  if (!transporter) {
+    console.warn('Email transporter not available. Skipping email send.');
+    return Promise.resolve(); // Don't throw error, just skip
+  }
 
-    const mailOptions = {
-        from: `"Voyar Eyewear" <${process.env.EMAIL_ID}>`,
-        to: email,
-        subject: 'Reset Your Password - Voyar Eyewear',
-        html: `
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+
+  const mailOptions = {
+    from: `"Voyar Eyewear" <${process.env.EMAIL_ID}>`,
+    to: email,
+    subject: 'Reset Your Password - Voyar Eyewear',
+    html: `
       <!DOCTYPE html>
       <html>
         <head>
@@ -117,13 +138,13 @@ export const sendPasswordResetEmail = async (email, name, token) => {
         </body>
       </html>
     `,
-    };
+  };
 
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Password reset email sent to ${email}`);
-    } catch (error) {
-        console.error('Error sending email:', error);
-        throw new Error('Failed to send password reset email');
-    }
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Password reset email sent to ${email}`);
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw new Error('Failed to send password reset email');
+  }
 };

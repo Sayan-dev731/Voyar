@@ -17,14 +17,36 @@ const app = express();
 connectDB();
 
 // Middleware
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://voyar.vercel.app',
+    'https://www.voyareyewear.com',
+    'https://voyareyewear.com'
+];
+
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-        ? 'https://voyar.vercel.app'
-        : 'http://localhost:5173',
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+});
 
 // Routes
 app.use('/api/products', productRoutes);
