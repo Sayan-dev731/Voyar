@@ -556,3 +556,73 @@ export const exportData = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// @desc    Update user details
+// @route   PUT /api/admin/users/:id
+// @access  Private/Admin
+export const updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, phone } = req.body;
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if email is being changed and if it's already taken
+        if (email && email !== user.email) {
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({ message: 'Email already in use' });
+            }
+            user.email = email;
+        }
+
+        if (name) user.name = name;
+        if (phone !== undefined) user.phone = phone;
+
+        await user.save();
+
+        res.json({
+            message: 'User updated successfully',
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                isVerified: user.isVerified,
+                createdAt: user.createdAt,
+                addresses: user.addresses
+            }
+        });
+    } catch (error) {
+        console.error('Update user error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete user
+// @route   DELETE /api/admin/users/:id
+// @access  Private/Admin
+export const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Delete user's orders
+        await Order.deleteMany({ userId: user._id });
+
+        // Delete the user
+        await User.findByIdAndDelete(id);
+
+        res.json({ message: 'User and associated orders deleted successfully' });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};

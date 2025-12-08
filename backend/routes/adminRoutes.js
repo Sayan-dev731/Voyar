@@ -7,6 +7,8 @@ import {
     getDashboardAnalytics,
     getAllUsers,
     getUserById,
+    updateUser,
+    deleteUser,
     getAllAdmins,
     createAdmin,
     updateAdmin,
@@ -31,6 +33,8 @@ router.get('/login-history', authMiddleware, getLoginHistory);
 // Protected routes - User management
 router.get('/users', authMiddleware, getAllUsers);
 router.get('/users/:id', authMiddleware, getUserById);
+router.put('/users/:id', authMiddleware, updateUser);
+router.delete('/users/:id', authMiddleware, deleteUser);
 
 // Protected routes - Admin management (super admin only)
 router.get('/admins', authMiddleware, getAllAdmins);

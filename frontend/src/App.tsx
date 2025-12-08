@@ -13,8 +13,11 @@ import Signup from './pages/Signup'
 import VerifyEmail from './pages/VerifyEmail'
 import Collections from './pages/Collections'
 import Profile from './pages/Profile'
+import Contact from './pages/Contact'
+import NotFound from './pages/NotFound'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
+import { ToastProvider } from './components/ui/toast'
 import { Outlet } from 'react-router-dom'
 import './App.css'
 
@@ -34,32 +37,35 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <Routes>
-            {/* Admin Routes - No Navbar/Footer */}
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <ToastProvider>
+          <Router>
+            <Routes>
+              {/* Admin Routes - No Navbar/Footer */}
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-            {/* Auth Routes - No Navbar/Footer */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
+              {/* Auth Routes - No Navbar/Footer */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
 
-            {/* Public Routes - With Navbar/Footer */}
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/collections" element={<Collections />} />
-              <Route path="/profile" element={<Profile />} />
-            </Route>
+              {/* Public Routes - With Navbar/Footer */}
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/collections" element={<Collections />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/contact" element={<Contact />} />
+              </Route>
 
-            {/* optional: 404 route */}
-            <Route path="*" element={<div>404 - Page not found</div>} />
-          </Routes>
-        </Router>
+              {/* 404 Not Found */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Router>
+        </ToastProvider>
       </CartProvider>
     </AuthProvider>
   )

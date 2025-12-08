@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/toast';
 import {
     User,
     Mail,
@@ -69,6 +70,7 @@ type TabType = 'profile' | 'addresses' | 'orders' | 'security';
 export default function Profile() {
     const navigate = useNavigate();
     const { user, token, logout, updateUser, refreshProfile } = useAuth();
+    const { showConfirm } = useToast();
     const [activeTab, setActiveTab] = useState<TabType>('profile');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -242,29 +244,29 @@ export default function Profile() {
     };
 
     const handleDeleteAddress = async (addressId: string) => {
-        if (!confirm('Are you sure you want to delete this address?')) return;
-
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_URL}/users/addresses/${addressId}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setAddresses(data.addresses);
-                setMessage({ type: 'success', text: 'Address deleted successfully!' });
-                // Refresh profile to sync addresses across app
-                await refreshProfile();
-            } else {
-                setMessage({ type: 'error', text: data.message });
+        showConfirm('Are you sure you want to delete this address?', async () => {
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_URL}/users/addresses/${addressId}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setAddresses(data.addresses);
+                    setMessage({ type: 'success', text: 'Address deleted successfully!' });
+                    // Refresh profile to sync addresses across app
+                    await refreshProfile();
+                } else {
+                    setMessage({ type: 'error', text: data.message });
+                }
+            } catch (error) {
+                console.error('Delete address error:', error);
+                setMessage({ type: 'error', text: 'Failed to delete address' });
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error('Delete address error:', error);
-            setMessage({ type: 'error', text: 'Failed to delete address' });
-        } finally {
-            setLoading(false);
-        }
+        });
     };
 
     const handleChangePassword = async () => {

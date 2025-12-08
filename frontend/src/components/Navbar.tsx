@@ -28,6 +28,7 @@ export const Navbar = () => {
         { name: 'Eyeglasses', href: '/#eyeglasses' },
         { name: 'Sunglasses', href: '/#sunglasses' },
         { name: 'Collections', href: '/collections' },
+        { name: 'Contact', href: '/contact' },
         { name: 'About', href: '/#about' },
     ]
 

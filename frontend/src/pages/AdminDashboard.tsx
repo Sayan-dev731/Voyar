@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useToast } from '@/components/ui/toast'
 import {
     Package,
     ShoppingBag,
@@ -7,6 +8,7 @@ import {
     Users,
     Plus,
     Edit,
+    Edit2,
     Trash2,
     LogOut,
     Eye,
@@ -25,7 +27,9 @@ import {
     Activity,
     UserCheck,
     UserX,
-    Download
+    Download,
+    MapPin,
+    Save
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -162,6 +166,7 @@ const convertGoogleDriveLink = (url: string): string => {
 
 export const AdminDashboard = () => {
     const navigate = useNavigate()
+    const { showToast, showConfirm } = useToast()
     const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'settings'>('overview')
     const [products, setProducts] = useState<Product[]>([])
     const [orders, setOrders] = useState<Order[]>([])
@@ -183,6 +188,10 @@ export const AdminDashboard = () => {
     const [showChangePassword, setShowChangePassword] = useState(false)
     const [currentPassword, setCurrentPassword] = useState('')
     const [newPassword, setNewPassword] = useState('')
+    const [selectedUser, setSelectedUser] = useState<User | null>(null)
+    const [showUserModal, setShowUserModal] = useState(false)
+    const [editingUser, setEditingUser] = useState(false)
+    const [userForm, setUserForm] = useState({ name: '', email: '', phone: '' })
 
     useEffect(() => {
         const token = localStorage.getItem('adminToken')
@@ -242,20 +251,24 @@ export const AdminDashboard = () => {
     }
 
     const handleDeleteProduct = async (id: number | string) => {
-        if (!confirm('Are you sure you want to delete this product?')) return
-
-        const token = localStorage.getItem('adminToken')
-        try {
-            const response = await fetch(`${API_URL}/products/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            if (response.ok) {
-                fetchData()
+        showConfirm('Are you sure you want to delete this product?', async () => {
+            const token = localStorage.getItem('adminToken')
+            try {
+                const response = await fetch(`${API_URL}/products/${id}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                if (response.ok) {
+                    fetchData()
+                    showToast('Product deleted successfully', 'success')
+                } else {
+                    showToast('Failed to delete product', 'error')
+                }
+            } catch (error) {
+                console.error('Error deleting product:', error)
+                showToast('Error deleting product', 'error')
             }
-        } catch (error) {
-            console.error('Error deleting product:', error)
-        }
+        })
     }
 
     const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -314,14 +327,73 @@ export const AdminDashboard = () => {
         link.click()
     }
 
+    // User management functions
+    const handleViewUser = (user: User) => {
+        setSelectedUser(user)
+        setUserForm({ name: user.name, email: user.email, phone: user.phone || '' })
+        setEditingUser(false)
+        setShowUserModal(true)
+    }
+
+    const handleEditUser = async () => {
+        if (!selectedUser) return
+        const token = localStorage.getItem('adminToken')
+        try {
+            const response = await fetch(`${API_URL}/admin/users/${selectedUser._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(userForm)
+            })
+            if (response.ok) {
+                const data = await response.json()
+                setUsers(users.map(u => u._id === selectedUser._id ? data.user : u))
+                setShowUserModal(false)
+                showToast('User updated successfully!', 'success')
+                fetchData()
+            } else {
+                const data = await response.json()
+                showToast(data.message || 'Failed to update user', 'error')
+            }
+        } catch (error) {
+            console.error('Error updating user:', error)
+            showToast('Error updating user', 'error')
+        }
+    }
+
+    const handleDeleteUser = async (userId: string) => {
+        showConfirm('Are you sure you want to delete this user? This action cannot be undone.', async () => {
+            const token = localStorage.getItem('adminToken')
+            try {
+                const response = await fetch(`${API_URL}/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                if (response.ok) {
+                    setUsers(users.filter(u => u._id !== userId))
+                    setShowUserModal(false)
+                    showToast('User deleted successfully!', 'success')
+                } else {
+                    const data = await response.json()
+                    showToast(data.message || 'Failed to delete user', 'error')
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error)
+                showToast('Error deleting user', 'error')
+            }
+        })
+    }
+
     // Change admin password
     const handleChangePassword = async () => {
         if (!currentPassword || !newPassword) {
-            alert('Please fill in both password fields')
+            showToast('Please fill in both password fields', 'warning')
             return
         }
         if (newPassword.length < 6) {
-            alert('New password must be at least 6 characters')
+            showToast('New password must be at least 6 characters', 'warning')
             return
         }
 
@@ -337,16 +409,16 @@ export const AdminDashboard = () => {
             })
             const data = await response.json()
             if (response.ok) {
-                alert('Password changed successfully!')
+                showToast('Password changed successfully!', 'success')
                 setCurrentPassword('')
                 setNewPassword('')
                 setShowChangePassword(false)
             } else {
-                alert(data.message || 'Failed to change password')
+                showToast(data.message || 'Failed to change password', 'error')
             }
         } catch (error) {
             console.error('Error changing password:', error)
-            alert('Error changing password')
+            showToast('Error changing password', 'error')
         }
     }
 
@@ -798,63 +870,154 @@ export const AdminDashboard = () => {
                 {activeTab === 'orders' && (
                     <div>
                         <h2 className="text-2xl font-[600] text-black mb-6">Manage Orders</h2>
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             {orders.map((order) => (
-                                <Card key={order._id} className="border-amber-200/60 rounded-2xl">
-                                    <CardContent className="p-6">
-                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                                    <h3 className="font-[600] text-black">{order.customerName}</h3>
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                                                        order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                                                            order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
-                                                                order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                                                    'bg-orange-100 text-orange-700'
-                                                        }`}>
-                                                        {order.status}
-                                                    </span>
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
-                                                        order.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' :
-                                                            'bg-yellow-100 text-yellow-700'
-                                                        }`}>
-                                                        {order.paymentStatus || 'pending'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-black/60 mb-1">{order.customerEmail}</p>
-                                                {order.customerPhone && (
-                                                    <p className="text-sm text-black/60 mb-2">{order.customerPhone}</p>
-                                                )}
-                                                <p className="text-sm text-black/60">
-                                                    {order.items.length} items • ${order.totalAmount.toFixed(2)}
-                                                </p>
-                                                {order.shippingAddress && (
-                                                    <p className="text-xs text-black/40 mt-2">
-                                                        📍 {order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.zipCode}
+                                <Card key={order._id} className="border-amber-200/60 rounded-2xl overflow-hidden shadow-lg">
+                                    <CardContent className="p-0">
+                                        {/* Order Header */}
+                                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 border-b border-amber-200/60">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <h3 className="text-xl font-[600] text-black">{order.customerName}</h3>
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-[600] ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                                                            order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                                                                order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
+                                                                    order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                                        'bg-orange-100 text-orange-700'
+                                                            }`}>
+                                                            {order.status.toUpperCase()}
+                                                        </span>
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-[600] ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                                                            order.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                            {(order.paymentStatus || 'pending').toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 text-sm text-black/70">
+                                                        <span className="flex items-center gap-1">
+                                                            <Mail className="h-4 w-4" />
+                                                            {order.customerEmail}
+                                                        </span>
+                                                        {order.customerPhone && (
+                                                            <span className="flex items-center gap-1">
+                                                                <Phone className="h-4 w-4" />
+                                                                {order.customerPhone}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-black/50 mt-2 flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'long',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
                                                     </p>
-                                                )}
-                                                <p className="text-xs text-black/40 mt-1">
-                                                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                                                        day: 'numeric',
-                                                        month: 'short',
-                                                        year: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    })}
-                                                </p>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <select
+                                                        value={order.status}
+                                                        onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
+                                                        className="px-4 py-2 border-2 border-amber-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                                                    >
+                                                        <option value="pending">Pending</option>
+                                                        <option value="processing">Processing</option>
+                                                        <option value="shipped">Shipped</option>
+                                                        <option value="delivered">Delivered</option>
+                                                        <option value="cancelled">Cancelled</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <select
-                                                    value={order.status}
-                                                    onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
-                                                    className="px-3 py-2 border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                >
-                                                    <option value="pending">Pending</option>
-                                                    <option value="processing">Processing</option>
-                                                    <option value="shipped">Shipped</option>
-                                                    <option value="delivered">Delivered</option>
-                                                    <option value="cancelled">Cancelled</option>
-                                                </select>
+                                        </div>
+
+                                        {/* Order Content Grid */}
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+                                            {/* Left Column - Items to Ship */}
+                                            <div className="lg:col-span-2 space-y-4">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <Package className="h-5 w-5 text-amber-600" />
+                                                    <h4 className="text-lg font-[600] text-black">Items to Ship ({order.items.length})</h4>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {order.items.map((item, index) => (
+                                                        <div key={index} className="flex items-center gap-4 p-4 bg-white border-2 border-amber-100 rounded-xl hover:border-amber-300 transition-colors">
+                                                            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                                <Package className="h-8 w-8 text-amber-600" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h5 className="font-[600] text-black truncate">{item.productName}</h5>
+                                                                <div className="flex items-center gap-4 mt-1">
+                                                                    <span className="text-sm text-black/60">Qty: <span className="font-[600] text-black">{item.quantity}</span></span>
+                                                                    <span className="text-sm text-black/60">Price: <span className="font-[600] text-amber-600">₹{item.price.toFixed(2)}</span></span>
+                                                                </div>
+                                                                <div className="text-sm font-[600] text-black mt-1">
+                                                                    Subtotal: ₹{(item.price * item.quantity).toFixed(2)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Right Column - Order Details */}
+                                            <div className="space-y-4">
+                                                {/* Shipping Address */}
+                                                {order.shippingAddress && (
+                                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-200">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <MapPin className="h-5 w-5 text-blue-600" />
+                                                            <h5 className="font-[600] text-black">Shipping Address</h5>
+                                                        </div>
+                                                        <div className="text-sm text-black/80 space-y-1">
+                                                            {order.shippingAddress.name && <p className="font-[600]">{order.shippingAddress.name}</p>}
+                                                            <p>{order.shippingAddress.street}</p>
+                                                            <p>{order.shippingAddress.city}, {order.shippingAddress.state}</p>
+                                                            <p>{order.shippingAddress.country} - {order.shippingAddress.zipCode}</p>
+                                                            {order.shippingAddress.phone && (
+                                                                <p className="pt-2 border-t border-blue-200 flex items-center gap-1">
+                                                                    <Phone className="h-3 w-3" />
+                                                                    {order.shippingAddress.phone}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Payment Details */}
+                                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <DollarSign className="h-5 w-5 text-green-600" />
+                                                        <h5 className="font-[600] text-black">Payment Details</h5>
+                                                    </div>
+                                                    <div className="space-y-2 text-sm">
+                                                        {order.paymentMethod && (
+                                                            <div className="flex justify-between">
+                                                                <span className="text-black/60">Method:</span>
+                                                                <span className="font-[600] text-black">{order.paymentMethod}</span>
+                                                            </div>
+                                                        )}
+                                                        {order.paymentId && (
+                                                            <div className="flex justify-between">
+                                                                <span className="text-black/60">ID:</span>
+                                                                <span className="font-mono text-xs text-black/70">{order.paymentId}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="pt-3 border-t-2 border-green-200 flex justify-between items-center">
+                                                            <span className="font-[600] text-black">Total Amount:</span>
+                                                            <span className="text-2xl font-[700] text-green-600">₹{order.totalAmount.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Order ID */}
+                                                <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                                                    <p className="text-xs text-black/60 mb-1">Order ID</p>
+                                                    <p className="font-mono text-xs text-black/80">{order._id}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -929,8 +1092,8 @@ export const AdminDashboard = () => {
                                                 </p>
                                                 <div className="flex gap-2 mt-3">
                                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${user.isVerified
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : 'bg-red-100 text-red-700'
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-red-100 text-red-700'
                                                         }`}>
                                                         {user.isVerified ? 'Verified' : 'Unverified'}
                                                     </span>
@@ -939,6 +1102,25 @@ export const AdminDashboard = () => {
                                                             {user.addresses.length} Address{user.addresses.length > 1 ? 'es' : ''}
                                                         </span>
                                                     )}
+                                                </div>
+                                                <div className="flex gap-2 mt-4">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleViewUser(user)}
+                                                        className="flex-1 border-amber-200 hover:bg-amber-50 hover:border-amber-300"
+                                                    >
+                                                        <Eye className="h-3 w-3 mr-1" />
+                                                        View
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleDeleteUser(user._id)}
+                                                        className="border-red-200 hover:bg-red-50 hover:border-red-300 text-red-600"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </Button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1589,6 +1771,174 @@ export const AdminDashboard = () => {
                                 </Button>
                             </div>
                         </form>
+                    </Card>
+                </div>
+            )}
+
+            {/* User Details Modal */}
+            {showUserModal && selectedUser && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl border-amber-200/60 rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-amber-200/60 flex items-center justify-between">
+                            <h2 className="text-2xl font-[600] text-black">User Details</h2>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowUserModal(false)}
+                                className="hover:bg-amber-50"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 p-6">
+                            <div className="space-y-6">
+                                {/* User Avatar & Basic Info */}
+                                <div className="flex items-center gap-4 pb-6 border-b border-amber-200/60">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white font-bold text-2xl">
+                                        {selectedUser.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-[600] text-black">{selectedUser.name}</h3>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            {selectedUser.isVerified ? (
+                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
+                                                    <UserCheck className="h-3 w-3" />
+                                                    Verified
+                                                </span>
+                                            ) : (
+                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1">
+                                                    <UserX className="h-3 w-3" />
+                                                    Unverified
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Editable Form */}
+                                {editingUser ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-black/70 mb-1">Name</label>
+                                            <input
+                                                type="text"
+                                                value={userForm.name}
+                                                onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
+                                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-black/70 mb-1">Email</label>
+                                            <input
+                                                type="email"
+                                                value={userForm.email}
+                                                onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
+                                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-black/70 mb-1">Phone</label>
+                                            <input
+                                                type="tel"
+                                                value={userForm.phone}
+                                                onChange={(e) => setUserForm(prev => ({ ...prev, phone: e.target.value }))}
+                                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3 p-3 bg-amber-50/50 rounded-lg">
+                                            <Mail className="h-5 w-5 text-amber-600" />
+                                            <div>
+                                                <p className="text-xs text-black/60">Email</p>
+                                                <p className="font-medium text-black">{selectedUser.email}</p>
+                                            </div>
+                                        </div>
+                                        {selectedUser.phone && (
+                                            <div className="flex items-center gap-3 p-3 bg-amber-50/50 rounded-lg">
+                                                <Phone className="h-5 w-5 text-amber-600" />
+                                                <div>
+                                                    <p className="text-xs text-black/60">Phone</p>
+                                                    <p className="font-medium text-black">{selectedUser.phone}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-3 p-3 bg-amber-50/50 rounded-lg">
+                                            <Calendar className="h-5 w-5 text-amber-600" />
+                                            <div>
+                                                <p className="text-xs text-black/60">Joined</p>
+                                                <p className="font-medium text-black">
+                                                    {new Date(selectedUser.createdAt).toLocaleDateString('en-IN', {
+                                                        day: 'numeric',
+                                                        month: 'long',
+                                                        year: 'numeric'
+                                                    })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {selectedUser.addresses && selectedUser.addresses.length > 0 && (
+                                            <div className="p-3 bg-amber-50/50 rounded-lg">
+                                                <p className="text-xs text-black/60 mb-2 flex items-center gap-1">
+                                                    <MapPin className="h-4 w-4 text-amber-600" />
+                                                    Saved Addresses ({selectedUser.addresses.length})
+                                                </p>
+                                                <div className="space-y-2">
+                                                    {selectedUser.addresses.map((addr, index) => (
+                                                        <div key={index} className="text-sm text-black/80 pl-5">
+                                                            {addr.city}, {addr.state}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-amber-200/60 flex justify-between">
+                            <Button
+                                variant="outline"
+                                onClick={() => handleDeleteUser(selectedUser._id)}
+                                className="border-red-200 hover:bg-red-50 hover:border-red-300 text-red-600"
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete User
+                            </Button>
+                            <div className="flex gap-2">
+                                {editingUser ? (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setEditingUser(false)
+                                                setUserForm({ name: selectedUser.name, email: selectedUser.email, phone: selectedUser.phone || '' })
+                                            }}
+                                            className="border-amber-200 hover:border-amber-400"
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={handleEditUser}
+                                            className="bg-amber-600 hover:bg-amber-700 text-white"
+                                        >
+                                            <Save className="h-4 w-4 mr-2" />
+                                            Save Changes
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button
+                                        onClick={() => setEditingUser(true)}
+                                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                                    >
+                                        <Edit2 className="h-4 w-4 mr-2" />
+                                        Edit User
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
                     </Card>
                 </div>
             )}
