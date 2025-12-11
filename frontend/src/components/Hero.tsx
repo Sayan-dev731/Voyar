@@ -1,48 +1,42 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from './ui/button'
-import { ArrowRight } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import gsap from 'gsap'
+import { Link } from 'react-router-dom'
 
 export const Hero = () => {
     const heroRef = useRef<HTMLDivElement>(null)
-    const title1Ref = useRef<HTMLHeadingElement>(null)
-    const title2Ref = useRef<HTMLHeadingElement>(null)
-    const title3Ref = useRef<HTMLHeadingElement>(null)
-    const descRef = useRef<HTMLDivElement>(null)
-    const whatsappUrl = 'https://wa.me/6204834003?text=Hi%20Voyar%2C%20I%27d%20like%20to%20book%20an%20offline%20eye%20test.'
+    const logoRef = useRef<HTMLDivElement>(null)
+    const textRef = useRef<HTMLDivElement>(null)
+    const imageRef = useRef<HTMLDivElement>(null)
+    const detailsRef = useRef<HTMLDivElement>(null)
+    const [selectedSize, setSelectedSize] = useState('M')
 
-    const heroGalleryRows = [
-        [
-            '/images/20251013_022418.jpg',
-            '/images/20251013_024158.jpg',
-            '/images/20251013_024532.jpg',
-            '/images/20251013_024701.jpg',
-            '/images/20251013_040008.jpg',
-            '/images/20251017_021422.jpg',
-        ],
-        [
-            '/images/20251013_024419.jpg',
-            '/images/20251013_035040.jpg',
-            '/images/20251013_035100.jpg',
-            '/images/20251013_035609.jpg',
-            '/images/20251013_035631.jpg',
-            '/images/20251013_040226.jpg',
-        ],
-    ]
+    const sizes = ['XS', 'S', 'M', 'L', 'XL']
 
     useEffect(() => {
         const ctx = gsap.context(() => {
             const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
 
-            tl.from([title1Ref.current, title2Ref.current, title3Ref.current], {
-                y: 100,
+            tl.from(logoRef.current, {
                 opacity: 0,
+                y: -30,
+                duration: 0.8,
+                delay: 0.2,
+            })
+            .from(textRef.current, {
+                opacity: 0,
+                scale: 0.95,
+                duration: 1.2,
+            }, '-=0.5')
+            .from(imageRef.current, {
+                opacity: 0,
+                y: 50,
                 duration: 1,
-                stagger: 0.1,
-                delay: 0.3,
-            }).from(descRef.current, {
-                y: 30,
+            }, '-=0.8')
+            .from(detailsRef.current, {
                 opacity: 0,
+                y: 30,
                 duration: 0.8,
             }, '-=0.5')
         }, heroRef)
@@ -50,93 +44,106 @@ export const Hero = () => {
         return () => ctx.revert()
     }, [])
 
-    const handleEyeTestClick = () => {
-        if (typeof window === 'undefined') return
-        window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
-    }
-
     return (
-        <div ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-white via-amber-50/20 to-white">
-            {/* Auto-scrolling image gallery background */}
-            <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-                <div className="absolute inset-x-0 top-1/4 flex flex-col gap-8 opacity-60">
-                    {heroGalleryRows.map((row, rowIndex) => (
-                        <div
-                            key={rowIndex}
-                            className={`hero-marquee ${rowIndex % 2 === 1 ? 'hero-marquee--reverse' : ''}`}
-                        >
-                            {[...row, ...row].map((src, idx) => (
-                                <div key={`${rowIndex}-${idx}`} className="hero-marquee-card">
-                                    <img src={src} alt="Eyewear style" className="h-full w-full object-cover" loading="lazy" />
-                                </div>
-                            ))}
+        <div ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#F5F1E8]">
+            <div className="relative w-full max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-16 sm:py-20">
+                
+                {/* Brand Logo and Info - Top Left */}
+                <div ref={logoRef} className="absolute top-12 left-12 z-10">
+                    <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-black/5">
+                        <div className="flex items-center gap-3 mb-3">
+                            <Eye className="w-8 h-8 text-amber-600" strokeWidth={1.5} />
                         </div>
-                    ))}
+                        <div className="text-xs text-black/60 max-w-[180px] leading-relaxed">
+                            <div className="font-medium text-black mb-1">VOYAR</div>
+                            Premium eyewear collection featuring cutting-edge design
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {/* Subtle gradient overlay to keep text legible */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(217,156,41,0.08)_0%,_transparent_70%)]"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-white via-white/70 to-white"></div>
-
-            <div className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-32 sm:py-40 lg:py-48">
-                {/* Large Typography - Test.html style */}
-                <div className="text-center space-y-2">
-                    <div className="overflow-hidden">
-                        <h1 ref={title1Ref} className="text-[clamp(3rem,12vw,12rem)] leading-[0.9] font-[600] text-black tracking-tight">
-                            See the
+                {/* Main Content Area */}
+                <div className="relative flex flex-col items-center justify-center min-h-[70vh]">
+                    
+                    {/* Large VOYAR Text */}
+                    <div ref={textRef} className="relative w-full max-w-5xl mx-auto mb-0">
+                        <h1 className="text-[clamp(4rem,15vw,16rem)] leading-[0.85] font-[900] text-black tracking-tighter text-center select-none">
+                            <span className="inline-block" style={{ 
+                                letterSpacing: '-0.05em',
+                                fontFamily: 'system-ui, -apple-system, sans-serif',
+                                fontWeight: 900
+                            }}>
+                                VOYAR
+                            </span>
                         </h1>
                     </div>
-                    <div className="overflow-hidden">
-                        <h1 ref={title2Ref} className="text-[clamp(3rem,12vw,12rem)] leading-[0.9] font-[600] text-black tracking-tight">
-                            world in
-                        </h1>
-                    </div>
-                    <div className="overflow-hidden">
-                        <h1 ref={title3Ref} className="text-[clamp(3rem,12vw,12rem)] leading-[0.9] font-[600] bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400 bg-clip-text text-transparent tracking-tight">
-                            perfect clarity
-                        </h1>
+
+                    {/* Product Image - Integrated with text */}
+                    <div ref={imageRef} className="relative -mt-12 sm:-mt-20 lg:-mt-32 z-20">
+                        <div className="relative w-[300px] sm:w-[400px] lg:w-[500px] h-[200px] sm:h-[250px] lg:h-[300px]">
+                            <img 
+                                src="/images/20251013_024158.jpg" 
+                                alt="Premium eyewear" 
+                                className="w-full h-full object-contain drop-shadow-2xl"
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {/* Description */}
-                <div ref={descRef} className="mt-12 sm:mt-16 max-w-2xl mx-auto text-center">
-                    <p className="text-sm sm:text-base text-black/60 leading-relaxed">
-                        Premium eyewear designed for modern living. Experience unmatched comfort, style, and precision.
-                    </p>
+                {/* Product Details - Bottom Bar */}
+                <div ref={detailsRef} className="absolute bottom-8 left-0 right-0 px-6 sm:px-12">
+                    <div className="max-w-[1400px] mx-auto">
+                        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-black/5 p-6 sm:p-8">
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,auto,auto] gap-6 items-center">
+                                
+                                {/* Product Info */}
+                                <div>
+                                    <div className="text-xs text-black/50 mb-1 uppercase tracking-wider">Featured Collection</div>
+                                    <h3 className="text-lg sm:text-xl font-semibold text-black mb-1">
+                                        Premium Aviator / <span className="text-black/60">Luxury Frames</span>
+                                    </h3>
+                                    <p className="text-xs text-black/50">Frame Size: <span className="text-black/70 font-medium">{selectedSize} (52-20-145 mm)</span></p>
+                                </div>
+
+                                {/* Size Selector */}
+                                <div className="flex items-center gap-3 border-l border-black/10 pl-6">
+                                    <span className="text-xs text-black/50 uppercase tracking-wider">Size</span>
+                                    <div className="flex gap-2">
+                                        {sizes.map((size) => (
+                                            <button
+                                                key={size}
+                                                onClick={() => setSelectedSize(size)}
+                                                className={`w-10 h-10 rounded-lg text-xs font-medium transition-all ${
+                                                    selectedSize === size
+                                                        ? 'bg-black text-white'
+                                                        : 'bg-black/5 text-black/60 hover:bg-black/10'
+                                                }`}
+                                            >
+                                                {size}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Price */}
+                                <div className="border-l border-black/10 pl-6">
+                                    <div className="text-xs text-black/50 mb-1">Price</div>
+                                    <div className="text-2xl font-bold text-black">₹1,699</div>
+                                </div>
+
+                                {/* Add to Bag Button */}
+                                <Link to="/collections">
+                                    <Button 
+                                        size="lg" 
+                                        className="bg-black text-white hover:bg-black/90 h-14 px-10 text-sm font-medium rounded-xl shadow-lg transition-all hover:scale-105"
+                                    >
+                                        SHOP NOW
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* CTA Buttons */}
-                <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center">
-                    <Button size="lg" className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 h-12 sm:h-14 px-8 sm:px-10 text-sm font-medium group shadow-lg shadow-amber-200">
-                        Shop Now
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="border-black/20 text-black hover:bg-amber-50 hover:border-amber-600 h-12 sm:h-14 px-8 sm:px-10 text-sm font-medium"
-                        onClick={handleEyeTestClick}
-                    >
-                        Take Eye Test Offline
-                    </Button>
-                </div>
-
-                {/* Stats */}
-                <div className="mt-20 sm:mt-24 grid grid-cols-3 gap-8 sm:gap-12 max-w-3xl mx-auto">
-                    <div className="text-center">
-                        <div className="text-3xl sm:text-5xl font-[600] text-black mb-2">10M+</div>
-                        <div className="text-xs sm:text-sm text-black/50">Happy Customers</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-3xl sm:text-5xl font-[600] text-black mb-2">5000+</div>
-                        <div className="text-xs sm:text-sm text-black/50">Designs</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-3xl sm:text-5xl font-[600] text-black mb-2">24/7</div>
-                        <div className="text-xs sm:text-sm text-black/50">Support</div>
-                    </div>
-                </div>
             </div>
         </div>
     )
