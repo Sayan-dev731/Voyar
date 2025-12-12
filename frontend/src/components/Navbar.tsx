@@ -64,9 +64,14 @@ export const Navbar = () => {
                     <div className="flex items-center justify-between h-16 sm:h-20">
                         {/* Logo */}
                         <div className="flex-shrink-0 cursor-pointer" onClick={handleLogoClick}>
-                            <h1 className="text-xl sm:text-2xl font-[600] tracking-tight text-black">
-                                Voyar
-                            </h1>
+                            <div className="flex items-center gap-2">
+                                <img
+                                    src="/images/logo.jpeg"
+                                    alt="Voyar"
+                                    className="h-8 w-auto sm:h-10"
+                                    loading="eager"
+                                />
+                            </div>
                         </div>
 
                         {/* Desktop Navigation */}

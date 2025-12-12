@@ -17,7 +17,7 @@ export const BrandShowcase = () => {
     const brandsRef = useRef<HTMLDivElement>(null)
 
     return (
-        <div ref={sectionRef} className="py-20 sm:py-24 lg:py-32 bg-gradient-to-b from-amber-50/30 via-white to-amber-50/30 border-y border-amber-200/40">
+        <div ref={sectionRef} className="py-10 sm:py-12 lg:py-16 bg-gradient-to-b from-amber-50/30 via-white to-amber-50/30 border-y border-amber-200/40">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <h2
                     ref={titleRef}

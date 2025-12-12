@@ -33,7 +33,7 @@ export const Services = () => {
     const cardsRef = useRef<(HTMLDivElement | null)[]>([])
 
     return (
-        <div ref={sectionRef} id="services" className="py-24 sm:py-32 lg:py-40 bg-gradient-to-b from-white via-amber-50/30 to-white">
+        <div ref={sectionRef} id="services" className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white via-amber-50/30 to-white">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16 sm:mb-20">
                     <h2 className="text-4xl sm:text-5xl lg:text-7xl font-[600] text-black tracking-tight mb-4">
@@ -69,7 +69,7 @@ export const Services = () => {
                         </div>
                     ))}
                 </div>                {/* Description below cards */}
-                <div className="mt-20 sm:mt-24 max-w-3xl mx-auto text-center">
+                <div className="mt-10 sm:mt-12 max-w-3xl mx-auto text-center">
                     <p className="text-base sm:text-lg text-black/70 leading-relaxed mb-4">
                         We introduce methodologies, processes, and learnings to drive exceptional eyewear experiences.
                     </p>
