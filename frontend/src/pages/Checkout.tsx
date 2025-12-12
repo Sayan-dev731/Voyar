@@ -315,9 +315,12 @@ export default function Checkout() {
 
             if (response.ok) {
                 setOrderId(data._id);
-                clearCart();
-                setShowSuccessModal(true);
+                // Show payment success message first
                 setStep('success');
+                // Small delay to show success step before modal
+                setTimeout(() => {
+                    setShowSuccessModal(true);
+                }, 500);
             } else {
                 setError(data.message || 'Failed to create order');
                 setStep('payment');
@@ -633,9 +636,16 @@ export default function Checkout() {
                                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                         <Check className="h-10 w-10 text-green-600" />
                                     </div>
-                                    <h2 className="text-3xl font-[600] text-black mb-2">Order Confirmed!</h2>
+
+                                    {/* Payment Success Banner */}
+                                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-4 animate-pulse-slow">
+                                        <p className="text-green-700 font-semibold text-lg">✓ Payment Successful!</p>
+                                        <p className="text-green-600 text-sm">Your payment has been processed successfully</p>
+                                    </div>
+
+                                    <h2 className="text-3xl font-[600] text-black mb-2">Order Placed Successfully! 🎉</h2>
                                     <p className="text-black/60 mb-6">
-                                        Thank you for your purchase. Your order has been placed successfully.
+                                        Thank you for your purchase. Your order has been confirmed and placed successfully.
                                     </p>
                                     {orderId && (
                                         <p className="text-sm text-black/50 mb-6">
@@ -933,6 +943,7 @@ export default function Checkout() {
                             <div className="space-y-3">
                                 <Button
                                     onClick={() => {
+                                        clearCart();
                                         setShowSuccessModal(false);
                                         navigate('/orders');
                                     }}
@@ -944,6 +955,7 @@ export default function Checkout() {
                                 <Button
                                     variant="outline"
                                     onClick={() => {
+                                        clearCart();
                                         setShowSuccessModal(false);
                                         navigate('/');
                                     }}

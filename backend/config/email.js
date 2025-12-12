@@ -213,3 +213,136 @@ export const sendAdminPasswordResetEmail = async (email, username, token) => {
     throw new Error('Failed to send admin password reset email');
   }
 };
+
+// Send bill/invoice email
+export const sendBillEmail = async (customerEmail, customerName, order) => {
+  const transporter = createTransporter();
+
+  if (!transporter) {
+    console.warn('Email transporter not available. Skipping email send.');
+    return Promise.resolve();
+  }
+
+  // Calculate totals
+  const subtotal = order.totalAmount;
+  const tax = subtotal * 0.18; // 18% GST
+  const total = subtotal;
+
+  const mailOptions = {
+    from: `"Voyar Eyewear" <${process.env.EMAIL_ID}>`,
+    to: customerEmail,
+    subject: `Invoice for Order #${order._id.toString().slice(-8)} - Voyar Eyewear`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .invoice-details { background: #f9fafb; padding: 20px; border-radius: 0 0 10px 10px; }
+            .bill-to { background: #fff; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }
+            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .items-table th { background: #f59e0b; color: white; padding: 12px; text-align: left; }
+            .items-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+            .total-section { background: #fff; padding: 15px; border-radius: 8px; margin: 20px 0; border: 2px solid #f59e0b; }
+            .total-row { display: flex; justify-content: space-between; margin: 8px 0; }
+            .grand-total { font-size: 1.5em; font-weight: bold; color: #f59e0b; border-top: 2px solid #f59e0b; padding-top: 10px; margin-top: 10px; }
+            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px; padding: 20px; border-top: 1px solid #e5e7eb; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>INVOICE</h1>
+              <p style="margin: 10px 0;">Voyar Eyewear</p>
+            </div>
+            <div class="invoice-details">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div>
+                  <p><strong>Invoice Number:</strong> INV-${order._id.toString().slice(-8)}</p>
+                  <p><strong>Order ID:</strong> ${order._id}</p>
+                  <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                </div>
+                <div style="text-align: right;">
+                  <p><strong>Payment Status:</strong> <span style="color: ${order.paymentStatus === 'paid' ? '#10b981' : '#f59e0b'};">${order.paymentStatus.toUpperCase()}</span></p>
+                  <p><strong>Order Status:</strong> ${order.status.toUpperCase()}</p>
+                </div>
+              </div>
+
+              <div class="bill-to">
+                <h3 style="margin-top: 0; color: #f59e0b;">Bill To:</h3>
+                <p><strong>${customerName}</strong></p>
+                <p>${customerEmail}</p>
+                ${order.shippingAddress ? `
+                  <p>${order.shippingAddress.street}</p>
+                  <p>${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.zipCode}</p>
+                  <p>${order.shippingAddress.country}</p>
+                  ${order.shippingAddress.phone ? `<p>Phone: ${order.shippingAddress.phone}</p>` : ''}
+                ` : ''}
+              </div>
+
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${order.items.map(item => `
+                    <tr>
+                      <td>
+                        <strong>${item.productName}</strong>
+                        ${item.selectedColor ? `<br><small>Color: ${item.selectedColor}</small>` : ''}
+                      </td>
+                      <td>${item.quantity}</td>
+                      <td>₹${item.price.toFixed(2)}</td>
+                      <td>₹${(item.price * item.quantity).toFixed(2)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <div class="total-row">
+                  <span>Subtotal:</span>
+                  <span>₹${subtotal.toFixed(2)}</span>
+                </div>
+                <div class="total-row grand-total">
+                  <span>GRAND TOTAL:</span>
+                  <span>₹${total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                <p style="margin: 0;"><strong>Payment Method:</strong> ${order.paymentMethod || 'N/A'}</p>
+                ${order.paymentId ? `<p style="margin: 5px 0 0 0;"><strong>Transaction ID:</strong> ${order.paymentId}</p>` : ''}
+              </div>
+
+              <div style="margin: 20px 0; padding: 15px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981;">
+                <p style="margin: 0;"><strong>Thank you for your purchase!</strong></p>
+                <p style="margin: 5px 0 0 0;">If you have any questions about this invoice, please contact us at support@voyar.com</p>
+              </div>
+            </div>
+            <div class="footer">
+              <p><strong>Voyar Eyewear</strong></p>
+              <p>Premium Eyewear Collection</p>
+              <p>&copy; 2025 Voyar Eyewear. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Bill email sent to ${customerEmail}`);
+  } catch (error) {
+    console.error('Error sending bill email:', error);
+    throw new Error('Failed to send bill email');
+  }
+};

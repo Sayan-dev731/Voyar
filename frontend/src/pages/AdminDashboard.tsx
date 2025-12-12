@@ -45,6 +45,26 @@ interface Order {
         productName: string
         quantity: number
         price: number
+        selectedColor?: string
+        product?: {
+            _id: string
+            name: string
+            category?: string
+            brand?: string
+            images?: string[]
+            description?: string
+            specifications?: {
+                frameWidth?: string
+                lensWidth?: string
+                bridgeWidth?: string
+                templeLength?: string
+                material?: string
+                weight?: string
+                lensType?: string
+                uvProtection?: string
+            }
+            features?: string[]
+        }
     }>
     totalAmount: number
     status: string
@@ -206,6 +226,10 @@ export const AdminDashboard = () => {
         supportEmail: ''
     })
 
+    // Order details modal state
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+    const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false)
+
     useEffect(() => {
         const token = localStorage.getItem('adminToken')
         if (!token) {
@@ -332,10 +356,59 @@ export const AdminDashboard = () => {
                 body: JSON.stringify({ status: newStatus })
             })
             if (response.ok) {
+                showToast('Order status updated successfully!', 'success')
                 fetchData()
+            } else {
+                showToast('Failed to update order status', 'error')
             }
         } catch (error) {
             console.error('Error updating order:', error)
+            showToast('Error updating order status', 'error')
+        }
+    }
+
+    const handleDeleteOrder = async (orderId: string) => {
+        if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) return
+
+        const token = localStorage.getItem('adminToken')
+        try {
+            const response = await fetch(`${API_URL}/orders/${orderId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            })
+
+            if (response.ok) {
+                showToast('Order deleted successfully!', 'success')
+                fetchData()
+            } else {
+                const data = await response.json()
+                showToast(data.message || 'Failed to delete order', 'error')
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error)
+            showToast('Error deleting order', 'error')
+        }
+    }
+
+    const handleGenerateBill = async (orderId: string) => {
+        const token = localStorage.getItem('adminToken')
+        try {
+            showToast('Generating bill...', 'success')
+            const response = await fetch(`${API_URL}/orders/${orderId}/generate-bill`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            })
+
+            if (response.ok) {
+                await response.json()
+                showToast('Bill generated and sent to customer successfully!', 'success')
+            } else {
+                const data = await response.json()
+                showToast(data.message || 'Failed to generate bill', 'error')
+            }
+        } catch (error) {
+            console.error('Error generating bill:', error)
+            showToast('Error generating bill', 'error')
         }
     }
 
@@ -650,12 +723,14 @@ export const AdminDashboard = () => {
 
             if (response.ok) {
                 setFormSuccess(editingProduct ? 'Product updated successfully!' : 'Product added successfully!')
+                showToast(editingProduct ? 'Product updated successfully!' : 'Product added successfully!', 'success')
                 await fetchData() // Wait for data to refresh
                 setTimeout(() => {
                     closeProductModal()
                 }, 1500)
             } else {
                 setFormError(data.message || 'Failed to save product')
+                showToast(data.message || 'Failed to save product', 'error')
             }
         } catch (error) {
             console.error('Error saving product:', error)
@@ -979,6 +1054,34 @@ export const AdminDashboard = () => {
                                                         <option value="delivered">Delivered</option>
                                                         <option value="cancelled">Cancelled</option>
                                                     </select>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setSelectedOrder(order)
+                                                                setShowOrderDetailsModal(true)
+                                                            }}
+                                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                                                        >
+                                                            <Eye className="mr-1 h-3 w-3" />
+                                                            View
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleDeleteOrder(order._id)}
+                                                            className="bg-red-600 hover:bg-red-700 text-white text-xs px-2"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleGenerateBill(order._id)}
+                                                        className="w-full bg-green-600 hover:bg-green-700 text-white text-xs"
+                                                    >
+                                                        <Mail className="mr-1 h-3 w-3" />
+                                                        Generate Bill
+                                                    </Button>
                                                 </div>
                                             </div>
                                         </div>
@@ -2066,6 +2169,261 @@ export const AdminDashboard = () => {
                                 )}
                             </div>
                         </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* Order Details Modal */}
+            {showOrderDetailsModal && selectedOrder && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto border-amber-200/60 rounded-2xl">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-[600] text-black">Order Details</h2>
+                                <Button
+                                    onClick={() => setShowOrderDetailsModal(false)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-black/60 hover:text-black"
+                                >
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </div>
+
+                            {/* Order Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div className="p-4 bg-amber-50 rounded-lg">
+                                    <p className="text-sm text-black/60 mb-1">Order ID</p>
+                                    <p className="font-mono text-sm text-black">{selectedOrder._id}</p>
+                                </div>
+                                <div className="p-4 bg-amber-50 rounded-lg">
+                                    <p className="text-sm text-black/60 mb-1">Order Date</p>
+                                    <p className="font-medium text-black">
+                                        {new Date(selectedOrder.createdAt).toLocaleDateString('en-IN', {
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-green-50 rounded-lg">
+                                    <p className="text-sm text-black/60 mb-1">Total Amount</p>
+                                    <p className="text-2xl font-[700] text-green-600">₹{selectedOrder.totalAmount.toFixed(2)}</p>
+                                </div>
+                                <div className="p-4 bg-blue-50 rounded-lg">
+                                    <p className="text-sm text-black/60 mb-1">Payment Status</p>
+                                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-[600] ${selectedOrder.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                                        selectedOrder.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' :
+                                            'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                        {(selectedOrder.paymentStatus || 'pending').toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Customer Details */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-[600] text-black mb-3 flex items-center gap-2">
+                                    <Users className="h-5 w-5 text-amber-600" />
+                                    Customer Information
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-amber-50/50 rounded-lg">
+                                    <div>
+                                        <p className="text-sm text-black/60">Name</p>
+                                        <p className="font-medium text-black">{selectedOrder.customerName}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-black/60">Email</p>
+                                        <p className="font-medium text-black">{selectedOrder.customerEmail}</p>
+                                    </div>
+                                    {selectedOrder.customerPhone && (
+                                        <div>
+                                            <p className="text-sm text-black/60">Phone</p>
+                                            <p className="font-medium text-black">{selectedOrder.customerPhone}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Products Details */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-[600] text-black mb-3 flex items-center gap-2">
+                                    <Package className="h-5 w-5 text-amber-600" />
+                                    Products ({selectedOrder.items.length})
+                                </h3>
+                                <div className="space-y-3">
+                                    {selectedOrder.items.map((item, index: number) => {
+                                        const product = item.product
+                                        return (
+                                            <div key={index} className="flex gap-4 p-4 bg-white border-2 border-amber-100 rounded-xl">
+                                                <div className="w-24 h-24 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    {product?.images?.[0] ? (
+                                                        <img
+                                                            src={product.images[0]}
+                                                            alt={product.name}
+                                                            className="w-full h-full object-cover rounded-lg"
+                                                        />
+                                                    ) : (
+                                                        <Package className="h-8 w-8 text-amber-600" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-[600] text-black text-lg">{item.productName}</h4>
+                                                    {product?.category && (
+                                                        <p className="text-sm text-black/60 mt-1">Category: {product.category}</p>
+                                                    )}
+                                                    {product?.brand && (
+                                                        <p className="text-sm text-black/60">Brand: {product.brand}</p>
+                                                    )}
+                                                    {item.selectedColor && (
+                                                        <p className="text-sm text-black/60">Color: {item.selectedColor}</p>
+                                                    )}
+                                                    <div className="flex items-center gap-4 mt-2">
+                                                        <span className="text-sm text-black/60">
+                                                            Quantity: <span className="font-[600] text-black">{item.quantity}</span>
+                                                        </span>
+                                                        <span className="text-sm text-black/60">
+                                                            Price: <span className="font-[600] text-amber-600">₹{item.price.toFixed(2)}</span>
+                                                        </span>
+                                                        <span className="text-sm font-[600] text-black">
+                                                            Subtotal: ₹{(item.price * item.quantity).toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                    {product?.description && (
+                                                        <p className="text-sm text-black/60 mt-2 line-clamp-2">{product.description}</p>
+                                                    )}
+
+                                                    {/* Product Specifications */}
+                                                    {product?.specifications && Object.keys(product.specifications).length > 0 && (
+                                                        <div className="mt-3 p-3 bg-amber-50/50 rounded-lg border border-amber-200">
+                                                            <h5 className="text-xs font-[600] text-amber-700 mb-2 uppercase">Specifications</h5>
+                                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                                {product.specifications.frameWidth && (
+                                                                    <div>
+                                                                        <span className="text-black/60">Frame Width: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.frameWidth}</span>
+                                                                    </div>
+                                                                )}
+                                                                {product.specifications.lensWidth && (
+                                                                    <div>
+                                                                        <span className="text-black/60">Lens Width: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.lensWidth}</span>
+                                                                    </div>
+                                                                )}
+                                                                {product.specifications.bridgeWidth && (
+                                                                    <div>
+                                                                        <span className="text-black/60">Bridge: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.bridgeWidth}</span>
+                                                                    </div>
+                                                                )}
+                                                                {product.specifications.templeLength && (
+                                                                    <div>
+                                                                        <span className="text-black/60">Temple: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.templeLength}</span>
+                                                                    </div>
+                                                                )}
+                                                                {product.specifications.material && (
+                                                                    <div>
+                                                                        <span className="text-black/60">Material: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.material}</span>
+                                                                    </div>
+                                                                )}
+                                                                {product.specifications.weight && (
+                                                                    <div>
+                                                                        <span className="text-black/60">Weight: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.weight}</span>
+                                                                    </div>
+                                                                )}
+                                                                {product.specifications.lensType && (
+                                                                    <div>
+                                                                        <span className="text-black/60">Lens Type: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.lensType}</span>
+                                                                    </div>
+                                                                )}
+                                                                {product.specifications.uvProtection && (
+                                                                    <div>
+                                                                        <span className="text-black/60">UV Protection: </span>
+                                                                        <span className="font-medium text-black">{product.specifications.uvProtection}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Product Features */}
+                                                    {product?.features && product.features.length > 0 && (
+                                                        <div className="mt-2">
+                                                            <h5 className="text-xs font-[600] text-black/70 mb-1">Features:</h5>
+                                                            <ul className="text-xs text-black/60 space-y-1 ml-4">
+                                                                {product.features.map((feature: string, idx: number) => (
+                                                                    <li key={idx} className="list-disc">{feature}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Shipping Address */}
+                            {selectedOrder.shippingAddress && (
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-[600] text-black mb-3 flex items-center gap-2">
+                                        <MapPin className="h-5 w-5 text-amber-600" />
+                                        Shipping Address
+                                    </h3>
+                                    <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                                        {selectedOrder.shippingAddress.name && (
+                                            <p className="font-[600] text-black mb-2">{selectedOrder.shippingAddress.name}</p>
+                                        )}
+                                        <p className="text-black/80">{selectedOrder.shippingAddress.street}</p>
+                                        <p className="text-black/80">
+                                            {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}
+                                        </p>
+                                        <p className="text-black/80">
+                                            {selectedOrder.shippingAddress.country} - {selectedOrder.shippingAddress.zipCode}
+                                        </p>
+                                        {selectedOrder.shippingAddress.phone && (
+                                            <p className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-1 text-black/80">
+                                                <Phone className="h-4 w-4" />
+                                                {selectedOrder.shippingAddress.phone}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Payment Details */}
+                            <div>
+                                <h3 className="text-lg font-[600] text-black mb-3 flex items-center gap-2">
+                                    <DollarSign className="h-5 w-5 text-amber-600" />
+                                    Payment Information
+                                </h3>
+                                <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                                    {selectedOrder.paymentMethod && (
+                                        <div className="flex justify-between mb-2">
+                                            <span className="text-black/60">Payment Method:</span>
+                                            <span className="font-[600] text-black">{selectedOrder.paymentMethod}</span>
+                                        </div>
+                                    )}
+                                    {selectedOrder.paymentId && (
+                                        <div className="flex justify-between mb-2">
+                                            <span className="text-black/60">Payment ID:</span>
+                                            <span className="font-mono text-xs text-black/70">{selectedOrder.paymentId}</span>
+                                        </div>
+                                    )}
+                                    <div className="pt-3 border-t-2 border-green-200 flex justify-between items-center">
+                                        <span className="text-lg font-[600] text-black">Total Amount:</span>
+                                        <span className="text-3xl font-[700] text-green-600">₹{selectedOrder.totalAmount.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
                     </Card>
                 </div>
             )}

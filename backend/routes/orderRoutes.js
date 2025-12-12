@@ -6,7 +6,8 @@ import {
     getOrderById,
     updateOrderStatus,
     deleteOrder,
-    getOrderStats
+    getOrderStats,
+    generateBill
 } from '../controllers/orderController.js';
 import { authMiddleware, protect } from '../middleware/auth.js';
 
@@ -26,5 +27,6 @@ router.get('/', authMiddleware, getAllOrders);
 router.put('/:id/status', authMiddleware, updateOrderStatus);
 router.delete('/:id', authMiddleware, deleteOrder);
 router.get('/stats/summary', authMiddleware, getOrderStats);
+router.post('/:id/generate-bill', authMiddleware, generateBill);
 
 export default router;

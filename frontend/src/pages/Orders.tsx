@@ -12,6 +12,7 @@ import {
     MapPin,
     CreditCard,
     ShoppingBag,
+    Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -143,6 +144,28 @@ export default function Orders() {
 
     const toggleOrderExpand = (orderId: string) => {
         setExpandedOrder(expandedOrder === orderId ? null : orderId);
+    };
+
+    const handleDeleteOrder = async (orderId: string) => {
+        if (!confirm('Are you sure you want to delete this order?')) return;
+
+        try {
+            const response = await fetch(`${API_URL}/orders/${orderId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                setOrders(orders.filter(order => order._id !== orderId));
+                alert('Order deleted successfully');
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Failed to delete order');
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            alert('Failed to delete order');
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -369,10 +392,10 @@ export default function Orders() {
                                                         <span className="text-sm text-black/60">Status</span>
                                                         <span
                                                             className={`text-sm font-medium capitalize ${order.paymentStatus === 'paid'
-                                                                    ? 'text-green-600'
-                                                                    : order.paymentStatus === 'failed'
-                                                                        ? 'text-red-600'
-                                                                        : 'text-yellow-600'
+                                                                ? 'text-green-600'
+                                                                : order.paymentStatus === 'failed'
+                                                                    ? 'text-red-600'
+                                                                    : 'text-yellow-600'
                                                                 }`}
                                                         >
                                                             {order.paymentStatus}
@@ -426,8 +449,8 @@ export default function Orders() {
                                                                 >
                                                                     <div
                                                                         className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted
-                                                                                ? 'bg-amber-600 text-white'
-                                                                                : 'bg-gray-200 text-gray-400'
+                                                                            ? 'bg-amber-600 text-white'
+                                                                            : 'bg-gray-200 text-gray-400'
                                                                             } ${isCurrent ? 'ring-4 ring-amber-200' : ''}`}
                                                                     >
                                                                         {isCompleted ? (
@@ -438,8 +461,8 @@ export default function Orders() {
                                                                     </div>
                                                                     <span
                                                                         className={`text-xs mt-1 capitalize whitespace-nowrap ${isCompleted
-                                                                                ? 'text-amber-600 font-medium'
-                                                                                : 'text-gray-400'
+                                                                            ? 'text-amber-600 font-medium'
+                                                                            : 'text-gray-400'
                                                                             }`}
                                                                     >
                                                                         {status}
@@ -448,8 +471,8 @@ export default function Orders() {
                                                                 {idx < 3 && (
                                                                     <div
                                                                         className={`w-12 h-1 mx-1 rounded ${isCompleted && idx < currentIdx
-                                                                                ? 'bg-amber-600'
-                                                                                : 'bg-gray-200'
+                                                                            ? 'bg-amber-600'
+                                                                            : 'bg-gray-200'
                                                                             }`}
                                                                     />
                                                                 )}
@@ -489,6 +512,17 @@ export default function Orders() {
                                                     Write a Review
                                                 </Button>
                                             )}
+                                            <Button
+                                                variant="outline"
+                                                className="border-red-200 hover:border-red-400 hover:bg-red-50 text-red-600"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteOrder(order._id);
+                                                }}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete Order
+                                            </Button>
                                             <p className="text-xs text-black/40 w-full mt-2">
                                                 Last updated: {formatDateTime(order.updatedAt)}
                                             </p>
