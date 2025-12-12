@@ -193,6 +193,19 @@ export const AdminDashboard = () => {
     const [editingUser, setEditingUser] = useState(false)
     const [userForm, setUserForm] = useState({ name: '', email: '', phone: '' })
 
+    // Site settings state
+    const [siteSettings, setSiteSettings] = useState({
+        recoveryEmail: 'sayancodder731@gmail.com',
+        siteName: 'Voyar Eyewear',
+        supportEmail: 'support@voyar.com'
+    })
+    const [showEditSettings, setShowEditSettings] = useState(false)
+    const [settingsForm, setSettingsForm] = useState({
+        recoveryEmail: '',
+        siteName: '',
+        supportEmail: ''
+    })
+
     useEffect(() => {
         const token = localStorage.getItem('adminToken')
         if (!token) {
@@ -237,10 +250,46 @@ export const AdminDashboard = () => {
                 const statsData = await statsRes.json()
                 setStats(statsData)
             }
+
+            // Fetch site settings
+            const settingsRes = await fetch(`${API_URL}/admin/settings`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            if (settingsRes.ok) {
+                const settingsData = await settingsRes.json()
+                setSiteSettings(settingsData)
+                setSettingsForm(settingsData)
+            }
         } catch (error) {
             console.error('Error fetching data:', error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleUpdateSettings = async () => {
+        const token = localStorage.getItem('adminToken')
+        try {
+            const res = await fetch(`${API_URL}/admin/settings`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(settingsForm)
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setSiteSettings(data.settings)
+                setShowEditSettings(false)
+                alert('Settings updated successfully!')
+            } else {
+                const error = await res.json()
+                alert(error.message || 'Failed to update settings')
+            }
+        } catch (error) {
+            console.error('Error updating settings:', error)
+            alert('Error updating settings')
         }
     }
 
@@ -1166,6 +1215,84 @@ export const AdminDashboard = () => {
                                             </p>
                                         </div>
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Site Settings */}
+                            <Card className="border-amber-200/60 rounded-2xl">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <Mail className="h-5 w-5 text-amber-600" />
+                                            <h3 className="text-lg font-[600] text-black">Site Settings</h3>
+                                        </div>
+                                        <Button
+                                            onClick={() => {
+                                                setSettingsForm(siteSettings)
+                                                setShowEditSettings(!showEditSettings)
+                                            }}
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-amber-200 hover:bg-amber-50"
+                                        >
+                                            {showEditSettings ? 'Cancel' : 'Edit'}
+                                        </Button>
+                                    </div>
+                                    {showEditSettings ? (
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="text-sm font-medium text-black/70 mb-1 block">Recovery Email</label>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Recovery Email"
+                                                    value={settingsForm.recoveryEmail}
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, recoveryEmail: e.target.value })}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-black/70 mb-1 block">Site Name</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Site Name"
+                                                    value={settingsForm.siteName}
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, siteName: e.target.value })}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-black/70 mb-1 block">Support Email</label>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Support Email"
+                                                    value={settingsForm.supportEmail}
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, supportEmail: e.target.value })}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                            <Button
+                                                onClick={handleUpdateSettings}
+                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                                            >
+                                                Save Settings
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                                                <span className="text-black/60">Recovery Email:</span>
+                                                <span className="font-medium text-black truncate max-w-[180px]">{siteSettings.recoveryEmail}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                                                <span className="text-black/60">Site Name:</span>
+                                                <span className="font-medium text-black">{siteSettings.siteName}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                                                <span className="text-black/60">Support Email:</span>
+                                                <span className="font-medium text-black truncate max-w-[180px]">{siteSettings.supportEmail}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 

@@ -1,9 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import Admin from '../models/Admin.js';
+import crypto from 'crypto';
+import Admin, { SiteSettings } from '../models/Admin.js';
 import User from '../models/User.js';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
+import { sendAdminPasswordResetEmail } from '../config/email.js';
 
 // Admin login with enhanced security
 export const adminLogin = async (req, res) => {
@@ -623,6 +625,142 @@ export const deleteUser = async (req, res) => {
         res.json({ message: 'User and associated orders deleted successfully' });
     } catch (error) {
         console.error('Delete user error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Admin forgot password
+// @route   POST /api/admin/forgot-password
+// @access  Public
+export const adminForgotPassword = async (req, res) => {
+    try {
+        const { username } = req.body;
+
+        if (!username) {
+            return res.status(400).json({ message: 'Please provide username' });
+        }
+
+        // Find admin by username
+        const admin = await Admin.findOne({ username });
+
+        if (!admin) {
+            // For security, don't reveal if username exists
+            return res.json({ message: 'If an account exists with this username, a password reset email will be sent to the recovery email.' });
+        }
+
+        // Get site settings for recovery email
+        let settings = await SiteSettings.findOne();
+        if (!settings) {
+            settings = await SiteSettings.create({});
+        }
+
+        const recoveryEmail = settings.recoveryEmail || 'sayancodder731@gmail.com';
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+
+        admin.resetPasswordToken = resetToken;
+        admin.resetPasswordExpires = resetTokenExpires;
+        await admin.save();
+
+        // Send password reset email to recovery email
+        await sendAdminPasswordResetEmail(recoveryEmail, admin.username, resetToken);
+
+        res.json({
+            message: 'If an account exists with this username, a password reset email will be sent to the recovery email.',
+            // In development, you might want to show the email
+            ...(process.env.NODE_ENV === 'development' && { recoveryEmail })
+        });
+    } catch (error) {
+        console.error('Admin forgot password error:', error);
+        res.status(500).json({ message: 'Server error. Please try again later.' });
+    }
+};
+
+// @desc    Admin reset password
+// @route   POST /api/admin/reset-password/:token
+// @access  Public
+export const adminResetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ message: 'Please provide a new password' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+
+        // Find admin with valid reset token
+        const admin = await Admin.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!admin) {
+            return res.status(400).json({ message: 'Invalid or expired reset token' });
+        }
+
+        // Hash new password and save
+        const hashedPassword = await bcrypt.hash(password, 12);
+        admin.password = hashedPassword;
+        admin.resetPasswordToken = undefined;
+        admin.resetPasswordExpires = undefined;
+        admin.failedLoginAttempts = 0;
+        admin.lockUntil = undefined;
+        await admin.save();
+
+        res.json({ message: 'Password reset successfully. You can now login with your new password.' });
+    } catch (error) {
+        console.error('Admin reset password error:', error);
+        res.status(500).json({ message: 'Server error. Please try again later.' });
+    }
+};
+
+// @desc    Get site settings
+// @route   GET /api/admin/settings
+// @access  Private/Admin
+export const getSiteSettings = async (req, res) => {
+    try {
+        let settings = await SiteSettings.findOne();
+        if (!settings) {
+            settings = await SiteSettings.create({});
+        }
+        res.json(settings);
+    } catch (error) {
+        console.error('Get settings error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update site settings
+// @route   PUT /api/admin/settings
+// @access  Private/Admin (super_admin only)
+export const updateSiteSettings = async (req, res) => {
+    try {
+        if (req.admin.role !== 'super_admin') {
+            return res.status(403).json({ message: 'Access denied. Super admin only.' });
+        }
+
+        const { recoveryEmail, siteName, supportEmail } = req.body;
+
+        let settings = await SiteSettings.findOne();
+        if (!settings) {
+            settings = new SiteSettings({});
+        }
+
+        if (recoveryEmail) settings.recoveryEmail = recoveryEmail;
+        if (siteName) settings.siteName = siteName;
+        if (supportEmail) settings.supportEmail = supportEmail;
+
+        await settings.save();
+
+        res.json({ message: 'Settings updated successfully', settings });
+    } catch (error) {
+        console.error('Update settings error:', error);
         res.status(500).json({ message: error.message });
     }
 };

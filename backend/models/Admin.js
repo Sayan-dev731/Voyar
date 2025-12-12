@@ -1,5 +1,23 @@
 import mongoose from 'mongoose';
 
+// Site settings schema (singleton)
+const siteSettingsSchema = new mongoose.Schema({
+    recoveryEmail: {
+        type: String,
+        default: 'sayancodder731@gmail.com'
+    },
+    siteName: {
+        type: String,
+        default: 'Voyar Eyewear'
+    },
+    supportEmail: {
+        type: String,
+        default: 'support@voyar.com'
+    }
+}, { timestamps: true });
+
+export const SiteSettings = mongoose.model('SiteSettings', siteSettingsSchema);
+
 const adminSchema = new mongoose.Schema({
     username: {
         type: String,
@@ -57,6 +75,13 @@ const adminSchema = new mongoose.Schema({
     },
     profileImage: {
         type: String
+    },
+    // Password reset fields
+    resetPasswordToken: {
+        type: String
+    },
+    resetPasswordExpires: {
+        type: Date
     }
 }, {
     timestamps: true

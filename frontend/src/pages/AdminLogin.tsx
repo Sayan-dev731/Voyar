@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Lock, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -93,6 +93,15 @@ export const AdminLogin = () => {
                                     required
                                 />
                             </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Link
+                                to="/admin/forgot-password"
+                                className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                            >
+                                Forgot password?
+                            </Link>
                         </div>
 
                         <Button

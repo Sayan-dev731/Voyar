@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -10,7 +10,12 @@ import {
     Shield,
     Package,
     AlertCircle,
-    X
+    X,
+    RefreshCw,
+    PartyPopper,
+    ShoppingBag,
+    Truck,
+    Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -95,7 +100,34 @@ export default function Checkout() {
     const [cardCvv, setCardCvv] = useState('');
     const [cardName, setCardName] = useState('');
 
+    // CAPTCHA state
+    const [captchaCode, setCaptchaCode] = useState('');
+    const [captchaInput, setCaptchaInput] = useState('');
+    const [captchaError, setCaptchaError] = useState('');
+
+    // Success modal state
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
     const totalAmount = totalPrice * 1.1; // Including 10% tax
+
+    // Generate CAPTCHA code
+    const generateCaptcha = useCallback(() => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let code = '';
+        for (let i = 0; i < 6; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        setCaptchaCode(code);
+        setCaptchaInput('');
+        setCaptchaError('');
+    }, []);
+
+    // Generate CAPTCHA when payment step loads
+    useEffect(() => {
+        if (step === 'payment') {
+            generateCaptcha();
+        }
+    }, [step, generateCaptcha]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -225,7 +257,15 @@ export default function Checkout() {
             return;
         }
 
+        // Validate CAPTCHA
+        if (captchaInput.toLowerCase() !== captchaCode.toLowerCase()) {
+            setCaptchaError('Invalid CAPTCHA. Please try again.');
+            generateCaptcha();
+            return;
+        }
+
         setError('');
+        setCaptchaError('');
         setStep('processing');
 
         // Simulate payment processing
@@ -276,6 +316,7 @@ export default function Checkout() {
             if (response.ok) {
                 setOrderId(data._id);
                 clearCart();
+                setShowSuccessModal(true);
                 setStep('success');
             } else {
                 setError(data.message || 'Failed to create order');
@@ -515,6 +556,48 @@ export default function Checkout() {
                                                 {selectedAddress?.street}, {selectedAddress?.city}, {selectedAddress?.state} - {selectedAddress?.zipCode}
                                             </p>
                                         </div>
+
+                                        {/* CAPTCHA Verification */}
+                                        <div className="mt-6 pt-6 border-t border-amber-200">
+                                            <h3 className="text-sm font-medium text-black/70 mb-3">Security Verification</h3>
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="flex-1 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg p-4 text-center select-none">
+                                                    <span className="text-2xl font-mono font-bold tracking-[0.5em] text-amber-800" style={{
+                                                        textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                                                        letterSpacing: '0.3em',
+                                                        fontStyle: 'italic'
+                                                    }}>
+                                                        {captchaCode}
+                                                    </span>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={generateCaptcha}
+                                                    className="border-amber-200 hover:border-amber-400"
+                                                >
+                                                    <RefreshCw className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={captchaInput}
+                                                onChange={(e) => {
+                                                    setCaptchaInput(e.target.value);
+                                                    setCaptchaError('');
+                                                }}
+                                                placeholder="Enter the code above"
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 ${captchaError ? 'border-red-400 bg-red-50' : 'border-amber-200'
+                                                    }`}
+                                            />
+                                            {captchaError && (
+                                                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    {captchaError}
+                                                </p>
+                                            )}
+                                        </div>
                                     </CardContent>
                                 </Card>
 
@@ -559,6 +642,41 @@ export default function Checkout() {
                                             Order ID: <span className="font-mono text-amber-600">{orderId}</span>
                                         </p>
                                     )}
+
+                                    {/* What happens next */}
+                                    <div className="bg-amber-50 rounded-xl p-6 mb-6 text-left">
+                                        <h3 className="text-lg font-semibold text-black mb-4">What happens next?</h3>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <Mail className="h-4 w-4 text-amber-700" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-black">Order Confirmation</p>
+                                                    <p className="text-sm text-black/60">You'll receive an email with your order details</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <Package className="h-4 w-4 text-amber-700" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-black">Processing</p>
+                                                    <p className="text-sm text-black/60">We'll prepare your order for shipping (1-2 days)</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <Truck className="h-4 w-4 text-amber-700" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-black">Shipping</p>
+                                                    <p className="text-sm text-black/60">Your eyewear will be on its way! (3-5 business days)</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                         <Button
                                             onClick={() => navigate('/orders')}
@@ -772,6 +890,119 @@ export default function Checkout() {
                     </Card>
                 </div>
             )}
+
+            {/* Success Popup Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fadeIn">
+                    <Card className="w-full max-w-md border-amber-200/60 rounded-2xl animate-scaleIn">
+                        <CardContent className="p-8 text-center relative overflow-hidden">
+                            {/* Confetti effect */}
+                            <div className="absolute inset-0 pointer-events-none">
+                                <div className="absolute top-0 left-1/4 w-2 h-2 bg-amber-400 rounded-full animate-confetti1"></div>
+                                <div className="absolute top-0 left-1/2 w-2 h-2 bg-green-400 rounded-full animate-confetti2"></div>
+                                <div className="absolute top-0 left-3/4 w-2 h-2 bg-blue-400 rounded-full animate-confetti3"></div>
+                                <div className="absolute top-0 left-1/3 w-2 h-2 bg-pink-400 rounded-full animate-confetti4"></div>
+                                <div className="absolute top-0 left-2/3 w-2 h-2 bg-purple-400 rounded-full animate-confetti5"></div>
+                            </div>
+
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowSuccessModal(false)}
+                                className="absolute top-4 right-4"
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+
+                            <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce-slow">
+                                <PartyPopper className="h-12 w-12 text-green-600" />
+                            </div>
+
+                            <h2 className="text-3xl font-bold text-black mb-2">🎉 Order Placed!</h2>
+                            <p className="text-black/60 mb-4">
+                                Congratulations! Your order has been successfully placed.
+                            </p>
+
+                            {orderId && (
+                                <div className="bg-amber-50 rounded-lg p-3 mb-6">
+                                    <p className="text-sm text-black/60">Order ID</p>
+                                    <p className="font-mono font-bold text-amber-600 text-lg">{orderId}</p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                <Button
+                                    onClick={() => {
+                                        setShowSuccessModal(false);
+                                        navigate('/orders');
+                                    }}
+                                    className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
+                                >
+                                    <ShoppingBag className="mr-2 h-4 w-4" />
+                                    Track Your Order
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setShowSuccessModal(false);
+                                        navigate('/');
+                                    }}
+                                    className="w-full border-amber-200 hover:border-amber-400"
+                                >
+                                    Continue Shopping
+                                </Button>
+                            </div>
+
+                            <p className="text-xs text-black/50 mt-4">
+                                A confirmation email has been sent to your registered email address.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { transform: scale(0.9); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+                @keyframes bounce-slow {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-10px); }
+                }
+                @keyframes confetti1 {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
+                }
+                @keyframes confetti2 {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(350px) rotate(-540deg); opacity: 0; }
+                }
+                @keyframes confetti3 {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(420px) rotate(630deg); opacity: 0; }
+                }
+                @keyframes confetti4 {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(380px) rotate(-450deg); opacity: 0; }
+                }
+                @keyframes confetti5 {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(400px) rotate(540deg); opacity: 0; }
+                }
+                .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+                .animate-scaleIn { animation: scaleIn 0.3s ease-out; }
+                .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
+                .animate-confetti1 { animation: confetti1 2s ease-out infinite; }
+                .animate-confetti2 { animation: confetti2 2.2s ease-out infinite; animation-delay: 0.1s; }
+                .animate-confetti3 { animation: confetti3 1.8s ease-out infinite; animation-delay: 0.2s; }
+                .animate-confetti4 { animation: confetti4 2.1s ease-out infinite; animation-delay: 0.15s; }
+                .animate-confetti5 { animation: confetti5 1.9s ease-out infinite; animation-delay: 0.25s; }
+            `}</style>
         </div>
     );
 }
