@@ -8,9 +8,13 @@ import Checkout from './pages/Checkout'
 import Orders from './pages/Orders'
 import { AdminLogin } from './pages/AdminLogin'
 import { AdminDashboard } from './pages/AdminDashboard'
+import AdminForgotPassword from './pages/AdminForgotPassword'
+import AdminResetPassword from './pages/AdminResetPassword'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Collections from './pages/Collections'
 import Profile from './pages/Profile'
 import Contact from './pages/Contact'
@@ -43,11 +47,15 @@ function App() {
               {/* Admin Routes - No Navbar/Footer */}
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+              <Route path="/admin/reset-password" element={<AdminResetPassword />} />
 
               {/* Auth Routes - No Navbar/Footer */}
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Public Routes - With Navbar/Footer */}
               <Route element={<PublicLayout />}>
