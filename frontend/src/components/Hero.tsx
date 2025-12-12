@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from './ui/button'
-import { Eye } from 'lucide-react'
+import { Eye, Sparkles } from 'lucide-react'
 import gsap from 'gsap'
 import { Link } from 'react-router-dom'
 
 export const Hero = () => {
     const heroRef = useRef<HTMLDivElement>(null)
     const logoRef = useRef<HTMLDivElement>(null)
+    const offerRef = useRef<HTMLDivElement>(null)
     const textRef = useRef<HTMLDivElement>(null)
     const imageRef = useRef<HTMLDivElement>(null)
     const detailsRef = useRef<HTMLDivElement>(null)
@@ -24,6 +25,11 @@ export const Hero = () => {
                 duration: 0.8,
                 delay: 0.2,
             })
+            .from(offerRef.current, {
+                opacity: 0,
+                y: 14,
+                duration: 0.7,
+            }, '-=0.35')
             .from(textRef.current, {
                 opacity: 0,
                 scale: 0.95,
@@ -45,16 +51,16 @@ export const Hero = () => {
     }, [])
 
     return (
-        <div ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#F5F1E8]">
-            <div className="relative w-full max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-16 sm:py-20">
+        <div ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#F5F1E8] pt-16 sm:pt-20">
+            <div className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 py-12 sm:py-16">
                 
                 {/* Brand Logo and Info - Top Left */}
-                <div ref={logoRef} className="absolute top-12 left-12 z-10">
-                    <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg shadow-sm border border-black/5">
+                <div ref={logoRef} className="absolute top-6 left-4 sm:top-12 sm:left-12 z-10">
+                    <div className="bg-white/80 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-sm border border-black/5">
                         <div className="flex items-center gap-3 mb-3">
-                            <Eye className="w-8 h-8 text-amber-600" strokeWidth={1.5} />
+                            <Eye className="w-7 h-7 sm:w-8 sm:h-8 text-amber-600" strokeWidth={1.5} />
                         </div>
-                        <div className="text-xs text-black/60 max-w-[180px] leading-relaxed">
+                        <div className="text-xs text-black/60 max-w-[160px] sm:max-w-[180px] leading-relaxed">
                             <div className="font-medium text-black mb-1">VOYAR</div>
                             Premium eyewear collection featuring cutting-edge design
                         </div>
@@ -63,6 +69,18 @@ export const Hero = () => {
 
                 {/* Main Content Area */}
                 <div className="relative flex flex-col items-center justify-center min-h-[70vh]">
+
+                    {/* Offer Banner */}
+                    <div ref={offerRef} className="mb-8 sm:mb-10 px-2">
+                        <div className="inline-flex max-w-[92vw] flex-wrap items-center justify-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-4 sm:px-5 py-2 shadow-sm border border-black/5 text-center">
+                            <span className="inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                            <span className="text-xs sm:text-sm font-semibold tracking-tight text-black/80">
+                                <span className="bg-gradient-to-r from-amber-600 to-amber-500 bg-clip-text text-transparent">BUY 1 GET 1</span>{' '}
+                                offer is live on Voyar
+                            </span>
+                            <Sparkles className="h-4 w-4 text-amber-600" />
+                        </div>
+                    </div>
                     
                     {/* Large VOYAR Text */}
                     <div ref={textRef} className="relative w-full max-w-5xl mx-auto mb-0">
@@ -90,7 +108,7 @@ export const Hero = () => {
                 </div>
 
                 {/* Product Details - Bottom Bar */}
-                <div ref={detailsRef} className="absolute bottom-8 left-0 right-0 px-6 sm:px-12">
+                <div ref={detailsRef} className="relative mt-10 sm:mt-12 md:absolute md:mt-0 md:bottom-8 left-0 right-0 px-4 sm:px-12">
                     <div className="max-w-[1400px] mx-auto">
                         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-black/5 p-6 sm:p-8">
                             <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,auto,auto] gap-6 items-center">
@@ -105,9 +123,9 @@ export const Hero = () => {
                                 </div>
 
                                 {/* Size Selector */}
-                                <div className="flex items-center gap-3 border-l border-black/10 pl-6">
+                                <div className="flex items-center gap-3 md:border-l md:border-black/10 md:pl-6">
                                     <span className="text-xs text-black/50 uppercase tracking-wider">Size</span>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         {sizes.map((size) => (
                                             <button
                                                 key={size}
@@ -125,7 +143,7 @@ export const Hero = () => {
                                 </div>
 
                                 {/* Price */}
-                                <div className="border-l border-black/10 pl-6">
+                                <div className="md:border-l md:border-black/10 md:pl-6">
                                     <div className="text-xs text-black/50 mb-1">Price</div>
                                     <div className="text-2xl font-bold text-black">₹1,699</div>
                                 </div>

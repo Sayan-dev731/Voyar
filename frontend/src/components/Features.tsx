@@ -38,7 +38,7 @@ export const Features = () => {
     const counterRefs = useRef<(HTMLDivElement | null)[]>([])
 
     return (
-        <div ref={sectionRef} className="py-20 sm:py-24 lg:py-32 bg-white border-y border-black/[0.08]">
+        <div ref={sectionRef} className="py-10 sm:py-12 lg:py-16 bg-white border-y border-black/[0.08]">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div
                     ref={featuresRef}

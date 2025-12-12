@@ -33,7 +33,7 @@ export const Newsletter = () => {
     }
 
     return (
-        <div ref={sectionRef} className="py-24 sm:py-32 lg:py-40 bg-gradient-to-b from-amber-50/30 to-white">
+        <div ref={sectionRef} className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-amber-50/30 to-white">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div
                     ref={contentRef}

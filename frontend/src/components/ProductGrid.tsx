@@ -60,7 +60,7 @@ export const ProductGrid = () => {
     }, [])
 
     return (
-        <div ref={sectionRef} id="collection" className="py-24 sm:py-32 lg:py-40 bg-gradient-to-b from-white via-amber-50/30 to-white">
+        <div ref={sectionRef} id="collection" className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white via-amber-50/30 to-white">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div ref={titleRef} className="text-center mb-16 sm:mb-20 lg:mb-24">
                     <h2 className="text-4xl sm:text-5xl lg:text-7xl font-[600] text-black tracking-tight mb-4">
