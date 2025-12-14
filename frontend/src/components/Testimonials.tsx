@@ -8,22 +8,22 @@ gsap.registerPlugin(ScrollTrigger)
 
 const testimonials = [
     {
-        name: 'Sarah Johnson',
-        role: 'Marketing Director',
+        name: 'Ujwal Singh',
+        // role: 'Marketing Director',
         rating: 5,
         text: 'Best eyewear shopping experience! The virtual try-on feature is incredibly accurate and made choosing the perfect frames so easy.',
         image: '/images/DSC00767.JPG',
     },
     {
-        name: 'Michael Chen',
-        role: 'Software Engineer',
+        name: 'Raman Kumar',
+        // role: 'Software Engineer',
         rating: 5,
         text: 'My blue light glasses have been a game-changer for long coding sessions. Quality is exceptional and customer service is outstanding.',
         image: '/images/DSC00817.JPG',
     },
     {
-        name: 'Emily Rodriguez',
-        role: 'Fashion Blogger',
+        name: 'Aman Gupta',
+        // role: 'Fashion Blogger',
         rating: 5,
         text: 'Voyar has the most stylish collection! I\'ve bought three pairs and constantly get compliments. Fast shipping too!',
         image: '/images/DSC00834.JPG',
@@ -100,7 +100,6 @@ export const Testimonials = () => {
                                             <h4 className="font-[600] text-black text-base sm:text-lg">
                                                 {testimonial.name}
                                             </h4>
-                                            <p className="text-xs sm:text-sm text-black/50 mt-1">{testimonial.role}</p>
                                         </CardContent>
                                     </Card>
                                 </div>

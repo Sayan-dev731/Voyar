@@ -131,7 +131,7 @@ export default function Collections() {
 
                 <div className="mb-8">
                     <h1 className="text-4xl sm:text-5xl font-[600] text-black mb-2">
-                        {searchQuery ? 'Search Results' : 'Our Collections'}
+                        {searchQuery ? 'Search Results' : 'New Collection'}
                     </h1>
                     <div className="flex items-center gap-2 text-black/60">
                         <Search className="h-4 w-4" />
