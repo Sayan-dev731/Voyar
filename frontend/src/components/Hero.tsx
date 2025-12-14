@@ -72,22 +72,22 @@ export const Hero = () => {
                         {/* Text Panel */}
                         <div className="relative p-6 sm:p-10 lg:p-12">
                             <div ref={logoRef} className="flex items-center gap-3 mb-6">
-                                <div className="h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center">
+                                {/* <div className="h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center">
                                     <Eye className="h-5 w-5" />
                                 </div>
                                 <div className="leading-tight">
                                     <div className="text-sm font-[700] tracking-wide text-black">VOYAR</div>
                                     <div className="text-xs text-black/60">Premium eyewear collection</div>
-                                </div>
+                                </div> */}
                             </div>
                             <div ref={offerRef} className="mb-6">
-                                <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-amber-50 px-4 py-2 border border-amber-200/60">
+                                {/* <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-amber-50 px-4 py-2 border border-amber-200/60">
                                     <span className="inline-flex h-2 w-2 rounded-full bg-amber-600" />
                                     <span className="text-xs sm:text-sm font-semibold tracking-tight text-black/80">
                                         <span className="text-amber-700">BUY 1 GET 1</span> offer is live
                                     </span>
                                     <Sparkles className="h-4 w-4 text-amber-600" />
-                                </div>
+                                </div> */}
                             </div>
 
                             <div ref={textRef}>
