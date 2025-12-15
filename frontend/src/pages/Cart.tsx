@@ -171,7 +171,7 @@ export const Cart = () => {
 
                     {/* Order Summary */}
                     <div className="lg:col-span-1">
-                        <Card className="border-amber-200/60 rounded-2xl sticky top-24">
+                        <Card className="border-amber-200/60 rounded-2xl lg:sticky lg:top-24">
                             <CardContent className="p-6">
                                 <h2 className="text-2xl font-[600] text-black mb-6">Order Summary</h2>
 

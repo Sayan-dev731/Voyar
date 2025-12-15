@@ -162,11 +162,11 @@ export const ProductDetail = () => {
                         </Card>
 
                         {images.length > 1 && (
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:pb-0">
                                 {images.map((img, idx) => (
                                     <Card
                                         key={idx}
-                                        className={`cursor-pointer overflow-hidden transition-all ${selectedImage === idx
+                                        className={`cursor-pointer overflow-hidden transition-all flex-shrink-0 w-20 sm:w-auto ${selectedImage === idx
                                             ? 'ring-2 ring-amber-500 border-amber-400'
                                             : 'border-amber-200/60 hover:border-amber-400'
                                             } rounded-xl`}
@@ -191,7 +191,7 @@ export const ProductDetail = () => {
                     <div className="space-y-6">
                         <div>
                             <p className="text-sm font-medium text-amber-600 mb-2">{product.category}</p>
-                            <h1 className="text-4xl sm:text-5xl font-[600] text-black mb-4">{product.name}</h1>
+                            <h1 className="text-3xl sm:text-5xl font-[600] text-black mb-4">{product.name}</h1>
 
                             {/* Rating */}
                             {product.rating && (
@@ -213,7 +213,7 @@ export const ProductDetail = () => {
                                 </div>
                             )}
 
-                            <p className="text-4xl font-[600] text-amber-600 mb-6">${product.price}</p>
+                            <p className="text-3xl sm:text-4xl font-[600] text-amber-600 mb-6">${product.price}</p>
                             <p className="text-base text-black/70 leading-relaxed">{product.detailedDescription}</p>
                         </div>
 
@@ -223,7 +223,7 @@ export const ProductDetail = () => {
                                 <p className="text-sm font-medium text-black mb-3">
                                     Color: <span className="text-amber-600">{selectedColor?.name}</span>
                                 </p>
-                                <div className="flex gap-3">
+                                <div className="flex flex-wrap gap-3">
                                     {product.colors.map((color) => (
                                         <button
                                             key={color.name}
@@ -295,7 +295,7 @@ export const ProductDetail = () => {
                         {/* Features */}
                         {product.features && product.features.length > 0 && (
                             <Card className="border-amber-200/60 rounded-xl">
-                                <CardContent className="p-6">
+                                <CardContent className="p-4 sm:p-6">
                                     <h3 className="text-lg font-[600] text-black mb-4">Key Features</h3>
                                     <ul className="space-y-2">
                                         {product.features.map((feature, idx) => (
@@ -312,9 +312,9 @@ export const ProductDetail = () => {
                         {/* Specifications */}
                         {product.specifications && (
                             <Card className="border-amber-200/60 rounded-xl">
-                                <CardContent className="p-6">
+                                <CardContent className="p-4 sm:p-6">
                                     <h3 className="text-lg font-[600] text-black mb-4">Specifications</h3>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {Object.entries(product.specifications).map(([key, value]) => (
                                             value && (
                                                 <div key={key}>

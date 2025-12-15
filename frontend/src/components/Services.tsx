@@ -16,12 +16,6 @@ const services = [
     {
         id: 3,
         number: '03.',
-        title: 'Virtual Try-On',
-        image: '/images/20251013_035040.jpg',
-    },
-    {
-        id: 4,
-        number: '04.',
         title: 'Eye Testing',
         image: '/images/20251013_035100.jpg',
     },

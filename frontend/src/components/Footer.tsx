@@ -1,4 +1,4 @@
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react'
+import { Facebook, Twitter, Instagram, Youtube, Mail, MapPin } from 'lucide-react'
 
 export const Footer = () => {
     return (
@@ -42,7 +42,7 @@ export const Footer = () => {
                     </div>
 
                     {/* Quick Links */}
-                    <div>
+                    {/* <div>
                         <h4 className="text-black font-[600] mb-4 text-base">Quick Links</h4>
                         <ul className="space-y-2.5 text-sm">
                             {['About Us', 'Our Stores', 'Careers', 'Press', 'Blog'].map((link) => (
@@ -53,13 +53,13 @@ export const Footer = () => {
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </div> */}
 
                     {/* Customer Service */}
                     <div>
                         <h4 className="text-black font-[600] mb-4 text-base">Customer Service</h4>
                         <ul className="space-y-2.5 text-sm">
-                            {['Contact Us', 'Track Order', 'Returns & Exchange', 'Warranty', 'FAQs'].map(
+                            {['24x7 Support', 'FAQs'].map(
                                 (link) => (
                                     <li key={link}>
                                         <a href="#" className="hover:text-amber-600 transition-colors">
@@ -74,18 +74,21 @@ export const Footer = () => {
                     {/* Contact Info */}
                     <div>
                         <h4 className="text-black font-[600] mb-4 text-base">Contact Us</h4>
+                        
                         <ul className="space-y-3 text-sm">
-                            <li className="flex items-start">
+                            {/* <li className="flex items-start">
                                 <Phone className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
                                 <span>1800-123-4567</span>
-                            </li>
+                            </li> */}
                             <li className="flex items-start">
                                 <Mail className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                                <span>support@Voyar.com</span>
+                                <a href="mailto:voyareyewear@gmail.com" className="text-amber-600 font-[600] hover:text-amber-700 transition-colors ">
+                                    voyareyewear@gmail.com
+                                </a>
                             </li>
                             <li className="flex items-start">
                                 <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                                <span>123 Vision Street, Eye City, EC 12345</span>
+                                <span>Patna City-800008, Bihar, India</span>
                             </li>
                         </ul>
                     </div>

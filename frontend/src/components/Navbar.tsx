@@ -57,7 +57,7 @@ export const Navbar = () => {
             <nav
                 className={cn(
                     'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-                    isScrolled ? 'bg-white/95 backdrop-blur-xl border-b border-black/10 shadow-sm' : 'bg-white/80 backdrop-blur-md'
+                    isScrolled ? 'bg-black border-b border-white/10 shadow-sm' : 'bg-black'
                 )}
             >
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -80,7 +80,7 @@ export const Navbar = () => {
                                 <a
                                     key={link.name}
                                     href={link.href}
-                                    className="text-sm font-medium text-black/60 hover:text-amber-600 transition-colors duration-200"
+                                    className="text-sm font-medium text-white/80 hover:text-amber-400 transition-colors duration-200"
                                 >
                                     {link.name}
                                 </a>
@@ -92,7 +92,7 @@ export const Navbar = () => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="hidden md:flex h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                className="hidden md:flex h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
                                 onClick={() => setShowSearch(!showSearch)}
                             >
                                 <Search className="h-4 w-4" />
@@ -104,7 +104,7 @@ export const Navbar = () => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors flex"
+                                        className="h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors flex"
                                         onClick={() => setShowUserMenu(!showUserMenu)}
                                     >
                                         <User className="h-4 w-4" />
@@ -148,7 +148,7 @@ export const Navbar = () => {
                                 <>
                                     <Button
                                         variant="ghost"
-                                        className="hidden sm:flex text-sm font-medium text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                        className="hidden sm:flex text-sm font-medium text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
                                         onClick={() => navigate('/login')}
                                     >
                                         Login
@@ -156,7 +156,7 @@ export const Navbar = () => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="flex sm:hidden h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                        className="flex sm:hidden h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
                                         onClick={() => navigate('/login')}
                                     >
                                         <User className="h-4 w-4" />
@@ -167,7 +167,7 @@ export const Navbar = () => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors relative"
+                                className="h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors relative"
                                 onClick={() => navigate('/cart')}
                             >
                                 <ShoppingCart className="h-4 w-4" />
@@ -180,7 +180,7 @@ export const Navbar = () => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="lg:hidden h-10 w-10 text-black/60 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                className="lg:hidden h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             >
                                 {isMobileMenuOpen ? (
@@ -195,7 +195,7 @@ export const Navbar = () => {
 
                 {/* Search Bar */}
                 {showSearch && (
-                    <div className="border-t border-black/10 bg-white backdrop-blur-xl">
+                    <div className="border-t border-white/10 bg-black">
                         <div className="px-4 py-4">
                             <form onSubmit={handleSearch} className="relative">
                                 <input
@@ -203,10 +203,10 @@ export const Navbar = () => {
                                     placeholder="Search for eyeglasses, sunglasses..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full px-4 py-3 pl-10 pr-4 bg-amber-50/50 border border-amber-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm"
+                                    className="w-full px-4 py-3 pl-10 pr-4 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm text-white placeholder:text-white/50"
                                     autoFocus
                                 />
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                             </form>
                         </div>
                     </div>
@@ -214,7 +214,7 @@ export const Navbar = () => {
 
                 {/* Mobile Menu */}
                 {isMobileMenuOpen && (
-                    <div className="lg:hidden border-t border-black/10 bg-white backdrop-blur-xl shadow-lg">
+                    <div className="lg:hidden border-t border-white/10 bg-black shadow-lg">
                         <div className="px-4 pt-4 pb-6 space-y-1">
                             {/* Mobile Search */}
                             <div className="mb-4">
@@ -224,16 +224,16 @@ export const Navbar = () => {
                                         placeholder="Search..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full px-4 py-2 pl-10 pr-4 bg-amber-50/50 border border-amber-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm"
+                                        className="w-full px-4 py-2 pl-10 pr-4 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm text-white placeholder:text-white/50"
                                     />
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
                                 </form>
                             </div>
                             {navLinks.map((link) => (
                                 <a
                                     key={link.name}
                                     href={link.href}
-                                    className="block px-4 py-3 text-base font-medium text-black/80 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors duration-150"
+                                    className="block px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     {link.name}
@@ -241,19 +241,19 @@ export const Navbar = () => {
                             ))}
 
                             {/* Mobile User Options */}
-                            <div className="border-t border-black/10 mt-4 pt-4">
+                            <div className="border-t border-white/10 mt-4 pt-4">
                                 {isAuthenticated ? (
                                     <>
                                         <div className="px-4 py-2 mb-2">
-                                            <p className="text-sm font-medium text-black truncate">{user?.name}</p>
-                                            <p className="text-xs text-black/60 truncate">{user?.email}</p>
+                                            <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+                                            <p className="text-xs text-white/60 truncate">{user?.email}</p>
                                         </div>
                                         <button
                                             onClick={() => {
                                                 navigate('/profile')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-black/80 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
                                         >
                                             My Profile
                                         </button>
@@ -262,7 +262,7 @@ export const Navbar = () => {
                                                 navigate('/orders')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-black/80 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
                                         >
                                             My Orders
                                         </button>
@@ -284,7 +284,7 @@ export const Navbar = () => {
                                                 navigate('/login')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-black/80 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
                                         >
                                             Login
                                         </button>
@@ -293,7 +293,7 @@ export const Navbar = () => {
                                                 navigate('/signup')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-4 py-3 text-base font-medium text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
                                         >
                                             Sign Up
                                         </button>

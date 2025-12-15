@@ -711,7 +711,7 @@ export default function Checkout() {
                     {/* Order Summary */}
                     {step !== 'success' && (
                         <div className="lg:col-span-1">
-                            <Card className="border-amber-200/60 rounded-2xl sticky top-24">
+                            <Card className="border-amber-200/60 rounded-2xl lg:sticky lg:top-24">
                                 <CardContent className="p-6">
                                     <h2 className="text-xl font-[600] text-black mb-4">Order Summary</h2>
 

@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
-import { Star, Glasses } from 'lucide-react'
+import { Star, Glasses, User, UserRound, Baby } from 'lucide-react'
 import { API_URL } from '@/config/api'
 import type { Product } from '@/types/product'
 
@@ -64,11 +64,49 @@ export const ProductGrid = () => {
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div ref={titleRef} className="text-center mb-16 sm:mb-20 lg:mb-24">
                     <h2 className="text-4xl sm:text-5xl lg:text-7xl font-[600] text-black tracking-tight mb-4">
-                        Our Collection
+                        New Collection
                     </h2>
                     <p className="text-sm sm:text-base text-black/60 max-w-2xl mx-auto">
                         Handpicked styles to match your personality
                     </p>
+
+                    <div className="mt-6 max-w-2xl mx-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                            <div className="rounded-2xl border border-amber-200/60 bg-white/70 backdrop-blur-sm p-4">
+                                <div className="text-sm font-semibold text-black">Eyewear</div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-black/70 text-xs border border-amber-200/60">
+                                        <User className="h-3.5 w-3.5" aria-hidden="true" />
+                                        Men
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-black/70 text-xs border border-amber-200/60">
+                                        <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                                        Women
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full bg-amber-50 text-black/70 text-xs border border-amber-200/60">Free lens</span>
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-amber-200/60 bg-white/70 backdrop-blur-sm p-4">
+                                <div className="text-sm font-semibold text-black">Sunglasses</div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-black/70 text-xs border border-amber-200/60">
+                                        <User className="h-3.5 w-3.5" aria-hidden="true" />
+                                        Men
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-black/70 text-xs border border-amber-200/60">
+                                        <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                                        Women
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full bg-amber-50 text-black/70 text-xs border border-amber-200/60">Under 999</span>
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-black/70 text-xs border border-amber-200/60">
+                                        <Baby className="h-3.5 w-3.5" aria-hidden="true" />
+                                        Kids
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {loading ? (

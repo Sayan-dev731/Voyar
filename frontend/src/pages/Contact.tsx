@@ -64,8 +64,8 @@ const Contact = () => {
                                 </div>
                                 <h3 className="text-xl font-[700] text-black mb-2">Email Us</h3>
                                 <p className="text-black/60 mb-4">Send us an email anytime!</p>
-                                <a href="mailto:support@voyareyewear.com" className="text-amber-600 font-[600] hover:text-amber-700 transition-colors">
-                                    support@voyareyewear.com
+                                <a href="mailto:voyareyewear@gmail.com" className="text-amber-600 font-[600] hover:text-amber-700 transition-colors">
+                                    voyareyewear@gmail.com
                                 </a>
                             </CardContent>
                         </Card>

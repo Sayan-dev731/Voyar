@@ -131,7 +131,7 @@ export default function Collections() {
 
                 <div className="mb-8">
                     <h1 className="text-4xl sm:text-5xl font-[600] text-black mb-2">
-                        {searchQuery ? 'Search Results' : 'Our Collections'}
+                        {searchQuery ? 'Search Results' : 'New Collection'}
                     </h1>
                     <div className="flex items-center gap-2 text-black/60">
                         <Search className="h-4 w-4" />
@@ -146,8 +146,8 @@ export default function Collections() {
 
                 <div className="grid lg:grid-cols-4 gap-8">
                     {/* Filters Sidebar */}
-                    <div className="lg:col-span-1">
-                        <Card className="border-amber-200/60 rounded-2xl sticky top-24">
+                    <div className="lg:col-span-1 mb-6 lg:mb-0">
+                        <Card className="border-amber-200/60 rounded-2xl lg:sticky lg:top-24">
                             <CardContent className="p-6">
                                 <div className="flex items-center gap-2 mb-6">
                                     <SlidersHorizontal className="h-5 w-5 text-amber-600" />
@@ -290,7 +290,7 @@ const ProductCard = ({ product, navigate }: ProductCardProps) => {
                         }}
                     />
                 </div>
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
                             <h3 className="text-lg font-[600] text-black mb-1">
