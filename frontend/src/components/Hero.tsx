@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from './ui/button'
-import { ArrowRight, Eye, Sparkles } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import gsap from 'gsap'
 import { Link } from 'react-router-dom'
 
