@@ -108,7 +108,32 @@ export default function Checkout() {
     // Success modal state
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    const totalAmount = totalPrice * 1.1; // Including 10% tax
+    // Site settings for charges
+    const [siteSettings, setSiteSettings] = useState({
+        platformCharges: 0,
+        deliveryCharges: 0
+    });
+
+    const totalAmount = totalPrice + siteSettings.platformCharges + siteSettings.deliveryCharges;
+
+    // Fetch site settings
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch(`${API_URL}/admin/settings/public`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setSiteSettings({
+                        platformCharges: data.platformCharges || 0,
+                        deliveryCharges: data.deliveryCharges || 0
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch site settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     // Generate CAPTCHA code
     const generateCaptcha = useCallback(() => {
@@ -609,7 +634,7 @@ export default function Checkout() {
                                     className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 text-base font-medium shadow-lg shadow-amber-200"
                                 >
                                     <Shield className="mr-2 h-5 w-5" />
-                                    Pay ${totalAmount.toFixed(2)}
+                                    Pay ₹{totalAmount.toFixed(2)}
                                 </Button>
 
                                 <p className="text-center text-xs text-black/50">
@@ -730,7 +755,7 @@ export default function Checkout() {
                                                     <p className="text-sm font-medium text-black truncate">{item.name}</p>
                                                     <p className="text-xs text-black/50">Qty: {item.quantity}</p>
                                                     <p className="text-sm font-medium text-amber-600">
-                                                        ${(item.price * item.quantity).toFixed(2)}
+                                                        ₹{(item.price * item.quantity).toFixed(2)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -740,19 +765,19 @@ export default function Checkout() {
                                     <div className="border-t border-amber-200 pt-4 space-y-2">
                                         <div className="flex justify-between text-sm text-black/70">
                                             <span>Subtotal</span>
-                                            <span>${totalPrice.toFixed(2)}</span>
+                                            <span>₹{totalPrice.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm text-black/70">
-                                            <span>Shipping</span>
-                                            <span className="text-green-600">Free</span>
+                                            <span>Platform Charges</span>
+                                            <span>₹{siteSettings.platformCharges.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm text-black/70">
-                                            <span>Tax (10%)</span>
-                                            <span>${(totalPrice * 0.1).toFixed(2)}</span>
+                                            <span>Delivery Charges</span>
+                                            <span>{siteSettings.deliveryCharges > 0 ? `₹${siteSettings.deliveryCharges.toFixed(2)}` : <span className="text-green-600">Free</span>}</span>
                                         </div>
                                         <div className="flex justify-between text-lg font-[600] text-black pt-2 border-t border-amber-200">
                                             <span>Total</span>
-                                            <span className="text-amber-600">${totalAmount.toFixed(2)}</span>
+                                            <span className="text-amber-600">₹{totalAmount.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </CardContent>

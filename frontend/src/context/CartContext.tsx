@@ -6,7 +6,7 @@ import { safeLocalStorage } from '@/lib/storage'
 
 interface CartContextType {
     items: CartItem[]
-    addToCart: (product: Product, quantity?: number, selectedColor?: string) => void
+    addToCart: (product: Product, quantity?: number, selectedColor?: string, selectedColorPrice?: number) => void
     removeFromCart: (productId: number | string) => void
     updateQuantity: (productId: number | string, quantity: number) => void
     clearCart: () => void
@@ -98,7 +98,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
         }
     }, [])
 
-    const addToCart = async (product: Product, quantity = 1, selectedColor?: string) => {
+    const addToCart = async (product: Product, quantity = 1, selectedColor?: string, selectedColorPrice?: number) => {
         const token = getToken()
 
         // Update local state first for instant feedback
@@ -115,7 +115,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
                 )
             }
 
-            return [...currentItems, { ...product, quantity, selectedColor }]
+            return [...currentItems, { ...product, quantity, selectedColor, selectedColorPrice }]
         })
 
         // Sync with server if logged in
@@ -217,7 +217,10 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     }
 
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-    const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const totalPrice = items.reduce((sum, item) => {
+        const itemPrice = item.selectedColorPrice || item.price
+        return sum + itemPrice * item.quantity
+    }, 0)
 
     return (
         <CartContext.Provider

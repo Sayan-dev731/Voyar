@@ -122,7 +122,7 @@ interface ProductFormData {
         lensType: string
         uvProtection: string
     }
-    colors: { name: string; value: string }[]
+    colors: { name: string; value: string; price: string; quantity: string }[]
     inStock: boolean
     rating: string
     reviews: string
@@ -147,7 +147,7 @@ const initialProductForm: ProductFormData = {
         lensType: '',
         uvProtection: ''
     },
-    colors: [{ name: '', value: '#000000' }],
+    colors: [{ name: '', value: '#000000', price: '', quantity: '' }],
     inStock: true,
     rating: '0',
     reviews: '0'
@@ -217,13 +217,17 @@ export const AdminDashboard = () => {
     const [siteSettings, setSiteSettings] = useState({
         recoveryEmail: 'sayancodder731@gmail.com',
         siteName: 'Voyar Eyewear',
-        supportEmail: 'support@voyar.com'
+        supportEmail: 'support@voyar.com',
+        platformCharges: 0,
+        deliveryCharges: 0
     })
     const [showEditSettings, setShowEditSettings] = useState(false)
     const [settingsForm, setSettingsForm] = useState({
         recoveryEmail: '',
         siteName: '',
-        supportEmail: ''
+        supportEmail: '',
+        platformCharges: 0,
+        deliveryCharges: 0
     })
 
     // Order details modal state
@@ -580,7 +584,12 @@ export const AdminDashboard = () => {
                 lensType: product.specifications?.lensType || '',
                 uvProtection: product.specifications?.uvProtection || ''
             },
-            colors: product.colors?.length ? product.colors : [{ name: '', value: '#000000' }],
+            colors: product.colors?.length ? product.colors.map(c => ({
+                name: c.name || '',
+                value: c.value || '#000000',
+                price: String(c.price || product.price || ''),
+                quantity: String(c.quantity || '0')
+            })) : [{ name: '', value: '#000000', price: String(product.price || ''), quantity: '0' }],
             inStock: product.inStock !== false,
             rating: String(product.rating || '0'),
             reviews: String(product.reviews || '0')
@@ -640,7 +649,7 @@ export const AdminDashboard = () => {
     const handleAddColor = () => {
         setProductForm(prev => ({
             ...prev,
-            colors: [...prev.colors, { name: '', value: '#000000' }]
+            colors: [...prev.colors, { name: '', value: '#000000', price: prev.price, quantity: '0' }]
         }))
     }
 
@@ -651,7 +660,7 @@ export const AdminDashboard = () => {
         }))
     }
 
-    const handleColorChange = (index: number, field: 'name' | 'value', value: string) => {
+    const handleColorChange = (index: number, field: 'name' | 'value' | 'price' | 'quantity', value: string) => {
         setProductForm(prev => ({
             ...prev,
             colors: prev.colors.map((c, i) => i === index ? { ...c, [field]: value } : c)
@@ -695,7 +704,12 @@ export const AdminDashboard = () => {
             detailedDescription: productForm.detailedDescription.trim(),
             features: productForm.features.filter(f => f.trim()),
             specifications: productForm.specifications,
-            colors: productForm.colors.filter(c => c.name.trim()),
+            colors: productForm.colors.filter(c => c.name.trim()).map(c => ({
+                name: c.name.trim(),
+                value: c.value,
+                price: Number(c.price) || Number(productForm.price),
+                quantity: Number(c.quantity) || 0
+            })),
             inStock: productForm.inStock,
             rating: Number(productForm.rating) || 0,
             reviews: Number(productForm.reviews) || 0
@@ -886,7 +900,7 @@ export const AdminDashboard = () => {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-sm text-black/60 mb-1">Revenue</p>
-                                            <p className="text-3xl font-[600] text-black">${stats.totalRevenue.toFixed(2)}</p>
+                                            <p className="text-3xl font-[600] text-black">₹{stats.totalRevenue.toFixed(2)}</p>
                                         </div>
                                         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                                             <DollarSign className="h-6 w-6 text-green-600" />
@@ -907,7 +921,7 @@ export const AdminDashboard = () => {
                                                 <p className="text-sm text-black/60">{order.customerEmail}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="font-[600] text-amber-600">${order.totalAmount}</p>
+                                                <p className="font-[600] text-amber-600">₹{order.totalAmount}</p>
                                                 <p className="text-sm text-black/60">{order.status}</p>
                                             </div>
                                         </div>
@@ -949,7 +963,7 @@ export const AdminDashboard = () => {
                                         <h3 className="font-[600] text-black mb-1">{product.name}</h3>
                                         <p className="text-sm text-black/60 mb-2">{product.category}</p>
                                         <div className="flex items-center justify-between mb-4">
-                                            <p className="text-lg font-[600] text-amber-600">${product.price}</p>
+                                            <p className="text-lg font-[600] text-amber-600">₹{product.price}</p>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.inStock !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                                 }`}>
                                                 {product.inStock !== false ? 'In Stock' : 'Out of Stock'}
@@ -1373,6 +1387,28 @@ export const AdminDashboard = () => {
                                                     className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                                                 />
                                             </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-black/70 mb-1 block">Platform Charges (₹)</label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    min="0"
+                                                    value={settingsForm.platformCharges}
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, platformCharges: Number(e.target.value) || 0 })}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-black/70 mb-1 block">Delivery Charges (₹)</label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    min="0"
+                                                    value={settingsForm.deliveryCharges}
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, deliveryCharges: Number(e.target.value) || 0 })}
+                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                />
+                                            </div>
                                             <Button
                                                 onClick={handleUpdateSettings}
                                                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
@@ -1393,6 +1429,14 @@ export const AdminDashboard = () => {
                                             <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
                                                 <span className="text-black/60">Support Email:</span>
                                                 <span className="font-medium text-black truncate max-w-[180px]">{siteSettings.supportEmail}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                                                <span className="text-black/60">Platform Charges:</span>
+                                                <span className="font-medium text-black">₹{siteSettings.platformCharges}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                                                <span className="text-black/60">Delivery Charges:</span>
+                                                <span className="font-medium text-black">₹{siteSettings.deliveryCharges}</span>
                                             </div>
                                         </div>
                                     )}
@@ -1576,7 +1620,7 @@ export const AdminDashboard = () => {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-black/70 mb-1">Price ($) *</label>
+                                                <label className="block text-sm font-medium text-black/70 mb-1">Base Price (₹) *</label>
                                                 <input
                                                     type="number"
                                                     step="0.01"
@@ -1689,7 +1733,7 @@ export const AdminDashboard = () => {
                                     {/* Colors */}
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="font-[600] text-black">Colors</h3>
+                                            <h3 className="font-[600] text-black">Color Variants (Price & Quantity per Color)</h3>
                                             <Button
                                                 type="button"
                                                 variant="outline"
@@ -1702,31 +1746,58 @@ export const AdminDashboard = () => {
                                             </Button>
                                         </div>
                                         {productForm.colors.map((color, index) => (
-                                            <div key={index} className="flex gap-2 items-center">
-                                                <input
-                                                    type="text"
-                                                    value={color.name}
-                                                    onChange={(e) => handleColorChange(index, 'name', e.target.value)}
-                                                    className="flex-1 px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                    placeholder="Color name"
-                                                />
-                                                <input
-                                                    type="color"
-                                                    value={color.value}
-                                                    onChange={(e) => handleColorChange(index, 'value', e.target.value)}
-                                                    className="w-10 h-10 border border-amber-200 rounded-lg cursor-pointer"
-                                                />
-                                                {productForm.colors.length > 1 && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleRemoveColor(index)}
-                                                        className="border-red-200 hover:border-red-400 text-red-600"
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                )}
+                                            <div key={index} className="p-3 bg-amber-50/50 rounded-lg border border-amber-200/60 space-y-2">
+                                                <div className="flex gap-2 items-center">
+                                                    <input
+                                                        type="text"
+                                                        value={color.name}
+                                                        onChange={(e) => handleColorChange(index, 'name', e.target.value)}
+                                                        className="flex-1 px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                        placeholder="Color name"
+                                                    />
+                                                    <input
+                                                        type="color"
+                                                        value={color.value}
+                                                        onChange={(e) => handleColorChange(index, 'value', e.target.value)}
+                                                        className="w-10 h-10 border border-amber-200 rounded-lg cursor-pointer"
+                                                    />
+                                                    {productForm.colors.length > 1 && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleRemoveColor(index)}
+                                                            className="border-red-200 hover:border-red-400 text-red-600"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label className="block text-xs text-black/60 mb-1">Price (₹)</label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            value={color.price}
+                                                            onChange={(e) => handleColorChange(index, 'price', e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                                            placeholder="Price for this color"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs text-black/60 mb-1">Quantity</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={color.quantity}
+                                                            onChange={(e) => handleColorChange(index, 'quantity', e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                                            placeholder="Stock quantity"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

@@ -23,7 +23,7 @@ export const adminLogin = async (req, res) => {
             admin = new Admin({
                 username: 'admin',
                 password: hashedPassword,
-                role: 'super_admin',
+                role: 'admin',
                 permissions: {
                     manageProducts: true,
                     manageOrders: true,
@@ -407,7 +407,7 @@ export const getUserById = async (req, res) => {
 // Get all admins (super admin only)
 export const getAllAdmins = async (req, res) => {
     try {
-        if (req.admin.role !== 'super_admin') {
+        if (req.admin.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
@@ -424,7 +424,7 @@ export const getAllAdmins = async (req, res) => {
 // Create new admin (super admin only)
 export const createAdmin = async (req, res) => {
     try {
-        if (req.admin.role !== 'super_admin') {
+        if (req.admin.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
@@ -464,7 +464,7 @@ export const createAdmin = async (req, res) => {
 // Update admin (super admin only)
 export const updateAdmin = async (req, res) => {
     try {
-        if (req.admin.role !== 'super_admin') {
+        if (req.admin.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
@@ -504,7 +504,7 @@ export const updateAdmin = async (req, res) => {
 // Delete admin (super admin only)
 export const deleteAdmin = async (req, res) => {
     try {
-        if (req.admin.role !== 'super_admin') {
+        if (req.admin.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
@@ -736,16 +736,37 @@ export const getSiteSettings = async (req, res) => {
     }
 };
 
+// @desc    Get public site settings (platform and delivery charges)
+// @route   GET /api/admin/settings/public
+// @access  Public
+export const getPublicSiteSettings = async (req, res) => {
+    try {
+        let settings = await SiteSettings.findOne();
+        if (!settings) {
+            settings = await SiteSettings.create({});
+        }
+        // Only return public-facing settings
+        res.json({
+            platformCharges: settings.platformCharges || 0,
+            deliveryCharges: settings.deliveryCharges || 0,
+            siteName: settings.siteName
+        });
+    } catch (error) {
+        console.error('Get public settings error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Update site settings
 // @route   PUT /api/admin/settings
-// @access  Private/Admin (super_admin only)
+// @access  Private/Admin (admin only)
 export const updateSiteSettings = async (req, res) => {
     try {
-        if (req.admin.role !== 'super_admin') {
+        if (req.admin.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
-        const { recoveryEmail, siteName, supportEmail } = req.body;
+        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges } = req.body;
 
         let settings = await SiteSettings.findOne();
         if (!settings) {
@@ -755,6 +776,8 @@ export const updateSiteSettings = async (req, res) => {
         if (recoveryEmail) settings.recoveryEmail = recoveryEmail;
         if (siteName) settings.siteName = siteName;
         if (supportEmail) settings.supportEmail = supportEmail;
+        if (platformCharges !== undefined) settings.platformCharges = platformCharges;
+        if (deliveryCharges !== undefined) settings.deliveryCharges = deliveryCharges;
 
         await settings.save();
 

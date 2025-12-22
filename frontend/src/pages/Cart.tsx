@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useCart } from '@/context/CartContext'
+import { API_URL } from '@/config/api'
 
 // Helper function to convert Google Drive link to direct image URL
 const convertGoogleDriveLink = (url: string): string => {
@@ -34,6 +36,33 @@ const convertGoogleDriveLink = (url: string): string => {
 export const Cart = () => {
     const navigate = useNavigate()
     const { items, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart()
+
+    // Site settings for charges
+    const [siteSettings, setSiteSettings] = useState({
+        platformCharges: 0,
+        deliveryCharges: 0
+    })
+
+    // Fetch site settings
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch(`${API_URL}/admin/settings/public`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setSiteSettings({
+                        platformCharges: data.platformCharges || 0,
+                        deliveryCharges: data.deliveryCharges || 0
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch site settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    const grandTotal = totalPrice + siteSettings.platformCharges + siteSettings.deliveryCharges;
 
     if (items.length === 0) {
         return (
@@ -155,10 +184,10 @@ export const Cart = () => {
                                                 {/* Price */}
                                                 <div className="text-right">
                                                     <p className="text-lg font-[600] text-amber-600">
-                                                        ${(item.price * item.quantity).toFixed(2)}
+                                                        ₹{((item.selectedColorPrice || item.price) * item.quantity).toFixed(2)}
                                                     </p>
                                                     {item.quantity > 1 && (
-                                                        <p className="text-xs text-black/50">${item.price} each</p>
+                                                        <p className="text-xs text-black/50">₹{item.selectedColorPrice || item.price} each</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -178,22 +207,22 @@ export const Cart = () => {
                                 <div className="space-y-4 mb-6">
                                     <div className="flex justify-between text-black/70">
                                         <span>Subtotal</span>
-                                        <span className="font-medium">${totalPrice.toFixed(2)}</span>
+                                        <span className="font-medium">₹{totalPrice.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-black/70">
-                                        <span>Shipping</span>
-                                        <span className="font-medium text-green-600">Free</span>
+                                        <span>Platform Charges</span>
+                                        <span className="font-medium">₹{siteSettings.platformCharges.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-black/70">
-                                        <span>Tax (estimated)</span>
-                                        <span className="font-medium">${(totalPrice * 0.1).toFixed(2)}</span>
+                                        <span>Delivery Charges</span>
+                                        <span className="font-medium">{siteSettings.deliveryCharges > 0 ? `₹${siteSettings.deliveryCharges.toFixed(2)}` : <span className="text-green-600">Free</span>}</span>
                                     </div>
 
                                     <div className="border-t border-amber-200 pt-4">
                                         <div className="flex justify-between items-center">
                                             <span className="text-lg font-[600] text-black">Total</span>
                                             <span className="text-2xl font-[600] text-amber-600">
-                                                ${(totalPrice * 1.1).toFixed(2)}
+                                                ₹{grandTotal.toFixed(2)}
                                             </span>
                                         </div>
                                     </div>

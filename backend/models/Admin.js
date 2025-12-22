@@ -13,6 +13,16 @@ const siteSettingsSchema = new mongoose.Schema({
     supportEmail: {
         type: String,
         default: 'support@voyar.com'
+    },
+    platformCharges: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    deliveryCharges: {
+        type: Number,
+        default: 0,
+        min: 0
     }
 }, { timestamps: true });
 

@@ -268,7 +268,7 @@ export default function Orders() {
                                             <p className="text-sm text-black/60 mt-1">
                                                 {order.items.length} item{order.items.length > 1 ? 's' : ''} •{' '}
                                                 <span className="font-medium text-amber-600">
-                                                    ${order.totalAmount.toFixed(2)}
+                                                    ₹{order.totalAmount.toFixed(2)}
                                                 </span>
                                             </p>
                                         </div>
@@ -339,7 +339,7 @@ export default function Orders() {
                                                                 Qty: {item.quantity}
                                                             </p>
                                                             <p className="font-medium text-amber-600 mt-1">
-                                                                ${(item.price * item.quantity).toFixed(2)}
+                                                                ₹{(item.price * item.quantity).toFixed(2)}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -415,7 +415,7 @@ export default function Orders() {
                                                         <div className="flex justify-between">
                                                             <span className="font-medium text-black">Total</span>
                                                             <span className="font-[600] text-amber-600">
-                                                                ${order.totalAmount.toFixed(2)}
+                                                                ₹{order.totalAmount.toFixed(2)}
                                                             </span>
                                                         </div>
                                                     </div>

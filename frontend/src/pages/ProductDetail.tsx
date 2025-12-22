@@ -7,6 +7,8 @@ import { useCart } from '@/context/CartContext'
 import { API_URL } from '@/config/api'
 import type { Product } from '@/types/product'
 
+type ColorOption = { name: string; value: string; price?: number; quantity?: number }
+
 // Helper function to convert Google Drive link to direct image URL
 const convertGoogleDriveLink = (url: string): string => {
     if (!url) return url;
@@ -68,7 +70,7 @@ export const ProductDetail = () => {
     const [product, setProduct] = useState<Product | null>(null)
     const [loading, setLoading] = useState(true)
     const [selectedImage, setSelectedImage] = useState(0)
-    const [selectedColor, setSelectedColor] = useState<{ name: string; value: string } | undefined>()
+    const [selectedColor, setSelectedColor] = useState<ColorOption | undefined>()
     const [quantity, setQuantity] = useState(1)
     const [addedToCart, setAddedToCart] = useState(false)
 
@@ -125,7 +127,8 @@ export const ProductDetail = () => {
     }
 
     const handleAddToCart = () => {
-        addToCart(product, quantity, selectedColor?.name)
+        const colorPrice = selectedColor?.price || product.price
+        addToCart(product, quantity, selectedColor?.name, colorPrice)
         setAddedToCart(true)
         setTimeout(() => setAddedToCart(false), 2000)
     }
@@ -213,7 +216,7 @@ export const ProductDetail = () => {
                                 </div>
                             )}
 
-                            <p className="text-3xl sm:text-4xl font-[600] text-amber-600 mb-6">${product.price}</p>
+                            <p className="text-3xl sm:text-4xl font-[600] text-amber-600 mb-6">₹{selectedColor?.price || product.price}</p>
                             <p className="text-base text-black/70 leading-relaxed">{product.detailedDescription}</p>
                         </div>
 
@@ -222,6 +225,9 @@ export const ProductDetail = () => {
                             <div>
                                 <p className="text-sm font-medium text-black mb-3">
                                     Color: <span className="text-amber-600">{selectedColor?.name}</span>
+                                    {selectedColor?.quantity !== undefined && selectedColor?.quantity > 0 && (
+                                        <span className="text-xs text-black/50 ml-2">({selectedColor.quantity} in stock)</span>
+                                    )}
                                 </p>
                                 <div className="flex flex-wrap gap-3">
                                     {product.colors.map((color) => (
@@ -231,9 +237,9 @@ export const ProductDetail = () => {
                                             className={`w-10 h-10 rounded-full border-2 transition-all ${selectedColor?.name === color.name
                                                 ? 'border-amber-600 ring-2 ring-amber-300'
                                                 : 'border-amber-200 hover:border-amber-400'
-                                                }`}
+                                                } ${color.quantity === 0 ? 'opacity-50' : ''}`}
                                             style={{ backgroundColor: color.value }}
-                                            title={color.name}
+                                            title={`${color.name} - ₹${color.price}${color.quantity === 0 ? ' (Out of stock)' : ''}`}
                                         />
                                     ))}
                                 </div>

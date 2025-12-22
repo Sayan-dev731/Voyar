@@ -322,7 +322,7 @@ const ProductCard = ({ product, navigate }: ProductCardProps) => {
                             )}
                         </div>
                         <div className="text-lg font-[600] text-amber-600">
-                            ${product.price}
+                            ₹{product.price}
                         </div>
                     </div>
 

@@ -186,7 +186,7 @@ export const ProductGrid = () => {
                                                     )}
                                                 </div>
                                                 <div className="text-lg sm:text-xl font-[600] text-amber-600">
-                                                    ${product.price}
+                                                    ₹{product.price}
                                                 </div>
                                             </div>
                                             <p className="text-xs sm:text-sm text-black/60 mb-5 leading-relaxed line-clamp-2">

@@ -18,7 +18,8 @@ import {
     adminForgotPassword,
     adminResetPassword,
     getSiteSettings,
-    updateSiteSettings
+    updateSiteSettings,
+    getPublicSiteSettings
 } from '../controllers/adminController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -28,6 +29,7 @@ const router = express.Router();
 router.post('/login', adminLogin);
 router.post('/forgot-password', adminForgotPassword);
 router.post('/reset-password/:token', adminResetPassword);
+router.get('/settings/public', getPublicSiteSettings);
 
 // Protected routes - All admins
 router.get('/verify', authMiddleware, verifyToken);

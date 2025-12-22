@@ -1,3 +1,10 @@
+export interface ColorVariant {
+    name: string
+    value: string
+    price: number
+    quantity: number
+}
+
 export interface Product {
     id?: number
     _id?: string  // MongoDB ID
@@ -19,7 +26,7 @@ export interface Product {
         lensType?: string
         uvProtection?: string
     }
-    colors?: { name: string; value: string }[]
+    colors?: ColorVariant[]
     inStock?: boolean
     rating?: number
     reviews?: number
@@ -28,4 +35,5 @@ export interface Product {
 export interface CartItem extends Product {
     quantity: number
     selectedColor?: string
+    selectedColorPrice?: number
 }

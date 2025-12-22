@@ -1,5 +1,26 @@
 import mongoose from 'mongoose';
 
+const colorVariantSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
+    value: {
+        type: String,
+        required: true
+    },
+    price: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    quantity: {
+        type: Number,
+        default: 0,
+        min: 0
+    }
+});
+
 const productSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -43,10 +64,7 @@ const productSchema = new mongoose.Schema({
         lensType: String,
         uvProtection: String
     },
-    colors: [{
-        name: String,
-        value: String
-    }],
+    colors: [colorVariantSchema],
     inStock: {
         type: Boolean,
         default: true
