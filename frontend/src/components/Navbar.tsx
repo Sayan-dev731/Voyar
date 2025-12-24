@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Search, Menu, X, User, LogOut } from 'lucide-react'
+import { ShoppingCart, Search, Menu, X, User, LogOut, Heart, Gift } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
@@ -61,14 +61,163 @@ export const Navbar = () => {
                 )}
             >
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16 sm:h-20">
+                    {/* Mobile header (matches reference) */}
+                    <div className="lg:hidden">
+                        <div className="relative flex items-center h-16">
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
+                                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                    aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                                >
+                                    {isMobileMenuOpen ? (
+                                        <X className="h-5 w-5" />
+                                    ) : (
+                                        <Menu className="h-5 w-5" />
+                                    )}
+                                </Button>
+
+                                <div className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-3 py-2 text-sm font-semibold text-black">
+                                    <Gift className="h-4 w-4" />
+                                    <span>₹899</span>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="absolute left-1/2 -translate-x-1/2 flex items-center"
+                                onClick={handleLogoClick}
+                                aria-label="Go to home"
+                            >
+                                <img
+                                    src="/images/logo.jpeg"
+                                    alt="Voyar"
+                                    className="h-8 w-auto"
+                                    loading="eager"
+                                />
+                            </button>
+
+                            <div className="ml-auto flex items-center gap-1">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
+                                    aria-label="Wishlist"
+                                >
+                                    <Heart className="h-5 w-5" />
+                                </Button>
+
+                                {isAuthenticated ? (
+                                    <div className="relative">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
+                                            onClick={() => setShowUserMenu(!showUserMenu)}
+                                            aria-label="User menu"
+                                        >
+                                            <User className="h-5 w-5" />
+                                        </Button>
+
+                                        {showUserMenu && (
+                                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-black/10 py-1 z-50">
+                                                <div className="px-4 py-2 border-b border-black/10">
+                                                    <p className="text-sm font-medium text-black truncate">{user?.name}</p>
+                                                    <p className="text-xs text-black/60 truncate">{user?.email}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        navigate('/profile')
+                                                        setShowUserMenu(false)
+                                                    }}
+                                                    className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
+                                                >
+                                                    My Profile
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        navigate('/orders')
+                                                        setShowUserMenu(false)
+                                                    }}
+                                                    className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
+                                                >
+                                                    My Orders
+                                                </button>
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                >
+                                                    <LogOut className="h-4 w-4" />
+                                                    Logout
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
+                                        onClick={() => navigate('/login')}
+                                        aria-label="Login"
+                                    >
+                                        <User className="h-5 w-5" />
+                                    </Button>
+                                )}
+
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10 relative"
+                                    onClick={() => navigate('/cart')}
+                                    aria-label="Cart"
+                                >
+                                    <ShoppingCart className="h-5 w-5" />
+                                    {totalItems > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                                            {totalItems}
+                                        </span>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Search bar (always visible on mobile) */}
+                        <div className="pb-3">
+                            <form onSubmit={handleSearch} className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search products..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full h-12 rounded-2xl bg-white border border-black/10 px-4 pr-12 text-sm text-black placeholder:text-black/40 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                                />
+                                <button
+                                    type="submit"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50"
+                                    aria-label="Search"
+                                >
+                                    <Search className="h-5 w-5" />
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* Desktop header (keep existing behavior) */}
+                    <div className="hidden lg:flex items-center justify-between h-20">
                         {/* Logo */}
                         <div className="flex-shrink-0 cursor-pointer" onClick={handleLogoClick}>
                             <div className="flex items-center gap-2">
                                 <img
                                     src="/images/logo.jpeg"
                                     alt="Voyar"
-                                    className="h-8 w-auto sm:h-10"
+                                    className="h-10 w-auto"
                                     loading="eager"
                                 />
                             </div>
@@ -177,25 +326,13 @@ export const Navbar = () => {
                                     </span>
                                 )}
                             </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="lg:hidden h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            >
-                                {isMobileMenuOpen ? (
-                                    <X className="h-5 w-5" />
-                                ) : (
-                                    <Menu className="h-5 w-5" />
-                                )}
-                            </Button>
                         </div>
                     </div>
                 </div>
 
                 {/* Search Bar */}
                 {showSearch && (
-                    <div className="border-t border-white/10 bg-black">
+                    <div className="hidden lg:block border-t border-white/10 bg-black">
                         <div className="px-4 py-4">
                             <form onSubmit={handleSearch} className="relative">
                                 <input
@@ -216,19 +353,6 @@ export const Navbar = () => {
                 {isMobileMenuOpen && (
                     <div className="lg:hidden border-t border-white/10 bg-black shadow-lg">
                         <div className="px-4 pt-4 pb-6 space-y-1">
-                            {/* Mobile Search */}
-                            <div className="mb-4">
-                                <form onSubmit={handleSearch} className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Search..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full px-4 py-2 pl-10 pr-4 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm text-white placeholder:text-white/50"
-                                    />
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
-                                </form>
-                            </div>
                             {navLinks.map((link) => (
                                 <a
                                     key={link.name}
