@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
-import { Star, Glasses, User, UserRound, Baby } from 'lucide-react'
+import { Star, Glasses } from 'lucide-react'
 import { API_URL } from '@/config/api'
 import type { Product } from '@/types/product'
 
