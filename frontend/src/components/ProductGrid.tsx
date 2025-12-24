@@ -70,7 +70,7 @@ export const ProductGrid = () => {
                         Handpicked styles to match your personality
                     </p>
 
-                    <div className="mt-6 max-w-2xl mx-auto">
+                    {/* <div className="mt-6 max-w-2xl mx-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                             <div className="rounded-2xl border border-amber-200/60 bg-white/70 backdrop-blur-sm p-4">
                                 <div className="text-sm font-semibold text-black">Eyewear</div>
@@ -106,7 +106,7 @@ export const ProductGrid = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {loading ? (

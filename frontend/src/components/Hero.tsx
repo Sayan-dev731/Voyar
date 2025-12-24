@@ -1,142 +1,129 @@
-import { useEffect, useRef, useState } from 'react'
-import { Button } from './ui/button'
-import { ArrowRight } from 'lucide-react'
-import gsap from 'gsap'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export const Hero = () => {
-    const heroRef = useRef<HTMLDivElement>(null)
-    const logoRef = useRef<HTMLDivElement>(null)
-    const offerRef = useRef<HTMLDivElement>(null)
-    const textRef = useRef<HTMLDivElement>(null)
-    const imageRef = useRef<HTMLDivElement>(null)
-    const detailsRef = useRef<HTMLDivElement>(null)
+    const promoLeftImage = '/images/Special%20Offer%20Black%20Friday%20Instagram%20Post.svg'
 
-    const heroImages = [
-        '/images/20251013_024158.jpg',
-        '/images/20251013_024419.jpg',
-        '/images/20251013_024701.jpg',
-    ]
-    const [activeImageIndex, setActiveImageIndex] = useState(0)
+    const promoRightImages = useMemo(
+        () => [
+            '/images/DSC00834.JPG',
+            // '/images/20251013_040836.jpg',
+            // '/images/20251017_021641.jpg',
+        ],
+        []
+    )
+    const [activePromoRightIndex, setActivePromoRightIndex] = useState(0)
 
     useEffect(() => {
-        const ctx = gsap.context(() => {
-            const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-
-            tl.from(logoRef.current, {
-                opacity: 0,
-                y: -30,
-                duration: 0.8,
-                delay: 0.2,
-            })
-            .from(offerRef.current, {
-                opacity: 0,
-                y: 14,
-                duration: 0.7,
-            }, '-=0.35')
-            .from(textRef.current, {
-                opacity: 0,
-                scale: 0.95,
-                duration: 1.2,
-            }, '-=0.5')
-            .from(imageRef.current, {
-                opacity: 0,
-                y: 50,
-                duration: 1,
-            }, '-=0.8')
-            .from(detailsRef.current, {
-                opacity: 0,
-                y: 30,
-                duration: 0.8,
-            }, '-=0.5')
-        }, heroRef)
-
-        return () => ctx.revert()
-    }, [])
-
-    useEffect(() => {
-        if (heroImages.length <= 1) return
-
+        if (promoRightImages.length <= 1) return
         const intervalId = window.setInterval(() => {
-            setActiveImageIndex((idx) => (idx + 1) % heroImages.length)
+            setActivePromoRightIndex((idx) => (idx + 1) % promoRightImages.length)
         }, 2000)
-
         return () => window.clearInterval(intervalId)
-    }, [heroImages.length])
+    }, [promoRightImages.length])
+
+    const tiles = useMemo(
+        () => ({
+            eyeglasses: [
+                { label: 'Men', img: '/images/20251013_035040.jpg' },
+                { label: 'Women', img: '/images/woman.png' },
+                { label: 'Black Friday', img: promoLeftImage },
+                { label: 'Free lens', img: '/images/20251013_024018.jpg' },
+            ],
+            sunglasses: [
+                { label: 'Men', img: '/images/20251013_040836.jpg' },
+                { label: 'Women', img: '/images/20251013_040226.jpg' },
+                { label: 'Black Friday', img: promoLeftImage },
+                { label: "Kid's", img: '/images/20251017_021422.jpg' },
+            ],
+        }),
+        [promoLeftImage]
+    )
 
     return (
-        <div ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-white via-amber-50/30 to-white pt-16 sm:pt-20">
-            <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-                <div className="relative overflow-hidden rounded-[32px] border border-amber-200/60 bg-white shadow-xl">
-                    <div className="grid lg:grid-cols-2">
-                        {/* Text Panel */}
-                        <div className="relative p-6 sm:p-10 lg:p-12">
-                            <div ref={logoRef} className="flex items-center gap-3 mb-6">
-                                {/* <div className="h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center">
-                                    <Eye className="h-5 w-5" />
-                                </div>
-                                <div className="leading-tight">
-                                    <div className="text-sm font-[700] tracking-wide text-black">VOYAR</div>
-                                    <div className="text-xs text-black/60">Premium eyewear collection</div>
-                                </div> */}
-                            </div>
-                            <div ref={offerRef} className="mb-6">
-                                {/* <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-amber-50 px-4 py-2 border border-amber-200/60">
-                                    <span className="inline-flex h-2 w-2 rounded-full bg-amber-600" />
-                                    <span className="text-xs sm:text-sm font-semibold tracking-tight text-black/80">
-                                        <span className="text-amber-700">BUY 1 GET 1</span> offer is live
-                                    </span>
-                                    <Sparkles className="h-4 w-4 text-amber-600" />
-                                </div> */}
-                            </div>
+        <section className="bg-white pt-24 sm:pt-28">
+            <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-sm sm:text-base font-semibold text-black/70">Final Price Drop Fest</div>
 
-                            <div ref={textRef}>
-                                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-[900] tracking-tight text-black leading-[1.05]">
-                                    Discover Your Signature Eyewear Look
-                                </h1>
-                                <p className="mt-4 text-base sm:text-lg text-black/70 max-w-xl">
-                                    Explore our premium collection of frames and sunglasses—crafted for comfort, built to stand out.
-                                </p>
-                            </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="relative overflow-hidden rounded-2xl bg-white border border-black/10">
+                        <img
+                            src={promoLeftImage}
+                            alt="Black Friday offer"
+                            className="h-[190px] sm:h-[260px] w-full object-cover"
+                            loading="eager"
+                        />
+                    </div>
 
-                            {/* Bottom CTA (pill) */}
-                            <div ref={detailsRef} className="mt-8">
-                                <Link to="/collections" className="block">
-                                    <Button
-                                        className="w-full h-14 rounded-full bg-black text-white hover:bg-black/90 px-6 justify-between"
-                                    >
-                                        <span className="text-sm sm:text-base font-medium">Get Started</span>
-                                        <span className="inline-flex items-center gap-2 text-white/80">
-                                            <span className="text-xs sm:text-sm">Shop</span>
-                                            <ArrowRight className="h-4 w-4" />
-                                        </span>
-                                    </Button>
-                                </Link>
-                            </div>
-                        </div>
-
-                        {/* Image Panel */}
-                        <div ref={imageRef} className="relative bg-gradient-to-br from-amber-50 to-white min-h-[320px] sm:min-h-[420px] lg:min-h-full overflow-hidden">
-                            <div
-                                className="absolute inset-0 flex transition-transform duration-700 ease-in-out"
-                                style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
-                            >
-                                {heroImages.map((src, idx) => (
-                                    <div key={src} className="relative w-full flex-shrink-0">
-                                        <img
-                                            src={src}
-                                            alt={idx === 0 ? 'Premium eyewear' : 'Premium eyewear variation'}
-                                            className="absolute inset-0 w-full h-full object-contain p-8 sm:p-12 drop-shadow-2xl"
-                                            loading={idx === 0 ? 'eager' : 'lazy'}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/10 to-transparent" />
-                        </div>
+                    <div className="relative overflow-hidden rounded-2xl bg-white border border-black/10">
+                        {promoRightImages.map((src, idx) => (
+                            <img
+                                key={src}
+                                src={src}
+                                alt="Offer banner"
+                                className={
+                                    'absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ' +
+                                    (idx === activePromoRightIndex ? 'opacity-100' : 'opacity-0')
+                                }
+                                loading={idx === 0 ? 'eager' : 'lazy'}
+                            />
+                        ))}
+                        <div className="absolute inset-0 ring-1 ring-inset ring-black/5" />
                     </div>
                 </div>
+
+                <div className="mt-6 border-t border-black/10" />
+
+                <div className="mt-5">
+                    <h2 className="text-base sm:text-lg font-[800] text-black">Eyeglasses</h2>
+                    <div className="mt-3 flex gap-4 overflow-x-auto pb-2">
+                        {tiles.eyeglasses.map((item) => (
+                            <Link
+                                key={item.label}
+                                to="/collections"
+                                className="flex-shrink-0 w-[92px]"
+                                aria-label={item.label}
+                            >
+                                <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white">
+                                    <img
+                                        src={item.img}
+                                        alt={item.label}
+                                        className="h-[76px] w-full object-cover"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <div className="mt-2 text-center text-sm font-medium text-black/70">{item.label}</div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="mt-5">
+                    <h2 className="text-base sm:text-lg font-[800] text-black">Sunglasses</h2>
+                    <div className="mt-3 flex gap-4 overflow-x-auto pb-2">
+                        {tiles.sunglasses.map((item) => (
+                            <Link
+                                key={item.label}
+                                to="/collections"
+                                className="flex-shrink-0 w-[92px]"
+                                aria-label={item.label}
+                            >
+                                <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white">
+                                    <img
+                                        src={item.img}
+                                        alt={item.label}
+                                        className="h-[76px] w-full object-cover"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <div className="mt-2 text-center text-sm font-medium text-black/70">{item.label}</div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="h-8" />
             </div>
-        </div>
+        </section>
     )
 }
