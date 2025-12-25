@@ -82,46 +82,6 @@
 //         reviews: 189
 //     },
 //     {
-//         id: 3,
-//         name: 'Sport Vision',
-//         category: 'Sports Glasses',
-//         price: 129,
-//         image: '/images/20251013_024018.jpg',
-//         images: [
-//             '/images/20251013_024018.jpg',
-//             '/images/20251013_024018.jpg',
-//             '/images/20251013_024018.jpg'
-//         ],
-//         description: 'Performance eyewear for active lifestyles',
-//         detailedDescription: 'Engineered for athletes and outdoor enthusiasts, Sport Vision glasses provide exceptional clarity and protection during physical activities. Features wraparound design for maximum coverage and ventilated frame to prevent fogging.',
-//         features: [
-//             'Wraparound design for full protection',
-//             'Ventilated frame prevents fogging',
-//             'Impact-resistant polycarbonate lenses',
-//             'Non-slip rubber grips',
-//             'Interchangeable lens system',
-//             'Water and sweat resistant'
-//         ],
-//         specifications: {
-//             frameWidth: '148mm',
-//             lensWidth: '65mm',
-//             bridgeWidth: '12mm',
-//             templeLength: '135mm',
-//             material: 'TR90 Polymer',
-//             weight: '26g',
-//             lensType: 'Polycarbonate',
-//             uvProtection: 'UV400'
-//         },
-//         colors: [
-//             { name: 'Red', value: '#FF0000' },
-//             { name: 'Blue', value: '#0000FF' },
-//             { name: 'Black', value: '#000000' }
-//         ],
-//         inStock: true,
-//         rating: 4.7,
-//         reviews: 156
-//     },
-//     {
 //         id: 4,
 //         name: 'Blue Light Block',
 //         category: 'Computer Glasses',
