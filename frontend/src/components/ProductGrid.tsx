@@ -110,7 +110,7 @@ export const ProductGrid = () => {
                 </div>
 
                 {loading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-6">
                         {[...Array(6)].map((_, i) => (
                             <Card key={i} className="animate-pulse rounded-2xl">
                                 <div className="aspect-[4/3] bg-gray-200 rounded-t-2xl" />
@@ -136,7 +136,7 @@ export const ProductGrid = () => {
                     </div>
                 ) : (
                     <>
-                        <div ref={cardsRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                        <div ref={cardsRef} className="grid grid-cols-2 gap-4 sm:gap-6">
                             {products.map((product) => (
                                 <Card
                                     key={product._id || product.id}
