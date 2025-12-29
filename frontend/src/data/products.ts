@@ -38,8 +38,6 @@
 //             { name: 'Black', value: '#000000' }
 //         ],
 //         inStock: true,
-//         rating: 4.8,
-//         reviews: 234
 //     },
 //     {
 //         id: 2,
@@ -78,8 +76,6 @@
 //             { name: 'Navy', value: '#000080' }
 //         ],
 //         inStock: true,
-//         rating: 4.6,
-//         reviews: 189
 //     },
 //     {
 //         id: 4,
@@ -118,8 +114,6 @@
 //             { name: 'Tortoise', value: '#8B4513' }
 //         ],
 //         inStock: true,
-//         rating: 4.5,
-//         reviews: 312
 //     },
 //     {
 //         id: 5,
@@ -158,8 +152,6 @@
 //             { name: 'Rose Gold', value: '#B76E79' }
 //         ],
 //         inStock: true,
-//         rating: 4.9,
-//         reviews: 278
 //     },
 //     {
 //         id: 6,
@@ -198,7 +190,5 @@
 //             { name: 'Brown', value: '#654321' }
 //         ],
 //         inStock: true,
-//         rating: 4.9,
-//         reviews: 412
 //     }
 // ]

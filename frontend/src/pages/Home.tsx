@@ -1,10 +1,10 @@
 import { Hero } from '@/components/Hero'
 // import { Features } from '@/components/Features'
 import { ProductGrid } from '@/components/ProductGrid'
-import { Services } from '@/components/Services'
-import { VirtualTryOn } from '@/components/VirtualTryOn'
+// import { Services } from '@/components/Services'
+// import { VirtualTryOn } from '@/components/VirtualTryOn'
 // import { BrandShowcase } from '@/components/BrandShowcase'
-import { Testimonials } from '@/components/Testimonials'
+// import { Testimonials } from '@/components/Testimonials'
 import { Newsletter } from '@/components/Newsletter'
 import { useSmoothScroll } from '@/lib/smoothScroll'
 
@@ -16,10 +16,10 @@ export const Home = () => {
             <Hero />
             {/* <Features /> */}
             <ProductGrid />
-            <Services />
-            <VirtualTryOn />
+            {/* <Services /> */}
+            {/* <VirtualTryOn /> */}
             {/* <BrandShowcase /> */}
-            <Testimonials />
+            {/* <Testimonials /> */}
             <Newsletter />
         </div>
     )

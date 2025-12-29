@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
-import { Star, Glasses } from 'lucide-react'
+import { Glasses } from 'lucide-react'
 import { API_URL } from '@/config/api'
 import type { Product } from '@/types/product'
 
@@ -47,8 +47,8 @@ export const ProductGrid = () => {
                 const response = await fetch(`${API_URL}/products`)
                 const data = await response.json()
                 const productList = Array.isArray(data) ? data : (data.products || [])
-                // Show only first 6 products on homepage
-                setProducts(productList.slice(0, 6))
+                // Show only first 2 products on homepage
+                setProducts(productList.slice(0, 2))
             } catch (error) {
                 console.error('Failed to fetch products:', error)
             } finally {
@@ -111,7 +111,7 @@ export const ProductGrid = () => {
 
                 {loading ? (
                     <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                        {[...Array(6)].map((_, i) => (
+                        {[...Array(2)].map((_, i) => (
                             <Card key={i} className="animate-pulse rounded-2xl">
                                 <div className="aspect-[4/3] bg-gray-200 rounded-t-2xl" />
                                 <div className="p-6 space-y-3">
@@ -163,27 +163,6 @@ export const ProductGrid = () => {
                                                     <p className="text-xs sm:text-sm text-black/50 mb-2">
                                                         {product.category}
                                                     </p>
-                                                    {/* Rating */}
-                                                    {product.rating && (
-                                                        <div className="flex items-center gap-1 mb-2">
-                                                            <div className="flex">
-                                                                {[...Array(5)].map((_, i) => (
-                                                                    <Star
-                                                                        key={i}
-                                                                        className={`h-3 w-3 ${i < Math.floor(product.rating!)
-                                                                            ? 'fill-amber-500 text-amber-500'
-                                                                            : 'text-amber-200'
-                                                                            }`}
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                            {product.reviews && (
-                                                                <span className="text-xs text-black/50">
-                                                                    ({product.reviews})
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
                                                 </div>
                                                 <div className="text-lg sm:text-xl font-[600] text-amber-600">
                                                     ₹{product.price}

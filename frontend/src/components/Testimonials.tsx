@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent } from './ui/card'
-import { Star } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -10,21 +9,18 @@ const testimonials = [
     {
         name: 'Ujwal Singh',
         // role: 'Marketing Director',
-        rating: 5,
         text: 'Best eyewear shopping experience! The virtual try-on feature is incredibly accurate and made choosing the perfect frames so easy.',
         image: '/images/DSC00767.JPG',
     },
     {
         name: 'Raman Kumar',
         // role: 'Software Engineer',
-        rating: 5,
         text: 'My blue light glasses have been a game-changer for long coding sessions. Quality is exceptional and customer service is outstanding.',
         image: '/images/DSC00817.JPG',
     },
     {
         name: 'Aman Gupta',
         // role: 'Fashion Blogger',
-        rating: 5,
         text: 'Voyar has the most stylish collection! I\'ve bought three pairs and constantly get compliments. Fast shipping too!',
         image: '/images/DSC00834.JPG',
     },
@@ -86,14 +82,6 @@ export const Testimonials = () => {
                                                 alt={testimonial.name}
                                                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover mx-auto mb-6 border-2 border-amber-200"
                                             />
-                                            <div className="flex justify-center mb-4">
-                                                {[...Array(testimonial.rating)].map((_, i) => (
-                                                    <Star
-                                                        key={i}
-                                                        className="w-4 h-4 fill-amber-400 text-amber-400 mx-0.5"
-                                                    />
-                                                ))}
-                                            </div>
                                             <p className="text-base sm:text-lg text-black/80 leading-relaxed mb-6 max-w-2xl mx-auto">
                                                 "{testimonial.text}"
                                             </p>

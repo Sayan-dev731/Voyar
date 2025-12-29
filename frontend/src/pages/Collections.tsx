@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, Star, ArrowLeft, Search, X } from 'lucide-react';
+import { SlidersHorizontal, ArrowLeft, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { API_URL } from '@/config/api';
@@ -38,7 +38,7 @@ export default function Collections() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
-    const [sortBy, setSortBy] = useState<'relevant' | 'price-low' | 'price-high' | 'rating'>('relevant');
+    const [sortBy, setSortBy] = useState<'relevant' | 'price-low' | 'price-high'>('relevant');
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
     const navigate = useNavigate();
 
@@ -109,8 +109,6 @@ export default function Collections() {
                 return [...results].sort((a, b) => a.price - b.price);
             case 'price-high':
                 return [...results].sort((a, b) => b.price - a.price);
-            case 'rating':
-                return [...results].sort((a, b) => (b.rating || 0) - (a.rating || 0));
             default:
                 return results;
         }
@@ -207,7 +205,6 @@ export default function Collections() {
                                         <option value="relevant">Most Relevant</option>
                                         <option value="price-low">Price: Low to High</option>
                                         <option value="price-high">Price: High to Low</option>
-                                        <option value="rating">Highest Rated</option>
                                     </select>
                                 </div>
 
@@ -299,27 +296,6 @@ const ProductCard = ({ product, navigate }: ProductCardProps) => {
                             <p className="text-xs text-black/50 mb-2">
                                 {product.category}
                             </p>
-                            {/* Rating */}
-                            {product.rating && (
-                                <div className="flex items-center gap-1 mb-2">
-                                    <div className="flex">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star
-                                                key={i}
-                                                className={`h-3 w-3 ${i < Math.floor(product.rating!)
-                                                    ? 'fill-amber-500 text-amber-500'
-                                                    : 'text-amber-200'
-                                                    }`}
-                                            />
-                                        ))}
-                                    </div>
-                                    {product.reviews && (
-                                        <span className="text-xs text-black/50">
-                                            ({product.reviews})
-                                        </span>
-                                    )}
-                                </div>
-                            )}
                         </div>
                         <div className="text-lg font-[600] text-amber-600">
                             ₹{product.price}

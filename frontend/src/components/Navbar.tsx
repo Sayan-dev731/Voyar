@@ -81,7 +81,7 @@ export const Navbar = () => {
 
                                 <div className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-3 py-2 text-sm font-semibold text-black">
                                     <Gift className="h-4 w-4" />
-                                    <span>₹899</span>
+                                    <span>₹599</span>
                                 </div>
                             </div>
 
