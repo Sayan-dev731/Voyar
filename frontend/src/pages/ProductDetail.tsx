@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Star, Check, Minus, Plus, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, Check, Minus, Plus, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useCart } from '@/context/CartContext'
@@ -195,26 +195,6 @@ export const ProductDetail = () => {
                         <div>
                             <p className="text-sm font-medium text-amber-600 mb-2">{product.category}</p>
                             <h1 className="text-3xl sm:text-5xl font-[600] text-black mb-4">{product.name}</h1>
-
-                            {/* Rating */}
-                            {product.rating && (
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="flex">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star
-                                                key={i}
-                                                className={`h-4 w-4 ${i < Math.floor(product.rating!)
-                                                    ? 'fill-amber-500 text-amber-500'
-                                                    : 'text-amber-200'
-                                                    }`}
-                                            />
-                                        ))}
-                                    </div>
-                                    <span className="text-sm text-black/60">
-                                        {product.rating} ({product.reviews} reviews)
-                                    </span>
-                                </div>
-                            )}
 
                             <p className="text-3xl sm:text-4xl font-[600] text-amber-600 mb-6">₹{selectedColor?.price || product.price}</p>
                             <p className="text-base text-black/70 leading-relaxed">{product.detailedDescription}</p>

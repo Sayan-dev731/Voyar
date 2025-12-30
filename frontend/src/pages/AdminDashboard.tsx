@@ -124,8 +124,6 @@ interface ProductFormData {
     }
     colors: { name: string; value: string; price: string; quantity: string }[]
     inStock: boolean
-    rating: string
-    reviews: string
 }
 
 const initialProductForm: ProductFormData = {
@@ -148,9 +146,7 @@ const initialProductForm: ProductFormData = {
         uvProtection: ''
     },
     colors: [{ name: '', value: '#000000', price: '', quantity: '' }],
-    inStock: true,
-    rating: '0',
-    reviews: '0'
+    inStock: true
 }
 
 // Helper function to convert Google Drive link to direct image URL
@@ -590,9 +586,7 @@ export const AdminDashboard = () => {
                 price: String(c.price || product.price || ''),
                 quantity: String(c.quantity || '0')
             })) : [{ name: '', value: '#000000', price: String(product.price || ''), quantity: '0' }],
-            inStock: product.inStock !== false,
-            rating: String(product.rating || '0'),
-            reviews: String(product.reviews || '0')
+            inStock: product.inStock !== false
         })
         setFormError('')
         setFormSuccess('')
@@ -710,9 +704,7 @@ export const AdminDashboard = () => {
                 price: Number(c.price) || Number(productForm.price),
                 quantity: Number(c.quantity) || 0
             })),
-            inStock: productForm.inStock,
-            rating: Number(productForm.rating) || 0,
-            reviews: Number(productForm.reviews) || 0
+            inStock: productForm.inStock
         }
 
         try {
@@ -1632,40 +1624,16 @@ export const AdminDashboard = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-black/70 mb-1">Rating</label>
+                                        <div className="flex items-center">
+                                            <label className="flex items-center gap-2 cursor-pointer">
                                                 <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    min="0"
-                                                    max="5"
-                                                    value={productForm.rating}
-                                                    onChange={(e) => setProductForm(prev => ({ ...prev, rating: e.target.value }))}
-                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    type="checkbox"
+                                                    checked={productForm.inStock}
+                                                    onChange={(e) => setProductForm(prev => ({ ...prev, inStock: e.target.checked }))}
+                                                    className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
                                                 />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-black/70 mb-1">Reviews</label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={productForm.reviews}
-                                                    onChange={(e) => setProductForm(prev => ({ ...prev, reviews: e.target.value }))}
-                                                    className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                />
-                                            </div>
-                                            <div className="flex items-end">
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={productForm.inStock}
-                                                        onChange={(e) => setProductForm(prev => ({ ...prev, inStock: e.target.checked }))}
-                                                        className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
-                                                    />
-                                                    <span className="text-sm font-medium text-black/70">In Stock</span>
-                                                </label>
-                                            </div>
+                                                <span className="text-sm font-medium text-black/70">In Stock</span>
+                                            </label>
                                         </div>
 
                                         <div>

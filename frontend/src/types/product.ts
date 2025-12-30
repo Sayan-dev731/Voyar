@@ -28,8 +28,6 @@ export interface Product {
     }
     colors?: ColorVariant[]
     inStock?: boolean
-    rating?: number
-    reviews?: number
 }
 
 export interface CartItem extends Product {
