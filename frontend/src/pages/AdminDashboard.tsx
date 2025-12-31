@@ -123,6 +123,7 @@ interface ProductFormData {
         uvProtection: string
     }
     colors: { name: string; value: string; price: string; quantity: string }[]
+    stock: string
     inStock: boolean
 }
 
@@ -146,6 +147,7 @@ const initialProductForm: ProductFormData = {
         uvProtection: ''
     },
     colors: [{ name: '', value: '#000000', price: '', quantity: '' }],
+    stock: '0',
     inStock: true
 }
 
@@ -586,6 +588,7 @@ export const AdminDashboard = () => {
                 price: String(c.price || product.price || ''),
                 quantity: String(c.quantity || '0')
             })) : [{ name: '', value: '#000000', price: String(product.price || ''), quantity: '0' }],
+            stock: String(product.stock || '0'),
             inStock: product.inStock !== false
         })
         setFormError('')
@@ -704,6 +707,7 @@ export const AdminDashboard = () => {
                 price: Number(c.price) || Number(productForm.price),
                 quantity: Number(c.quantity) || 0
             })),
+            stock: Number(productForm.stock) || 0,
             inStock: productForm.inStock
         }
 
@@ -954,13 +958,18 @@ export const AdminDashboard = () => {
                                         </div>
                                         <h3 className="font-[600] text-black mb-1">{product.name}</h3>
                                         <p className="text-sm text-black/60 mb-2">{product.category}</p>
-                                        <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center justify-between mb-2">
                                             <p className="text-lg font-[600] text-amber-600">₹{product.price}</p>
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.inStock !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                                 }`}>
                                                 {product.inStock !== false ? 'In Stock' : 'Out of Stock'}
                                             </span>
                                         </div>
+                                        <p className="text-xs text-black/50 mb-4">
+                                            Stock: {product.colors && product.colors.length > 0
+                                                ? product.colors.reduce((sum, c) => sum + (c.quantity || 0), 0)
+                                                : (product.stock || 0)} units
+                                        </p>
                                         <div className="flex gap-2">
                                             <Button
                                                 variant="outline"
@@ -1624,7 +1633,7 @@ export const AdminDashboard = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center">
+                                        <div className="flex items-center gap-6">
                                             <label className="flex items-center gap-2 cursor-pointer">
                                                 <input
                                                     type="checkbox"
@@ -1634,6 +1643,21 @@ export const AdminDashboard = () => {
                                                 />
                                                 <span className="text-sm font-medium text-black/70">In Stock</span>
                                             </label>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm font-medium text-black/70">Stock Qty:</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={productForm.stock}
+                                                    onChange={(e) => setProductForm(prev => ({
+                                                        ...prev,
+                                                        stock: e.target.value,
+                                                        inStock: Number(e.target.value) > 0
+                                                    }))}
+                                                    className="w-24 px-3 py-1 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="0"
+                                                />
+                                            </div>
                                         </div>
 
                                         <div>

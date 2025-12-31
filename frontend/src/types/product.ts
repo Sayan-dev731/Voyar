@@ -27,6 +27,7 @@ export interface Product {
         uvProtection?: string
     }
     colors?: ColorVariant[]
+    stock?: number
     inStock?: boolean
 }
 

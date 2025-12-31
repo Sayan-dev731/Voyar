@@ -5,10 +5,68 @@ import { sendBillEmail } from '../config/email.js';
 // Create new order
 export const createOrder = async (req, res) => {
     try {
+        const { items } = req.body;
+
+        // Validate stock availability for all items
+        for (const item of items) {
+            const product = await Product.findById(item.product);
+            if (!product) {
+                return res.status(404).json({ message: `Product not found: ${item.productName}` });
+            }
+
+            // Check if product has color variants
+            if (item.selectedColor && product.colors && product.colors.length > 0) {
+                const colorVariant = product.colors.find(c => c.name === item.selectedColor);
+                if (colorVariant) {
+                    if (colorVariant.quantity < item.quantity) {
+                        return res.status(400).json({
+                            message: `Insufficient stock for ${product.name} (${item.selectedColor}). Available: ${colorVariant.quantity}`,
+                            insufficientStock: true,
+                            productId: product._id,
+                            availableStock: colorVariant.quantity
+                        });
+                    }
+                }
+            } else {
+                // Check main product stock
+                if (product.stock < item.quantity) {
+                    return res.status(400).json({
+                        message: `Insufficient stock for ${product.name}. Available: ${product.stock}`,
+                        insufficientStock: true,
+                        productId: product._id,
+                        availableStock: product.stock
+                    });
+                }
+            }
+        }
+
+        // Reduce stock for all items
+        for (const item of items) {
+            const product = await Product.findById(item.product);
+
+            if (item.selectedColor && product.colors && product.colors.length > 0) {
+                // Reduce color variant quantity
+                const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
+                if (colorIndex !== -1) {
+                    product.colors[colorIndex].quantity -= item.quantity;
+                }
+                // Update inStock based on all color variants
+                const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                product.inStock = totalColorStock > 0;
+            } else {
+                // Reduce main stock
+                product.stock -= item.quantity;
+                product.inStock = product.stock > 0;
+            }
+
+            await product.save();
+        }
+
         const order = new Order(req.body);
         const savedOrder = await order.save();
         res.status(201).json(savedOrder);
     } catch (error) {
+        console.error('Create order error:', error);
         res.status(400).json({ message: error.message });
     }
 };

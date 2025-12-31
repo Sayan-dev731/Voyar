@@ -340,6 +340,8 @@ export default function Checkout() {
 
             if (response.ok) {
                 setOrderId(data._id);
+                // Clear the cart after successful order
+                clearCart();
                 // Show payment success message first
                 setStep('success');
                 // Small delay to show success step before modal
@@ -347,7 +349,15 @@ export default function Checkout() {
                     setShowSuccessModal(true);
                 }, 500);
             } else {
-                setError(data.message || 'Failed to create order');
+                // Handle insufficient stock error
+                if (data.insufficientStock) {
+                    setError(`${data.message}. Please update your cart and try again.`);
+                    setTimeout(() => {
+                        navigate('/cart');
+                    }, 3000);
+                } else {
+                    setError(data.message || 'Failed to create order');
+                }
                 setStep('payment');
             }
         } catch (err) {

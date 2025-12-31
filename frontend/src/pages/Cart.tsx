@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useCart } from '@/context/CartContext'
@@ -35,13 +35,31 @@ const convertGoogleDriveLink = (url: string): string => {
 
 export const Cart = () => {
     const navigate = useNavigate()
-    const { items, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart()
+    const { items, updateQuantity, removeFromCart, totalPrice, clearCart, getAvailableStock } = useCart()
 
     // Site settings for charges
     const [siteSettings, setSiteSettings] = useState({
         platformCharges: 0,
         deliveryCharges: 0
     })
+
+    // Stock error messages
+    const [stockErrors, setStockErrors] = useState<{ [key: string]: string }>({})
+
+    // Handle quantity update with stock validation
+    const handleUpdateQuantity = async (itemId: string | number, newQuantity: number) => {
+        const result = await updateQuantity(itemId, newQuantity)
+        if (!result.success && result.message) {
+            setStockErrors(prev => ({ ...prev, [String(itemId)]: result.message! }))
+            setTimeout(() => {
+                setStockErrors(prev => {
+                    const newErrors = { ...prev }
+                    delete newErrors[String(itemId)]
+                    return newErrors
+                })
+            }, 3000)
+        }
+    }
 
     // Fetch site settings
     useEffect(() => {
@@ -159,26 +177,40 @@ export const Cart = () => {
 
                                             <div className="flex items-center justify-between mt-4">
                                                 {/* Quantity Controls */}
-                                                <div className="flex items-center gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => updateQuantity(item._id || item.id!, item.quantity - 1)}
-                                                        className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50"
-                                                    >
-                                                        <Minus className="h-3 w-3" />
-                                                    </Button>
-                                                    <span className="text-base font-medium text-black w-8 text-center">
-                                                        {item.quantity}
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => handleUpdateQuantity(item._id || item.id!, item.quantity - 1)}
+                                                            className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50"
+                                                        >
+                                                            <Minus className="h-3 w-3" />
+                                                        </Button>
+                                                        <span className="text-base font-medium text-black w-8 text-center">
+                                                            {item.quantity}
+                                                        </span>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => handleUpdateQuantity(item._id || item.id!, item.quantity + 1)}
+                                                            disabled={item.quantity >= getAvailableStock(item, item.selectedColor)}
+                                                            className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            <Plus className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                    {/* Stock info */}
+                                                    <span className="text-xs text-black/40">
+                                                        {getAvailableStock(item, item.selectedColor)} in stock
                                                     </span>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => updateQuantity(item._id || item.id!, item.quantity + 1)}
-                                                        className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50"
-                                                    >
-                                                        <Plus className="h-3 w-3" />
-                                                    </Button>
+                                                    {/* Stock error message */}
+                                                    {stockErrors[String(item._id || item.id)] && (
+                                                        <span className="text-xs text-red-500 flex items-center gap-1">
+                                                            <AlertCircle className="h-3 w-3" />
+                                                            {stockErrors[String(item._id || item.id)]}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {/* Price */}

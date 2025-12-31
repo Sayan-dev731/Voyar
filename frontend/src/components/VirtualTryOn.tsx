@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Button } from './ui/button'
-import { Camera, Clock } from 'lucide-react'
+import { Camera, Clock, Sparkles } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -74,60 +75,127 @@ export const VirtualTryOn = () => {
     }, [tryOnImages.length])
 
     return (
-        <div ref={sectionRef} className="py-12 sm:py-16 lg:py-20 bg-white">
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-                    <div ref={contentRef}>
-                        <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200/60 px-4 py-2 text-sm font-medium text-black/80 mb-6">
+        <div ref={sectionRef} className="relative py-16 sm:py-20 lg:py-28 bg-gradient-to-b from-white via-amber-50/20 to-white overflow-hidden">
+            {/* Background decorations */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute -top-20 right-20 w-80 h-80 bg-amber-100/30 rounded-full blur-3xl animate-float-slow" />
+                <div className="absolute -bottom-20 left-20 w-60 h-60 bg-amber-200/20 rounded-full blur-3xl animate-float-reverse" />
+            </div>
+
+            <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                    <motion.div
+                        ref={contentRef}
+                        initial={{ opacity: 0, x: -30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                    >
+                        {/* Badge */}
+                        <motion.div
+                            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-100 to-amber-50 border border-amber-200/60 px-4 py-2 text-sm font-medium text-amber-800 mb-6 shadow-sm"
+                            whileHover={{ scale: 1.05 }}
+                        >
                             <Clock className="h-4 w-4 text-amber-700" />
                             Coming Soon
-                        </div>
+                        </motion.div>
+
                         <h2 className="text-4xl sm:text-5xl lg:text-6xl font-[600] text-black tracking-tight mb-6">
-                            Virtual Try-On
+                            Virtual <span className="text-gradient-amber">Try-On</span>
                         </h2>
-                        <p className="text-base sm:text-lg text-black/60 mb-8 leading-relaxed max-w-xl">
-                            We’re building a camera-powered try-on experience so you can preview frames instantly.
+                        <p className="text-base sm:text-lg lg:text-xl text-black/60 mb-8 leading-relaxed max-w-xl">
+                            We're building a camera-powered try-on experience so you can preview frames instantly.
                             Stay tuned—this feature will be live soon.
                         </p>
+
+                        {/* Feature highlights */}
+                        <div className="grid grid-cols-3 gap-4 mb-8">
+                            {[
+                                { icon: Camera, label: 'Camera Preview' },
+                                { icon: Sparkles, label: 'AI Powered' },
+                                { icon: Clock, label: 'Instant Swap' },
+                            ].map((feature, i) => (
+                                <motion.div
+                                    key={feature.label}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: 0.2 + i * 0.1 }}
+                                    className="text-center p-3 rounded-xl bg-amber-50/50 border border-amber-100"
+                                >
+                                    <feature.icon className="h-5 w-5 text-amber-600 mx-auto mb-2" />
+                                    <span className="text-xs font-medium text-black/70">{feature.label}</span>
+                                </motion.div>
+                            ))}
+                        </div>
+
                         <Button
                             size="lg"
                             disabled
-                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-[600] px-8 py-6 text-base rounded-xl shadow-lg shadow-amber-200 opacity-60 cursor-not-allowed"
+                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-[600] px-8 py-6 text-base rounded-xl shadow-lg shadow-amber-200/50 opacity-60 cursor-not-allowed"
                         >
                             <Camera className="mr-2 h-5 w-5" />
                             Start Virtual Try-On
                         </Button>
-                    </div>
-                    <div ref={imageRef} className="relative">
-                        <div className="aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-amber-50 to-white border-2 border-amber-200 shadow-xl">
+                    </motion.div>
+
+                    <motion.div
+                        ref={imageRef}
+                        initial={{ opacity: 0, x: 30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        className="relative"
+                    >
+                        <div className="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-amber-50 to-white border-2 border-amber-200 shadow-2xl shadow-amber-100/50">
                             <div className="relative w-full h-full">
                                 {tryOnImages.map((src, idx) => (
-                                    <img
+                                    <motion.img
                                         key={src}
                                         src={src}
                                         alt={idx === 0 ? 'Virtual Try-On preview' : 'Virtual Try-On preview variation'}
-                                        className={`absolute inset-0 w-full h-full object-cover mix-blend-multiply transition-opacity duration-700 ${
-                                            idx === activeImageIndex ? 'opacity-80' : 'opacity-0'
-                                        }`}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        initial={false}
+                                        animate={{
+                                            opacity: idx === activeImageIndex ? 0.85 : 0,
+                                            scale: idx === activeImageIndex ? 1 : 1.05,
+                                        }}
+                                        transition={{ duration: 0.7 }}
                                         loading={idx === 0 ? 'eager' : 'lazy'}
                                     />
                                 ))}
                             </div>
                         </div>
-                        <div className="absolute inset-0 flex items-end p-4 sm:p-6">
-                            <div className="w-full rounded-xl bg-white/90 backdrop-blur-sm border border-amber-200/60 p-4">
+
+                        {/* Floating UI overlay */}
+                        <motion.div
+                            className="absolute inset-x-4 bottom-4 sm:inset-x-6 sm:bottom-6"
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.5 }}
+                        >
+                            <div className="w-full rounded-2xl bg-white/95 backdrop-blur-md border border-amber-200/60 p-4 shadow-xl">
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="min-w-0">
                                         <p className="text-sm font-semibold text-black truncate">Virtual Try‑On is coming soon</p>
                                         <p className="text-xs text-black/60">Camera preview • Frame fit • Instant swap</p>
                                     </div>
-                                    <span className="flex-shrink-0 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200/60 rounded-full px-3 py-1">
+                                    <motion.span
+                                        className="flex-shrink-0 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200/60 rounded-full px-3 py-1.5"
+                                        animate={{ scale: [1, 1.05, 1] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                    >
                                         Coming Soon
-                                    </span>
+                                    </motion.span>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </motion.div>
+
+                        {/* Decorative elements */}
+                        <div className="absolute -top-4 -right-4 w-24 h-24 border-t-2 border-r-2 border-amber-300 rounded-tr-3xl" />
+                        <div className="absolute -bottom-4 -left-4 w-24 h-24 border-b-2 border-l-2 border-amber-300 rounded-bl-3xl" />
+                    </motion.div>
                 </div>
             </div>
         </div>

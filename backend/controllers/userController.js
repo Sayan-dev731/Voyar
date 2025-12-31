@@ -494,10 +494,42 @@ export const addToCart = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Fetch product to check stock
+        const Product = (await import('../models/Product.js')).default;
+        const product = await Product.findById(productId);
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        // Calculate available stock
+        let availableStock = 0;
+        if (selectedColor && product.colors && product.colors.length > 0) {
+            const colorVariant = product.colors.find(c => c.name === selectedColor);
+            availableStock = colorVariant ? colorVariant.quantity : 0;
+        } else {
+            availableStock = product.stock || 0;
+        }
+
         // Check if product already exists in cart
         const existingItemIndex = user.cart.findIndex(
             item => item.product.toString() === productId
         );
+
+        // Calculate total quantity that would be in cart
+        const currentCartQty = existingItemIndex > -1 ? user.cart[existingItemIndex].quantity : 0;
+        const requestedQty = quantity || 1;
+        const totalQty = currentCartQty + requestedQty;
+
+        // Validate stock availability
+        if (totalQty > availableStock) {
+            return res.status(400).json({
+                message: `Cannot add ${requestedQty} item(s). Only ${availableStock - currentCartQty} more available.`,
+                availableStock,
+                currentCartQty,
+                insufficientStock: true
+            });
+        }
 
         if (existingItemIndex > -1) {
             // Update quantity if product exists
@@ -549,10 +581,36 @@ export const updateCartItem = async (req, res) => {
             return res.status(404).json({ message: 'Item not found in cart' });
         }
 
+        // Fetch product to check stock
+        const Product = (await import('../models/Product.js')).default;
+        const product = await Product.findById(productId);
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        // Calculate available stock
+        let availableStock = 0;
+        const cartItemColor = user.cart[itemIndex].selectedColor || selectedColor;
+        if (cartItemColor && product.colors && product.colors.length > 0) {
+            const colorVariant = product.colors.find(c => c.name === cartItemColor);
+            availableStock = colorVariant ? colorVariant.quantity : 0;
+        } else {
+            availableStock = product.stock || 0;
+        }
+
         if (quantity <= 0) {
             // Remove item if quantity is 0 or less
             user.cart.splice(itemIndex, 1);
         } else {
+            // Validate stock availability
+            if (quantity > availableStock) {
+                return res.status(400).json({
+                    message: `Cannot update quantity. Only ${availableStock} available.`,
+                    availableStock,
+                    insufficientStock: true
+                });
+            }
             user.cart[itemIndex].quantity = quantity;
             if (selectedColor) {
                 user.cart[itemIndex].selectedColor = selectedColor;
