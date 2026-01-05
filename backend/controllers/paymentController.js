@@ -343,8 +343,8 @@ export const razorpayWebhook = async (req, res) => {
     }
 };
 
-// Demo payment handler (for testing without Razorpay)
-export const createDemoOrder = async (req, res) => {
+// Cash on Delivery (COD) order handler
+export const createCODOrder = async (req, res) => {
     try {
         const { items, totalAmount, customerName, customerEmail, customerPhone, shippingAddress, userId } = req.body;
 
@@ -390,7 +390,7 @@ export const createDemoOrder = async (req, res) => {
             await product.save();
         }
 
-        // Create order
+        // Create order with COD payment method
         const order = new Order({
             userId,
             customerName,
@@ -399,10 +399,10 @@ export const createDemoOrder = async (req, res) => {
             items,
             totalAmount,
             shippingAddress,
-            paymentMethod: 'demo',
-            paymentStatus: 'paid',
+            paymentMethod: 'cod',
+            paymentStatus: 'pending',
             status: 'confirmed',
-            paymentId: 'DEMO_' + Date.now(),
+            paymentId: 'COD_' + Date.now(),
             stockReserved: true,
             stockDeductedAt: new Date()
         });
@@ -425,7 +425,7 @@ export const createDemoOrder = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error creating demo order:', error);
+        console.error('Error creating COD order:', error);
         res.status(500).json({ message: error.message || 'Failed to create order' });
     }
 };

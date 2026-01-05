@@ -160,7 +160,7 @@ router.get('/settings', authMiddleware, getSiteSettings);
 router.put('/settings',
     authMiddleware,
     sensitiveLimiter,
-    allowedFields(['recoveryEmail', 'siteName', 'supportEmail', 'platformCharges', 'deliveryCharges']),
+    allowedFields(['recoveryEmail', 'siteName', 'supportEmail', 'platformCharges', 'deliveryCharges', 'codEnabled']),
     validateSiteSettings,
     updateSiteSettings
 );

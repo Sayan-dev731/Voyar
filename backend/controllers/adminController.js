@@ -856,7 +856,8 @@ export const getPublicSiteSettings = async (req, res) => {
         res.json({
             platformCharges: settings.platformCharges || 0,
             deliveryCharges: settings.deliveryCharges || 0,
-            siteName: settings.siteName
+            siteName: settings.siteName,
+            codEnabled: settings.codEnabled !== false
         });
     } catch (error) {
         console.error('Get public settings error:', error);
@@ -873,7 +874,7 @@ export const updateSiteSettings = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
-        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges } = req.body;
+        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges, codEnabled } = req.body;
 
         let settings = await SiteSettings.findOne();
         if (!settings) {
@@ -885,6 +886,7 @@ export const updateSiteSettings = async (req, res) => {
         if (supportEmail) settings.supportEmail = supportEmail;
         if (platformCharges !== undefined) settings.platformCharges = platformCharges;
         if (deliveryCharges !== undefined) settings.deliveryCharges = deliveryCharges;
+        if (codEnabled !== undefined) settings.codEnabled = codEnabled;
 
         await settings.save();
 

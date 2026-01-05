@@ -5,7 +5,7 @@ import {
     handlePaymentFailure,
     getOrderByToken,
     razorpayWebhook,
-    createDemoOrder
+    createCODOrder
 } from '../controllers/paymentController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -80,15 +80,15 @@ router.get('/order/:token', getOrderByToken);
 router.post('/webhook', express.raw({ type: 'application/json' }), razorpayWebhook);
 
 /**
- * @route   POST /api/payment/demo
- * @desc    Create demo order (for testing)
+ * @route   POST /api/payment/cod
+ * @desc    Create Cash on Delivery order
  * @access  Private
  * @security Rate limited (payment)
  */
-router.post('/demo',
+router.post('/cod',
     protect,
     paymentLimiter,
-    createDemoOrder
+    createCODOrder
 );
 
 export default router;

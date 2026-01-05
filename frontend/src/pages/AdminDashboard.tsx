@@ -221,7 +221,8 @@ export const AdminDashboard = () => {
         siteName: 'Voyar Eyewear',
         supportEmail: 'support@voyar.com',
         platformCharges: 0,
-        deliveryCharges: 0
+        deliveryCharges: 0,
+        codEnabled: true
     })
     const [showEditSettings, setShowEditSettings] = useState(false)
     const [settingsForm, setSettingsForm] = useState({
@@ -229,7 +230,8 @@ export const AdminDashboard = () => {
         siteName: '',
         supportEmail: '',
         platformCharges: 0,
-        deliveryCharges: 0
+        deliveryCharges: 0,
+        codEnabled: true
     })
 
     // Order details modal state
@@ -377,7 +379,8 @@ export const AdminDashboard = () => {
                 siteName: settingsForm.siteName,
                 supportEmail: settingsForm.supportEmail,
                 platformCharges: settingsForm.platformCharges,
-                deliveryCharges: settingsForm.deliveryCharges
+                deliveryCharges: settingsForm.deliveryCharges,
+                codEnabled: settingsForm.codEnabled
             }
 
             const res = await fetch(`${API_URL}/admin/settings`, {
@@ -1765,6 +1768,21 @@ export const AdminDashboard = () => {
                                                     className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                                                 />
                                             </div>
+                                            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
+                                                <div>
+                                                    <label className="text-sm font-medium text-black/70">Cash on Delivery</label>
+                                                    <p className="text-xs text-black/50">Enable or disable COD payment option</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSettingsForm({ ...settingsForm, codEnabled: !settingsForm.codEnabled })}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settingsForm.codEnabled ? 'bg-amber-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <span
+                                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settingsForm.codEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                                                    />
+                                                </button>
+                                            </div>
                                             <Button
                                                 onClick={handleUpdateSettings}
                                                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
@@ -1793,6 +1811,12 @@ export const AdminDashboard = () => {
                                             <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
                                                 <span className="text-black/60">Delivery Charges:</span>
                                                 <span className="font-medium text-black">₹{siteSettings.deliveryCharges}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                                                <span className="text-black/60">Cash on Delivery:</span>
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${siteSettings.codEnabled !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                    {siteSettings.codEnabled !== false ? 'Enabled' : 'Disabled'}
+                                                </span>
                                             </div>
                                         </div>
                                     )}

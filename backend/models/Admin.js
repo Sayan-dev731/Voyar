@@ -23,6 +23,10 @@ const siteSettingsSchema = new mongoose.Schema({
         type: Number,
         default: 0,
         min: 0
+    },
+    codEnabled: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

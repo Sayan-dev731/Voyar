@@ -153,13 +153,7 @@ export default function Checkout() {
     const [orderId, setOrderId] = useState('');
 
     // Payment mode selection
-    const [paymentMode, setPaymentMode] = useState<'razorpay' | 'demo'>('razorpay');
-
-    // Demo payment state
-    const [cardNumber, setCardNumber] = useState('');
-    const [cardExpiry, setCardExpiry] = useState('');
-    const [cardCvv, setCardCvv] = useState('');
-    const [cardName, setCardName] = useState('');
+    const [paymentMode, setPaymentMode] = useState<'razorpay' | 'cod'>('razorpay');
 
     // CAPTCHA state
     const [captchaCode, setCaptchaCode] = useState('');
@@ -172,7 +166,8 @@ export default function Checkout() {
     // Site settings for charges
     const [siteSettings, setSiteSettings] = useState({
         platformCharges: 0,
-        deliveryCharges: 0
+        deliveryCharges: 0,
+        codEnabled: true
     });
 
     const totalAmount = totalPrice + siteSettings.platformCharges + siteSettings.deliveryCharges;
@@ -186,7 +181,8 @@ export default function Checkout() {
                     const data = await response.json();
                     setSiteSettings({
                         platformCharges: data.platformCharges || 0,
-                        deliveryCharges: data.deliveryCharges || 0
+                        deliveryCharges: data.deliveryCharges || 0,
+                        codEnabled: data.codEnabled !== false
                     });
                 }
             } catch (error) {
@@ -208,12 +204,12 @@ export default function Checkout() {
         setCaptchaError('');
     }, []);
 
-    // Generate CAPTCHA when payment step loads
+    // Generate CAPTCHA when payment step loads (for COD)
     useEffect(() => {
-        if (step === 'payment') {
+        if (step === 'payment' && paymentMode === 'cod') {
             generateCaptcha();
         }
-    }, [step, generateCaptcha]);
+    }, [step, paymentMode, generateCaptcha]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -306,25 +302,6 @@ export default function Checkout() {
         }
         setError('');
         setStep('payment');
-    };
-
-    const formatCardNumber = (value: string) => {
-        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-        const matches = v.match(/\d{4,16}/g);
-        const match = (matches && matches[0]) || '';
-        const parts = [];
-        for (let i = 0, len = match.length; i < len; i += 4) {
-            parts.push(match.substring(i, i + 4));
-        }
-        return parts.length ? parts.join(' ') : value;
-    };
-
-    const formatExpiry = (value: string) => {
-        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-        if (v.length >= 2) {
-            return v.substring(0, 2) + '/' + v.substring(2, 4);
-        }
-        return v;
     };
 
     // Razorpay Payment Handler
@@ -479,25 +456,7 @@ export default function Checkout() {
         }
     };
 
-    const handleDemoPayment = async () => {
-        // Validate payment details
-        if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
-            setError('Please enter a valid card number (use 4242 4242 4242 4242 for demo)');
-            return;
-        }
-        if (!cardExpiry || cardExpiry.length < 5) {
-            setError('Please enter a valid expiry date');
-            return;
-        }
-        if (!cardCvv || cardCvv.length < 3) {
-            setError('Please enter a valid CVV');
-            return;
-        }
-        if (!cardName.trim()) {
-            setError('Please enter cardholder name');
-            return;
-        }
-
+    const handleCODPayment = async () => {
         // Validate CAPTCHA
         if (captchaInput.toLowerCase() !== captchaCode.toLowerCase()) {
             setCaptchaError('Invalid CAPTCHA. Please try again.');
@@ -509,10 +468,7 @@ export default function Checkout() {
         setCaptchaError('');
         setStep('processing');
 
-        // Simulate payment processing
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Create order via demo endpoint
+        // Create COD order
         try {
             const orderData = {
                 userId: user?.id,
@@ -539,7 +495,7 @@ export default function Checkout() {
                 }
             };
 
-            const response = await fetch(`${API_URL}/payment/demo`, {
+            const response = await fetch(`${API_URL}/payment/cod`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -575,7 +531,7 @@ export default function Checkout() {
         if (paymentMode === 'razorpay') {
             handleRazorpayPayment();
         } else {
-            handleDemoPayment();
+            handleCODPayment();
         }
     };
 
@@ -762,12 +718,12 @@ export default function Checkout() {
                                         </h2>
 
                                         {/* Payment Mode Selection */}
-                                        <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <div className={`grid gap-4 mb-6 ${siteSettings.codEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
                                             <button
                                                 onClick={() => setPaymentMode('razorpay')}
-                                                className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 ${paymentMode === 'razorpay'
-                                                        ? 'border-amber-500 bg-amber-50'
-                                                        : 'border-amber-200 hover:border-amber-400'
+                                                className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 relative ${paymentMode === 'razorpay'
+                                                    ? 'border-amber-500 bg-amber-50'
+                                                    : 'border-amber-200 hover:border-amber-400'
                                                     }`}
                                             >
                                                 <img
@@ -778,23 +734,31 @@ export default function Checkout() {
                                                         (e.target as HTMLImageElement).style.display = 'none';
                                                     }}
                                                 />
-                                                <span className="font-medium text-black">Razorpay</span>
+                                                <span className="font-medium text-black">Online Payment</span>
                                                 <span className="text-xs text-black/60">Cards, UPI, Netbanking</span>
                                                 {paymentMode === 'razorpay' && (
                                                     <CheckCircle2 className="h-5 w-5 text-amber-600 absolute top-2 right-2" />
                                                 )}
                                             </button>
-                                            <button
-                                                onClick={() => setPaymentMode('demo')}
-                                                className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 ${paymentMode === 'demo'
+                                            {siteSettings.codEnabled && (
+                                                <button
+                                                    onClick={() => {
+                                                        setPaymentMode('cod');
+                                                        generateCaptcha();
+                                                    }}
+                                                    className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 relative ${paymentMode === 'cod'
                                                         ? 'border-amber-500 bg-amber-50'
                                                         : 'border-amber-200 hover:border-amber-400'
-                                                    }`}
-                                            >
-                                                <CreditCard className="h-8 w-8 text-amber-600" />
-                                                <span className="font-medium text-black">Demo Payment</span>
-                                                <span className="text-xs text-black/60">For testing only</span>
-                                            </button>
+                                                        }`}
+                                                >
+                                                    <Truck className="h-8 w-8 text-amber-600" />
+                                                    <span className="font-medium text-black">Cash on Delivery</span>
+                                                    <span className="text-xs text-black/60">Pay when delivered</span>
+                                                    {paymentMode === 'cod' && (
+                                                        <CheckCircle2 className="h-5 w-5 text-amber-600 absolute top-2 right-2" />
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
 
                                         {/* Razorpay Info */}
@@ -813,76 +777,28 @@ export default function Checkout() {
                                             </div>
                                         )}
 
-                                        {/* Demo Payment Form */}
-                                        {paymentMode === 'demo' && (
+                                        {/* COD Payment Info */}
+                                        {paymentMode === 'cod' && (
                                             <>
-                                                <div className="bg-amber-50 p-4 rounded-xl mb-6">
-                                                    <p className="text-sm text-amber-800">
-                                                        <strong>Demo Mode:</strong> Use card number <code className="bg-amber-100 px-1 rounded">4242 4242 4242 4242</code> with any future expiry date and any 3-digit CVV.
-                                                    </p>
-                                                </div>
-
-                                                <div className="space-y-4">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-black/70 mb-1">
-                                                            Card Number
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={cardNumber}
-                                                            onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                                                            maxLength={19}
-                                                            placeholder="4242 4242 4242 4242"
-                                                            className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-green-50 p-4 rounded-xl mb-6 border border-green-200">
+                                                    <div className="flex items-start gap-3">
+                                                        <Truck className="h-5 w-5 text-green-600 mt-0.5" />
                                                         <div>
-                                                            <label className="block text-sm font-medium text-black/70 mb-1">
-                                                                Expiry Date
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={cardExpiry}
-                                                                onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
-                                                                maxLength={5}
-                                                                placeholder="MM/YY"
-                                                                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                            />
+                                                            <p className="font-medium text-green-900">Cash on Delivery</p>
+                                                            <p className="text-sm text-green-700 mt-1">
+                                                                Pay in cash when your order is delivered to your doorstep.
+                                                                Please keep exact change ready for the delivery person.
+                                                            </p>
                                                         </div>
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-black/70 mb-1">
-                                                                CVV
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={cardCvv}
-                                                                onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                                                maxLength={4}
-                                                                placeholder="123"
-                                                                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-black/70 mb-1">
-                                                            Cardholder Name
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            value={cardName}
-                                                            onChange={(e) => setCardName(e.target.value)}
-                                                            placeholder="John Doe"
-                                                            className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                        />
                                                     </div>
                                                 </div>
 
                                                 {/* CAPTCHA Verification */}
-                                                <div className="mt-6 pt-6 border-t border-amber-200">
-                                                    <h3 className="text-sm font-medium text-black/70 mb-3">Security Verification</h3>
+                                                <div className="border border-amber-200 rounded-xl p-4">
+                                                    <h3 className="text-sm font-medium text-black/70 mb-3 flex items-center gap-2">
+                                                        <Shield className="h-4 w-4 text-amber-600" />
+                                                        Security Verification
+                                                    </h3>
                                                     <div className="flex items-center gap-3 mb-3">
                                                         <div className="flex-1 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg p-4 text-center select-none">
                                                             <span className="text-2xl font-mono font-bold tracking-[0.5em] text-amber-800" style={{
@@ -948,13 +864,13 @@ export default function Checkout() {
                                     ) : (
                                         <>
                                             <Shield className="mr-2 h-5 w-5" />
-                                            {paymentMode === 'razorpay' ? 'Pay with Razorpay' : 'Pay'} ₹{totalAmount.toFixed(2)}
+                                            {paymentMode === 'razorpay' ? 'Pay with Razorpay' : 'Place COD Order'} - ₹{totalAmount.toFixed(2)}
                                         </>
                                     )}
                                 </Button>
 
                                 <p className="text-center text-xs text-black/50">
-                                    Your payment is secure and encrypted
+                                    {paymentMode === 'razorpay' ? 'Your payment is secure and encrypted' : 'Pay cash when your order arrives'}
                                 </p>
                             </div>
                         )}
