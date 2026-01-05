@@ -895,9 +895,16 @@ export default function Checkout() {
                                     </div>
 
                                     {/* Payment Success Banner */}
-                                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-4 animate-pulse-slow">
-                                        <p className="text-green-700 font-semibold text-lg">✓ Payment Successful!</p>
-                                        <p className="text-green-600 text-sm">Your payment has been processed successfully</p>
+                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6 mb-6 shadow-lg">
+                                        <div className="flex items-center justify-center gap-3 mb-2">
+                                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                                                <Check className="h-7 w-7 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-green-800 font-bold text-2xl">Payment Successful!</p>
+                                                <p className="text-green-600 text-sm">Your payment has been processed successfully</p>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <h2 className="text-3xl font-[600] text-black mb-2">Order Placed Successfully! 🎉</h2>
@@ -947,15 +954,17 @@ export default function Checkout() {
                                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                         <Button
                                             onClick={() => navigate('/orders')}
-                                            className="bg-amber-600 text-white hover:bg-amber-700"
+                                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-lg"
+                                            size="lg"
                                         >
-                                            <Package className="mr-2 h-4 w-4" />
-                                            View Orders
+                                            <Package className="mr-2 h-5 w-5" />
+                                            View My Orders
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => navigate('/')}
-                                            className="border-amber-200 hover:border-amber-400"
+                                            className="border-amber-300 hover:border-amber-500 hover:bg-amber-50"
+                                            size="lg"
                                         >
                                             Continue Shopping
                                         </Button>
