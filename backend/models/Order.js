@@ -41,7 +41,7 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
         default: 'pending'
     },
     shippingAddress: {
@@ -55,21 +55,63 @@ const orderSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['card', 'paypal', 'cash', 'demo'],
-        default: 'card'
+        enum: ['card', 'paypal', 'cash', 'demo', 'razorpay'],
+        default: 'razorpay'
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed'],
+        enum: ['pending', 'paid', 'failed', 'refunded'],
         default: 'pending'
     },
     paymentId: {
         type: String
     },
-    notes: String
+    // Razorpay specific fields
+    razorpayOrderId: {
+        type: String
+    },
+    razorpayPaymentId: {
+        type: String
+    },
+    razorpaySignature: {
+        type: String
+    },
+    // Payment token for accessing order via link (valid for limited time)
+    paymentToken: {
+        type: String
+    },
+    paymentTokenExpires: {
+        type: Date
+    },
+    // Stock reservation flag
+    stockReserved: {
+        type: Boolean,
+        default: false
+    },
+    // Track when stock was deducted
+    stockDeductedAt: {
+        type: Date
+    },
+    notes: String,
+    // Admin notes
+    adminNotes: String,
+    // Email notification tracking
+    emailsSent: {
+        orderReceived: { type: Boolean, default: false },
+        orderConfirmed: { type: Boolean, default: false },
+        orderProcessing: { type: Boolean, default: false },
+        orderShipped: { type: Boolean, default: false },
+        orderDelivered: { type: Boolean, default: false },
+        orderCancelled: { type: Boolean, default: false },
+        billGenerated: { type: Boolean, default: false }
+    }
 }, {
     timestamps: true
 });
+
+// Index for payment token lookups
+orderSchema.index({ paymentToken: 1 });
+orderSchema.index({ razorpayOrderId: 1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

@@ -15,13 +15,55 @@ import {
     PartyPopper,
     ShoppingBag,
     Truck,
-    Mail
+    Mail,
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/config/api';
+
+declare global {
+    interface Window {
+        Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+    }
+}
+
+interface RazorpayOptions {
+    key: string;
+    amount: number;
+    currency: string;
+    name: string;
+    description: string;
+    order_id: string;
+    handler: (response: RazorpayResponse) => void;
+    prefill: {
+        name: string;
+        email: string;
+        contact: string;
+    };
+    notes: {
+        orderId: string;
+    };
+    theme: {
+        color: string;
+    };
+    modal?: {
+        ondismiss?: () => void;
+    };
+}
+
+interface RazorpayResponse {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+}
+
+interface RazorpayInstance {
+    open: () => void;
+    close: () => void;
+}
 
 interface Address {
     _id: string;
@@ -80,6 +122,21 @@ const convertGoogleDriveLink = (url: string): string => {
     return url;
 };
 
+// Load Razorpay script
+const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+        if (document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
+            resolve(true);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+};
+
 export default function Checkout() {
     const navigate = useNavigate();
     const { items, totalPrice, clearCart } = useCart();
@@ -91,8 +148,12 @@ export default function Checkout() {
     const [showAddAddress, setShowAddAddress] = useState(false);
     const [addressForm, setAddressForm] = useState<AddressForm>(initialAddressForm);
     const [loading, setLoading] = useState(false);
+    const [addressLoading, setAddressLoading] = useState(true);
     const [error, setError] = useState('');
     const [orderId, setOrderId] = useState('');
+
+    // Payment mode selection
+    const [paymentMode, setPaymentMode] = useState<'razorpay' | 'demo'>('razorpay');
 
     // Demo payment state
     const [cardNumber, setCardNumber] = useState('');
@@ -165,8 +226,9 @@ export default function Checkout() {
             return;
         }
 
-        // Fetch addresses from API to ensure we have the latest data
+        // Fetch addresses from API with loading state
         const fetchAddresses = async () => {
+            setAddressLoading(true);
             try {
                 const response = await fetch(`${API_URL}/users/profile`, {
                     headers: { Authorization: `Bearer ${token}` }
@@ -190,6 +252,8 @@ export default function Checkout() {
                     const defaultAddr = user.addresses.find(a => a.isDefault);
                     if (defaultAddr) setSelectedAddress(defaultAddr);
                 }
+            } finally {
+                setAddressLoading(false);
             }
         };
 
@@ -263,6 +327,158 @@ export default function Checkout() {
         return v;
     };
 
+    // Razorpay Payment Handler
+    const handleRazorpayPayment = async () => {
+        setError('');
+        setLoading(true);
+
+        try {
+            // Load Razorpay script
+            const scriptLoaded = await loadRazorpayScript();
+            if (!scriptLoaded) {
+                setError('Failed to load payment gateway. Please try again.');
+                setLoading(false);
+                return;
+            }
+
+            // Create Razorpay order on backend
+            const orderData = {
+                userId: user?.id,
+                customerName: user?.name,
+                customerEmail: user?.email,
+                customerPhone: selectedAddress?.phone || user?.phone,
+                items: items.map(item => ({
+                    product: item._id || item.id,
+                    productName: item.name,
+                    productImage: item.image,
+                    quantity: item.quantity,
+                    price: item.price,
+                    selectedColor: item.selectedColor
+                })),
+                totalAmount: totalAmount,
+                shippingAddress: {
+                    name: selectedAddress?.name,
+                    phone: selectedAddress?.phone,
+                    street: selectedAddress?.street,
+                    city: selectedAddress?.city,
+                    state: selectedAddress?.state,
+                    zipCode: selectedAddress?.zipCode,
+                    country: selectedAddress?.country
+                }
+            };
+
+            const response = await fetch(`${API_URL}/payment/create-order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (data.insufficientStock) {
+                    setError(`${data.message}. Please update your cart and try again.`);
+                    setTimeout(() => navigate('/cart'), 3000);
+                } else {
+                    setError(data.message || 'Failed to create payment order');
+                }
+                setLoading(false);
+                return;
+            }
+
+            // Configure Razorpay options
+            const options: RazorpayOptions = {
+                key: data.key,
+                amount: data.amount,
+                currency: data.currency,
+                name: 'Voyar Eyewear',
+                description: 'Premium Eyewear Purchase',
+                order_id: data.razorpayOrderId,
+                handler: async (response: RazorpayResponse) => {
+                    // Payment successful - verify on backend
+                    setStep('processing');
+                    try {
+                        const verifyResponse = await fetch(`${API_URL}/payment/verify`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                                orderId: data.orderId
+                            })
+                        });
+
+                        const verifyData = await verifyResponse.json();
+
+                        if (verifyResponse.ok && verifyData.success) {
+                            setOrderId(verifyData.orderId);
+                            clearCart();
+                            setStep('success');
+                            setTimeout(() => setShowSuccessModal(true), 500);
+                        } else {
+                            setError(verifyData.message || 'Payment verification failed');
+                            setStep('payment');
+                        }
+                    } catch (err) {
+                        console.error('Payment verification error:', err);
+                        setError('Payment verification failed. Please contact support.');
+                        setStep('payment');
+                    }
+                },
+                prefill: {
+                    name: user?.name || '',
+                    email: user?.email || '',
+                    contact: selectedAddress?.phone || user?.phone || ''
+                },
+                notes: {
+                    orderId: data.orderId
+                },
+                theme: {
+                    color: '#f59e0b'
+                },
+                modal: {
+                    ondismiss: async () => {
+                        // Payment cancelled by user
+                        try {
+                            await fetch(`${API_URL}/payment/failure`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    Authorization: `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    orderId: data.orderId,
+                                    razorpay_order_id: data.razorpayOrderId,
+                                    reason: 'Payment cancelled by user'
+                                })
+                            });
+                        } catch (err) {
+                            console.error('Failed to record payment cancellation:', err);
+                        }
+                        setLoading(false);
+                    }
+                }
+            };
+
+            // Open Razorpay checkout
+            const razorpay = new window.Razorpay(options);
+            razorpay.open();
+            setLoading(false);
+
+        } catch (err) {
+            console.error('Razorpay payment error:', err);
+            setError('Failed to initiate payment. Please try again.');
+            setLoading(false);
+        }
+    };
+
     const handleDemoPayment = async () => {
         // Validate payment details
         if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
@@ -296,7 +512,7 @@ export default function Checkout() {
         // Simulate payment processing
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Create order
+        // Create order via demo endpoint
         try {
             const orderData = {
                 userId: user?.id,
@@ -320,14 +536,10 @@ export default function Checkout() {
                     state: selectedAddress?.state,
                     zipCode: selectedAddress?.zipCode,
                     country: selectedAddress?.country
-                },
-                paymentMethod: 'card',
-                paymentStatus: 'paid',
-                paymentId: 'DEMO_' + Date.now(),
-                status: 'processing'
+                }
             };
 
-            const response = await fetch(`${API_URL}/orders`, {
+            const response = await fetch(`${API_URL}/payment/demo`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -338,23 +550,15 @@ export default function Checkout() {
 
             const data = await response.json();
 
-            if (response.ok) {
-                setOrderId(data._id);
-                // Clear the cart after successful order
+            if (response.ok && data.success) {
+                setOrderId(data.orderId);
                 clearCart();
-                // Show payment success message first
                 setStep('success');
-                // Small delay to show success step before modal
-                setTimeout(() => {
-                    setShowSuccessModal(true);
-                }, 500);
+                setTimeout(() => setShowSuccessModal(true), 500);
             } else {
-                // Handle insufficient stock error
                 if (data.insufficientStock) {
                     setError(`${data.message}. Please update your cart and try again.`);
-                    setTimeout(() => {
-                        navigate('/cart');
-                    }, 3000);
+                    setTimeout(() => navigate('/cart'), 3000);
                 } else {
                     setError(data.message || 'Failed to create order');
                 }
@@ -364,6 +568,14 @@ export default function Checkout() {
             console.error('Order creation error:', err);
             setError('Failed to process order. Please try again.');
             setStep('payment');
+        }
+    };
+
+    const handlePayment = () => {
+        if (paymentMode === 'razorpay') {
+            handleRazorpayPayment();
+        } else {
+            handleDemoPayment();
         }
     };
 
@@ -444,13 +656,40 @@ export default function Checkout() {
                                                 size="sm"
                                                 onClick={() => setShowAddAddress(true)}
                                                 className="border-amber-200 hover:border-amber-400"
+                                                disabled={addressLoading}
                                             >
                                                 <Plus className="h-4 w-4 mr-1" />
                                                 Add New
                                             </Button>
                                         </div>
 
-                                        {addresses.length === 0 ? (
+                                        {/* Address Loading Skeleton */}
+                                        {addressLoading ? (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-center py-8">
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+                                                        <p className="text-sm text-black/60">Loading your addresses...</p>
+                                                    </div>
+                                                </div>
+                                                {/* Skeleton cards */}
+                                                {[1, 2].map((i) => (
+                                                    <div key={i} className="p-4 border-2 border-amber-100 rounded-xl animate-pulse">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="h-5 w-32 bg-amber-100 rounded"></div>
+                                                                    <div className="h-4 w-16 bg-amber-50 rounded-full"></div>
+                                                                </div>
+                                                                <div className="h-4 w-24 bg-amber-50 rounded"></div>
+                                                                <div className="h-4 w-64 bg-amber-50 rounded"></div>
+                                                                <div className="h-4 w-20 bg-amber-50 rounded"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : addresses.length === 0 ? (
                                             <div className="text-center py-8">
                                                 <MapPin className="h-12 w-12 text-amber-200 mx-auto mb-3" />
                                                 <p className="text-black/60 mb-4">No saved addresses</p>
@@ -519,72 +758,171 @@ export default function Checkout() {
                                     <CardContent className="p-6">
                                         <h2 className="text-xl font-[600] text-black flex items-center gap-2 mb-6">
                                             <CreditCard className="h-5 w-5 text-amber-600" />
-                                            Payment Details
+                                            Payment Method
                                         </h2>
 
-                                        <div className="bg-amber-50 p-4 rounded-xl mb-6">
-                                            <p className="text-sm text-amber-800">
-                                                <strong>Demo Mode:</strong> Use card number <code className="bg-amber-100 px-1 rounded">4242 4242 4242 4242</code> with any future expiry date and any 3-digit CVV.
-                                            </p>
+                                        {/* Payment Mode Selection */}
+                                        <div className="grid grid-cols-2 gap-4 mb-6">
+                                            <button
+                                                onClick={() => setPaymentMode('razorpay')}
+                                                className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 ${paymentMode === 'razorpay'
+                                                        ? 'border-amber-500 bg-amber-50'
+                                                        : 'border-amber-200 hover:border-amber-400'
+                                                    }`}
+                                            >
+                                                <img
+                                                    src="https://razorpay.com/favicon.png"
+                                                    alt="Razorpay"
+                                                    className="h-8 w-8"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                                <span className="font-medium text-black">Razorpay</span>
+                                                <span className="text-xs text-black/60">Cards, UPI, Netbanking</span>
+                                                {paymentMode === 'razorpay' && (
+                                                    <CheckCircle2 className="h-5 w-5 text-amber-600 absolute top-2 right-2" />
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => setPaymentMode('demo')}
+                                                className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 ${paymentMode === 'demo'
+                                                        ? 'border-amber-500 bg-amber-50'
+                                                        : 'border-amber-200 hover:border-amber-400'
+                                                    }`}
+                                            >
+                                                <CreditCard className="h-8 w-8 text-amber-600" />
+                                                <span className="font-medium text-black">Demo Payment</span>
+                                                <span className="text-xs text-black/60">For testing only</span>
+                                            </button>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-black/70 mb-1">
-                                                    Card Number
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={cardNumber}
-                                                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                                                    maxLength={19}
-                                                    placeholder="4242 4242 4242 4242"
-                                                    className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                />
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-black/70 mb-1">
-                                                        Expiry Date
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={cardExpiry}
-                                                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
-                                                        maxLength={5}
-                                                        placeholder="MM/YY"
-                                                        className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-black/70 mb-1">
-                                                        CVV
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={cardCvv}
-                                                        onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                                        maxLength={4}
-                                                        placeholder="123"
-                                                        className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                    />
+                                        {/* Razorpay Info */}
+                                        {paymentMode === 'razorpay' && (
+                                            <div className="bg-blue-50 p-4 rounded-xl mb-6 border border-blue-200">
+                                                <div className="flex items-start gap-3">
+                                                    <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                                                    <div>
+                                                        <p className="font-medium text-blue-900">Secure Payment via Razorpay</p>
+                                                        <p className="text-sm text-blue-700 mt-1">
+                                                            Pay securely using Credit/Debit Cards, UPI, Net Banking, Wallets & more.
+                                                            Your payment information is encrypted and secure.
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
+                                        )}
 
-                                            <div>
-                                                <label className="block text-sm font-medium text-black/70 mb-1">
-                                                    Cardholder Name
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={cardName}
-                                                    onChange={(e) => setCardName(e.target.value)}
-                                                    placeholder="John Doe"
-                                                    className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                                                />
-                                            </div>
-                                        </div>
+                                        {/* Demo Payment Form */}
+                                        {paymentMode === 'demo' && (
+                                            <>
+                                                <div className="bg-amber-50 p-4 rounded-xl mb-6">
+                                                    <p className="text-sm text-amber-800">
+                                                        <strong>Demo Mode:</strong> Use card number <code className="bg-amber-100 px-1 rounded">4242 4242 4242 4242</code> with any future expiry date and any 3-digit CVV.
+                                                    </p>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-black/70 mb-1">
+                                                            Card Number
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={cardNumber}
+                                                            onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                                                            maxLength={19}
+                                                            placeholder="4242 4242 4242 4242"
+                                                            className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-black/70 mb-1">
+                                                                Expiry Date
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={cardExpiry}
+                                                                onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                                                                maxLength={5}
+                                                                placeholder="MM/YY"
+                                                                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-black/70 mb-1">
+                                                                CVV
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={cardCvv}
+                                                                onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                                                maxLength={4}
+                                                                placeholder="123"
+                                                                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-black/70 mb-1">
+                                                            Cardholder Name
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={cardName}
+                                                            onChange={(e) => setCardName(e.target.value)}
+                                                            placeholder="John Doe"
+                                                            className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* CAPTCHA Verification */}
+                                                <div className="mt-6 pt-6 border-t border-amber-200">
+                                                    <h3 className="text-sm font-medium text-black/70 mb-3">Security Verification</h3>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="flex-1 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg p-4 text-center select-none">
+                                                            <span className="text-2xl font-mono font-bold tracking-[0.5em] text-amber-800" style={{
+                                                                textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                                                                letterSpacing: '0.3em',
+                                                                fontStyle: 'italic'
+                                                            }}>
+                                                                {captchaCode}
+                                                            </span>
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={generateCaptcha}
+                                                            className="border-amber-200 hover:border-amber-400"
+                                                        >
+                                                            <RefreshCw className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={captchaInput}
+                                                        onChange={(e) => {
+                                                            setCaptchaInput(e.target.value);
+                                                            setCaptchaError('');
+                                                        }}
+                                                        placeholder="Enter the code above"
+                                                        className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 ${captchaError ? 'border-red-400 bg-red-50' : 'border-amber-200'
+                                                            }`}
+                                                    />
+                                                    {captchaError && (
+                                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                                            <AlertCircle className="h-4 w-4" />
+                                                            {captchaError}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
 
                                         {/* Delivery Address Summary */}
                                         <div className="mt-6 pt-6 border-t border-amber-200">
@@ -594,57 +932,25 @@ export default function Checkout() {
                                                 {selectedAddress?.street}, {selectedAddress?.city}, {selectedAddress?.state} - {selectedAddress?.zipCode}
                                             </p>
                                         </div>
-
-                                        {/* CAPTCHA Verification */}
-                                        <div className="mt-6 pt-6 border-t border-amber-200">
-                                            <h3 className="text-sm font-medium text-black/70 mb-3">Security Verification</h3>
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <div className="flex-1 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg p-4 text-center select-none">
-                                                    <span className="text-2xl font-mono font-bold tracking-[0.5em] text-amber-800" style={{
-                                                        textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-                                                        letterSpacing: '0.3em',
-                                                        fontStyle: 'italic'
-                                                    }}>
-                                                        {captchaCode}
-                                                    </span>
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={generateCaptcha}
-                                                    className="border-amber-200 hover:border-amber-400"
-                                                >
-                                                    <RefreshCw className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                value={captchaInput}
-                                                onChange={(e) => {
-                                                    setCaptchaInput(e.target.value);
-                                                    setCaptchaError('');
-                                                }}
-                                                placeholder="Enter the code above"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 ${captchaError ? 'border-red-400 bg-red-50' : 'border-amber-200'
-                                                    }`}
-                                            />
-                                            {captchaError && (
-                                                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                                                    <AlertCircle className="h-4 w-4" />
-                                                    {captchaError}
-                                                </p>
-                                            )}
-                                        </div>
                                     </CardContent>
                                 </Card>
 
                                 <Button
-                                    onClick={handleDemoPayment}
+                                    onClick={handlePayment}
+                                    disabled={loading}
                                     className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 text-base font-medium shadow-lg shadow-amber-200"
                                 >
-                                    <Shield className="mr-2 h-5 w-5" />
-                                    Pay ₹{totalAmount.toFixed(2)}
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Shield className="mr-2 h-5 w-5" />
+                                            {paymentMode === 'razorpay' ? 'Pay with Razorpay' : 'Pay'} ₹{totalAmount.toFixed(2)}
+                                        </>
+                                    )}
                                 </Button>
 
                                 <p className="text-center text-xs text-black/50">

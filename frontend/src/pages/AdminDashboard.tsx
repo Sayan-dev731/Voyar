@@ -29,7 +29,10 @@ import {
     UserX,
     Download,
     MapPin,
-    Save
+    Save,
+    Search,
+    Filter,
+    SlidersHorizontal
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -43,6 +46,7 @@ interface Order {
     customerPhone?: string
     items: Array<{
         productName: string
+        productImage?: string
         quantity: number
         price: number
         selectedColor?: string
@@ -232,6 +236,77 @@ export const AdminDashboard = () => {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false)
 
+    // Search and filter state for Products
+    const [productSearch, setProductSearch] = useState('')
+    const [productCategoryFilter, setProductCategoryFilter] = useState<string>('all')
+    const [productStockFilter, setProductStockFilter] = useState<string>('all')
+
+    // Search and filter state for Orders
+    const [orderSearch, setOrderSearch] = useState('')
+    const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all')
+    const [orderPaymentFilter, setOrderPaymentFilter] = useState<string>('all')
+    const [orderDateFilter, setOrderDateFilter] = useState<string>('all')
+
+    // Search and filter state for Users
+    const [userSearch, setUserSearch] = useState('')
+    const [userVerificationFilter, setUserVerificationFilter] = useState<string>('all')
+
+    // Filtered data
+    const filteredProducts = products.filter(product => {
+        const matchesSearch = product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+            product.category.toLowerCase().includes(productSearch.toLowerCase()) ||
+            (product.description && product.description.toLowerCase().includes(productSearch.toLowerCase()))
+
+        const matchesCategory = productCategoryFilter === 'all' || product.category === productCategoryFilter
+
+        const matchesStock = productStockFilter === 'all' ||
+            (productStockFilter === 'inStock' && product.inStock !== false) ||
+            (productStockFilter === 'outOfStock' && product.inStock === false)
+
+        return matchesSearch && matchesCategory && matchesStock
+    })
+
+    const filteredOrders = orders.filter(order => {
+        const matchesSearch = order.customerName.toLowerCase().includes(orderSearch.toLowerCase()) ||
+            order.customerEmail.toLowerCase().includes(orderSearch.toLowerCase()) ||
+            order._id.toLowerCase().includes(orderSearch.toLowerCase()) ||
+            (order.customerPhone && order.customerPhone.includes(orderSearch))
+
+        const matchesStatus = orderStatusFilter === 'all' || order.status === orderStatusFilter
+
+        const matchesPayment = orderPaymentFilter === 'all' || order.paymentStatus === orderPaymentFilter
+
+        const orderDate = new Date(order.createdAt)
+        const now = new Date()
+        let matchesDate = true
+        if (orderDateFilter === 'today') {
+            matchesDate = orderDate.toDateString() === now.toDateString()
+        } else if (orderDateFilter === 'week') {
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            matchesDate = orderDate >= weekAgo
+        } else if (orderDateFilter === 'month') {
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+            matchesDate = orderDate >= monthAgo
+        }
+
+        return matchesSearch && matchesStatus && matchesPayment && matchesDate
+    })
+
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+            user.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+            (user.phone && user.phone.includes(userSearch))
+
+        const matchesVerification = userVerificationFilter === 'all' ||
+            (userVerificationFilter === 'verified' && user.isVerified) ||
+            (userVerificationFilter === 'unverified' && !user.isVerified)
+
+        return matchesSearch && matchesVerification
+    })
+
+    // Get unique categories from products
+    const productCategories = [...new Set(products.map(p => p.category))].filter(Boolean)
+
     useEffect(() => {
         const token = localStorage.getItem('adminToken')
         if (!token) {
@@ -296,13 +371,22 @@ export const AdminDashboard = () => {
     const handleUpdateSettings = async () => {
         const token = localStorage.getItem('adminToken')
         try {
+            // Only send allowed fields to avoid validation errors
+            const allowedSettings = {
+                recoveryEmail: settingsForm.recoveryEmail,
+                siteName: settingsForm.siteName,
+                supportEmail: settingsForm.supportEmail,
+                platformCharges: settingsForm.platformCharges,
+                deliveryCharges: settingsForm.deliveryCharges
+            }
+
             const res = await fetch(`${API_URL}/admin/settings`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(settingsForm)
+                body: JSON.stringify(allowedSettings)
             })
             if (res.ok) {
                 const data = await res.json()
@@ -931,7 +1015,7 @@ export const AdminDashboard = () => {
                 {/* Products Tab */}
                 {activeTab === 'products' && (
                     <div>
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                             <h2 className="text-2xl font-[600] text-black">Manage Products</h2>
                             <Button
                                 onClick={openAddProductModal}
@@ -942,8 +1026,76 @@ export const AdminDashboard = () => {
                             </Button>
                         </div>
 
+                        {/* Search and Filter Bar for Products */}
+                        <div className="bg-amber-50/50 rounded-2xl p-4 mb-6 border border-amber-200/60">
+                            <div className="flex flex-col lg:flex-row gap-4">
+                                {/* Search Input */}
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search products by name, category, or description..."
+                                        value={productSearch}
+                                        onChange={(e) => setProductSearch(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white"
+                                    />
+                                </div>
+
+                                {/* Category Filter */}
+                                <div className="flex items-center gap-2">
+                                    <Filter className="h-4 w-4 text-black/40" />
+                                    <select
+                                        value={productCategoryFilter}
+                                        onChange={(e) => setProductCategoryFilter(e.target.value)}
+                                        className="px-3 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white min-w-[150px]"
+                                    >
+                                        <option value="all">All Categories</option>
+                                        {productCategories.map(category => (
+                                            <option key={category} value={category}>{category}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Stock Filter */}
+                                <div className="flex items-center gap-2">
+                                    <SlidersHorizontal className="h-4 w-4 text-black/40" />
+                                    <select
+                                        value={productStockFilter}
+                                        onChange={(e) => setProductStockFilter(e.target.value)}
+                                        className="px-3 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white min-w-[140px]"
+                                    >
+                                        <option value="all">All Stock</option>
+                                        <option value="inStock">In Stock</option>
+                                        <option value="outOfStock">Out of Stock</option>
+                                    </select>
+                                </div>
+
+                                {/* Clear Filters */}
+                                {(productSearch || productCategoryFilter !== 'all' || productStockFilter !== 'all') && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setProductSearch('')
+                                            setProductCategoryFilter('all')
+                                            setProductStockFilter('all')
+                                        }}
+                                        className="border-amber-200 hover:bg-amber-50 text-black/70"
+                                    >
+                                        <X className="mr-1 h-4 w-4" />
+                                        Clear
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Results count */}
+                            <div className="mt-3 text-sm text-black/60">
+                                Showing {filteredProducts.length} of {products.length} products
+                                {productSearch && ` matching "${productSearch}"`}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {products.map((product) => (
+                            {filteredProducts.map((product) => (
                                 <Card key={product.id || product._id} className="border-amber-200/60 rounded-2xl">
                                     <CardContent className="p-4">
                                         <div className="aspect-[4/3] bg-gradient-to-br from-amber-50 to-white rounded-xl overflow-hidden mb-4">
@@ -1002,15 +1154,133 @@ export const AdminDashboard = () => {
                                 </Card>
                             ))}
                         </div>
+
+                        {/* Empty state for products */}
+                        {filteredProducts.length === 0 && (
+                            <div className="text-center py-12 text-black/40">
+                                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>{products.length === 0 ? 'No products yet' : 'No products match your search criteria'}</p>
+                                {products.length > 0 && (productSearch || productCategoryFilter !== 'all' || productStockFilter !== 'all') && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setProductSearch('')
+                                            setProductCategoryFilter('all')
+                                            setProductStockFilter('all')
+                                        }}
+                                        className="mt-4 border-amber-200 hover:bg-amber-50"
+                                    >
+                                        Clear Filters
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* Orders Tab */}
                 {activeTab === 'orders' && (
                     <div>
-                        <h2 className="text-2xl font-[600] text-black mb-6">Manage Orders</h2>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <h2 className="text-2xl font-[600] text-black">Manage Orders</h2>
+                            <Button
+                                onClick={() => exportToCSV('orders')}
+                                className="bg-amber-600 hover:bg-amber-700 text-white"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Export Orders
+                            </Button>
+                        </div>
+
+                        {/* Search and Filter Bar for Orders */}
+                        <div className="bg-amber-50/50 rounded-2xl p-4 mb-6 border border-amber-200/60">
+                            <div className="flex flex-col lg:flex-row gap-4">
+                                {/* Search Input */}
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by customer name, email, phone, or order ID..."
+                                        value={orderSearch}
+                                        onChange={(e) => setOrderSearch(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white"
+                                    />
+                                </div>
+
+                                {/* Status Filter */}
+                                <div className="flex items-center gap-2">
+                                    <Filter className="h-4 w-4 text-black/40" />
+                                    <select
+                                        value={orderStatusFilter}
+                                        onChange={(e) => setOrderStatusFilter(e.target.value)}
+                                        className="px-3 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white min-w-[140px]"
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="processing">Processing</option>
+                                        <option value="shipped">Shipped</option>
+                                        <option value="delivered">Delivered</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+
+                                {/* Payment Filter */}
+                                <div className="flex items-center gap-2">
+                                    <DollarSign className="h-4 w-4 text-black/40" />
+                                    <select
+                                        value={orderPaymentFilter}
+                                        onChange={(e) => setOrderPaymentFilter(e.target.value)}
+                                        className="px-3 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white min-w-[130px]"
+                                    >
+                                        <option value="all">All Payments</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="failed">Failed</option>
+                                    </select>
+                                </div>
+
+                                {/* Date Filter */}
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-black/40" />
+                                    <select
+                                        value={orderDateFilter}
+                                        onChange={(e) => setOrderDateFilter(e.target.value)}
+                                        className="px-3 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white min-w-[120px]"
+                                    >
+                                        <option value="all">All Time</option>
+                                        <option value="today">Today</option>
+                                        <option value="week">Last 7 Days</option>
+                                        <option value="month">Last 30 Days</option>
+                                    </select>
+                                </div>
+
+                                {/* Clear Filters */}
+                                {(orderSearch || orderStatusFilter !== 'all' || orderPaymentFilter !== 'all' || orderDateFilter !== 'all') && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setOrderSearch('')
+                                            setOrderStatusFilter('all')
+                                            setOrderPaymentFilter('all')
+                                            setOrderDateFilter('all')
+                                        }}
+                                        className="border-amber-200 hover:bg-amber-50 text-black/70"
+                                    >
+                                        <X className="mr-1 h-4 w-4" />
+                                        Clear
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Results count */}
+                            <div className="mt-3 text-sm text-black/60">
+                                Showing {filteredOrders.length} of {orders.length} orders
+                                {orderSearch && ` matching "${orderSearch}"`}
+                            </div>
+                        </div>
+
                         <div className="space-y-6">
-                            {orders.map((order) => (
+                            {filteredOrders.map((order) => (
                                 <Card key={order._id} className="border-amber-200/60 rounded-2xl overflow-hidden shadow-lg">
                                     <CardContent className="p-0">
                                         {/* Order Header */}
@@ -1112,8 +1382,23 @@ export const AdminDashboard = () => {
                                                 <div className="space-y-3">
                                                     {order.items.map((item, index) => (
                                                         <div key={index} className="flex items-center gap-4 p-4 bg-white border-2 border-amber-100 rounded-xl hover:border-amber-300 transition-colors">
-                                                            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                                <Package className="h-8 w-8 text-amber-600" />
+                                                            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                                {item.productImage ? (
+                                                                    <img
+                                                                        src={item.productImage.includes('drive.google.com')
+                                                                            ? `https://drive.google.com/thumbnail?id=${item.productImage.match(/\/d\/([^/]+)/)?.[1] || item.productImage.match(/id=([^&]+)/)?.[1]}&sz=w200`
+                                                                            : item.productImage
+                                                                        }
+                                                                        alt={item.productName}
+                                                                        className="w-full h-full object-cover"
+                                                                        onError={(e) => {
+                                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="flex items-center justify-center w-full h-full"><svg class="h-8 w-8 text-amber-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>';
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <Package className="h-8 w-8 text-amber-600" />
+                                                                )}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <h5 className="font-[600] text-black truncate">{item.productName}</h5>
@@ -1190,21 +1475,26 @@ export const AdminDashboard = () => {
                                     </CardContent>
                                 </Card>
                             ))}
-                            {orders.length === 0 && (
+                            {filteredOrders.length === 0 && (
                                 <div className="text-center py-12 text-black/40">
                                     <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                    <p>No orders yet</p>
+                                    <p>{orders.length === 0 ? 'No orders yet' : 'No orders match your search criteria'}</p>
+                                    {orders.length > 0 && (orderSearch || orderStatusFilter !== 'all' || orderPaymentFilter !== 'all' || orderDateFilter !== 'all') && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setOrderSearch('')
+                                                setOrderStatusFilter('all')
+                                                setOrderPaymentFilter('all')
+                                                setOrderDateFilter('all')
+                                            }}
+                                            className="mt-4 border-amber-200 hover:bg-amber-50"
+                                        >
+                                            Clear Filters
+                                        </Button>
+                                    )}
                                 </div>
                             )}
-                        </div>
-                        <div className="mt-4 flex justify-end">
-                            <Button
-                                onClick={() => exportToCSV('orders')}
-                                className="bg-amber-600 hover:bg-amber-700 text-white"
-                            >
-                                <Download className="mr-2 h-4 w-4" />
-                                Export Orders
-                            </Button>
                         </div>
                     </div>
                 )}
@@ -1212,7 +1502,7 @@ export const AdminDashboard = () => {
                 {/* Users Tab */}
                 {activeTab === 'users' && (
                     <div>
-                        <div className="flex items-center justify-between mb-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                             <h2 className="text-2xl font-[600] text-black">Manage Users</h2>
                             <Button
                                 onClick={() => exportToCSV('users')}
@@ -1222,8 +1512,61 @@ export const AdminDashboard = () => {
                                 Export Users
                             </Button>
                         </div>
+
+                        {/* Search and Filter Bar for Users */}
+                        <div className="bg-amber-50/50 rounded-2xl p-4 mb-6 border border-amber-200/60">
+                            <div className="flex flex-col lg:flex-row gap-4">
+                                {/* Search Input */}
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name, email, or phone..."
+                                        value={userSearch}
+                                        onChange={(e) => setUserSearch(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white"
+                                    />
+                                </div>
+
+                                {/* Verification Filter */}
+                                <div className="flex items-center gap-2">
+                                    <UserCheck className="h-4 w-4 text-black/40" />
+                                    <select
+                                        value={userVerificationFilter}
+                                        onChange={(e) => setUserVerificationFilter(e.target.value)}
+                                        className="px-3 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white min-w-[150px]"
+                                    >
+                                        <option value="all">All Users</option>
+                                        <option value="verified">Verified</option>
+                                        <option value="unverified">Unverified</option>
+                                    </select>
+                                </div>
+
+                                {/* Clear Filters */}
+                                {(userSearch || userVerificationFilter !== 'all') && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setUserSearch('')
+                                            setUserVerificationFilter('all')
+                                        }}
+                                        className="border-amber-200 hover:bg-amber-50 text-black/70"
+                                    >
+                                        <X className="mr-1 h-4 w-4" />
+                                        Clear
+                                    </Button>
+                                )}
+                            </div>
+
+                            {/* Results count */}
+                            <div className="mt-3 text-sm text-black/60">
+                                Showing {filteredUsers.length} of {users.length} users
+                                {userSearch && ` matching "${userSearch}"`}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {users.map((user) => (
+                            {filteredUsers.map((user) => (
                                 <Card key={user._id} className="border-amber-200/60 rounded-2xl hover:shadow-lg transition-shadow">
                                     <CardContent className="p-6">
                                         <div className="flex items-start gap-4">
@@ -1295,10 +1638,22 @@ export const AdminDashboard = () => {
                                 </Card>
                             ))}
                         </div>
-                        {users.length === 0 && (
+                        {filteredUsers.length === 0 && (
                             <div className="text-center py-12 text-black/40">
                                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p>No users found</p>
+                                <p>{users.length === 0 ? 'No users found' : 'No users match your search criteria'}</p>
+                                {users.length > 0 && (userSearch || userVerificationFilter !== 'all') && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setUserSearch('')
+                                            setUserVerificationFilter('all')
+                                        }}
+                                        className="mt-4 border-amber-200 hover:bg-amber-50"
+                                    >
+                                        Clear Filters
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </div>
@@ -2319,14 +2674,22 @@ export const AdminDashboard = () => {
                                 <div className="space-y-3">
                                     {selectedOrder.items.map((item, index: number) => {
                                         const product = item.product
+                                        const imageUrl = item.productImage || product?.images?.[0];
+                                        const processedImageUrl = imageUrl?.includes('drive.google.com')
+                                            ? `https://drive.google.com/thumbnail?id=${imageUrl.match(/\/d\/([^/]+)/)?.[1] || imageUrl.match(/id=([^&]+)/)?.[1]}&sz=w200`
+                                            : imageUrl;
                                         return (
                                             <div key={index} className="flex gap-4 p-4 bg-white border-2 border-amber-100 rounded-xl">
-                                                <div className="w-24 h-24 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                    {product?.images?.[0] ? (
+                                                <div className="w-24 h-24 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                    {processedImageUrl ? (
                                                         <img
-                                                            src={product.images[0]}
-                                                            alt={product.name}
+                                                            src={processedImageUrl}
+                                                            alt={item.productName || product?.name}
                                                             className="w-full h-full object-cover rounded-lg"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="flex items-center justify-center w-full h-full"><svg class="h-8 w-8 text-amber-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>';
+                                                            }}
                                                         />
                                                     ) : (
                                                         <Package className="h-8 w-8 text-amber-600" />

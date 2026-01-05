@@ -1,8 +1,8 @@
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
-import { sendBillEmail } from '../config/email.js';
+import { sendBillEmail, sendOrderReceivedEmail, sendOrderStatusEmail } from '../config/email.js';
 
-// Create new order
+// Create new order (legacy - use payment controller for Razorpay)
 export const createOrder = async (req, res) => {
     try {
         const { items } = req.body;
@@ -62,8 +62,23 @@ export const createOrder = async (req, res) => {
             await product.save();
         }
 
-        const order = new Order(req.body);
+        const order = new Order({
+            ...req.body,
+            stockReserved: true,
+            stockDeductedAt: new Date()
+        });
         const savedOrder = await order.save();
+
+        // Send order confirmation email
+        try {
+            await sendOrderReceivedEmail(savedOrder.customerEmail, savedOrder.customerName, savedOrder);
+            savedOrder.emailsSent = savedOrder.emailsSent || {};
+            savedOrder.emailsSent.orderReceived = true;
+            await savedOrder.save();
+        } catch (emailError) {
+            console.error('Failed to send order confirmation email:', emailError);
+        }
+
         res.status(201).json(savedOrder);
     } catch (error) {
         console.error('Create order error:', error);
@@ -112,14 +127,64 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const order = await Order.findByIdAndUpdate(
-            req.params.id,
-            { status },
-            { new: true }
-        );
+        const order = await Order.findById(req.params.id);
+
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
+
+        const previousStatus = order.status;
+        order.status = status;
+
+        // Handle stock restoration for cancelled orders
+        if (status === 'cancelled' && previousStatus !== 'cancelled' && order.stockReserved) {
+            // Restore stock
+            for (const item of order.items) {
+                const product = await Product.findById(item.product);
+                if (!product) continue;
+
+                if (item.selectedColor && product.colors && product.colors.length > 0) {
+                    const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
+                    if (colorIndex !== -1) {
+                        product.colors[colorIndex].quantity += item.quantity;
+                    }
+                    const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                    product.inStock = totalColorStock > 0;
+                } else {
+                    product.stock += item.quantity;
+                    product.inStock = true;
+                }
+                await product.save();
+            }
+            order.stockReserved = false;
+        }
+
+        await order.save();
+
+        // Send status update email
+        try {
+            await sendOrderStatusEmail(order.customerEmail, order.customerName, order, status);
+
+            // Track email sent
+            if (!order.emailsSent) order.emailsSent = {};
+            const emailKey = `order${status.charAt(0).toUpperCase() + status.slice(1)}`;
+            order.emailsSent[emailKey] = true;
+            await order.save();
+        } catch (emailError) {
+            console.error('Failed to send order status email:', emailError);
+        }
+
+        // If status is confirmed and bill not sent, auto-generate bill
+        if (status === 'confirmed' && !order.emailsSent?.billGenerated) {
+            try {
+                await sendBillEmail(order.customerEmail, order.customerName, order);
+                order.emailsSent.billGenerated = true;
+                await order.save();
+            } catch (emailError) {
+                console.error('Failed to send bill email:', emailError);
+            }
+        }
+
         res.json(order);
     } catch (error) {
         res.status(400).json({ message: error.message });

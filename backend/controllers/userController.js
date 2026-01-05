@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../config/email.js';
+import { validatePasswordStrength } from '../config/security.js';
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -10,9 +11,12 @@ const generateToken = (userId) => {
     });
 };
 
+// =============================================================================
 // @desc    Register a new user
 // @route   POST /api/users/signup
 // @access  Public
+// @security Input validated, Password strength enforced
+// =============================================================================
 export const signup = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -21,6 +25,16 @@ export const signup = async (req, res) => {
         if (!name || !email || !password) {
             return res.status(400).json({
                 message: 'Please provide name, email, and password'
+            });
+        }
+
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(password);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({
+                message: 'Password does not meet security requirements',
+                errors: passwordValidation.errors,
+                hint: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
             });
         }
 
@@ -169,18 +183,32 @@ export const verifyEmail = async (req, res) => {
     }
 };
 
+// =============================================================================
 // @desc    Login user
 // @route   POST /api/users/login
 // @access  Public
+// @security Account lockout, Failed attempt tracking
+// =============================================================================
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user and include password field
-        const user = await User.findOne({ email }).select('+password');
+        // Find user and include password and lockout fields
+        const user = await User.findOne({ email }).select('+password +failedLoginAttempts +lockUntil');
 
         if (!user) {
+            // Don't reveal that user doesn't exist (timing attack prevention)
             return res.status(401).json({ message: 'Invalid email or password' });
+        }
+
+        // Check if account is locked
+        if (user.isLocked) {
+            const lockTimeRemaining = Math.ceil((user.lockUntil - Date.now()) / 60000);
+            return res.status(423).json({
+                message: `Account temporarily locked due to too many failed login attempts. Try again in ${lockTimeRemaining} minutes.`,
+                locked: true,
+                lockTimeRemaining
+            });
         }
 
         // Check if email is verified
@@ -195,8 +223,19 @@ export const login = async (req, res) => {
         const isPasswordMatch = await user.comparePassword(password);
 
         if (!isPasswordMatch) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+            // Increment failed login attempts
+            await user.incLoginAttempts();
+
+            // Get updated attempts count
+            const attemptsRemaining = 5 - (user.failedLoginAttempts + 1);
+
+            return res.status(401).json({
+                message: `Invalid email or password${attemptsRemaining > 0 && attemptsRemaining < 3 ? `. ${attemptsRemaining} attempts remaining before account lockout.` : ''}`
+            });
         }
+
+        // Reset failed login attempts on successful login
+        await user.resetLoginAttempts();
 
         // Generate token
         const token = generateToken(user._id);
@@ -738,12 +777,25 @@ export const syncCart = async (req, res) => {
     }
 };
 
+// =============================================================================
 // @desc    Change password
 // @route   PUT /api/users/change-password
 // @access  Private
+// @security Password history check, Strength validation
+// =============================================================================
 export const changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
+
+        // Validate new password strength
+        const passwordValidation = validatePasswordStrength(newPassword);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({
+                message: 'New password does not meet security requirements',
+                errors: passwordValidation.errors,
+                hint: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
+            });
+        }
 
         const user = await User.findById(req.user.id).select('+password');
 
@@ -757,11 +809,30 @@ export const changePassword = async (req, res) => {
             return res.status(400).json({ message: 'Current password is incorrect' });
         }
 
-        // Update password
+        // Check if new password is same as current
+        if (currentPassword === newPassword) {
+            return res.status(400).json({
+                message: 'New password must be different from current password'
+            });
+        }
+
+        // Check if password was used before (OWASP recommendation)
+        const isInHistory = await user.isPasswordInHistory(newPassword);
+        if (isInHistory) {
+            return res.status(400).json({
+                message: 'This password was used recently. Please choose a different password.',
+                hint: 'For security, you cannot reuse your last 5 passwords'
+            });
+        }
+
+        // Update password (pre-save hook will hash it and update history)
         user.password = newPassword;
         await user.save();
 
-        res.json({ message: 'Password changed successfully' });
+        res.json({
+            message: 'Password changed successfully',
+            passwordChangedAt: user.passwordChangedAt
+        });
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({ message: 'Server error' });
@@ -799,26 +870,51 @@ export const forgotPassword = async (req, res) => {
     }
 };
 
+// =============================================================================
 // @desc    Reset password
 // @route   POST /api/users/reset-password/:token
 // @access  Public
+// @security Password history check, Strength validation, Token validation
+// =============================================================================
 export const resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
         const { password } = req.body;
 
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(password);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({
+                message: 'Password does not meet security requirements',
+                errors: passwordValidation.errors,
+                hint: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
+            });
+        }
+
         const user = await User.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() },
-        });
+        }).select('+passwordHistory +password');
 
         if (!user) {
             return res.status(400).json({ message: 'Invalid or expired reset token' });
         }
 
+        // Check if password was used before (OWASP recommendation)
+        const isInHistory = await user.isPasswordInHistory(password);
+        if (isInHistory) {
+            return res.status(400).json({
+                message: 'This password was used recently. Please choose a different password.',
+                hint: 'For security, you cannot reuse your last 5 passwords'
+            });
+        }
+
         user.password = password;
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
+        // Reset any account lockout
+        user.failedLoginAttempts = 0;
+        user.lockUntil = undefined;
         await user.save();
 
         res.json({ message: 'Password reset successful. You can now log in with your new password.' });

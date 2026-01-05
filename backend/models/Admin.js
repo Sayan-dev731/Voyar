@@ -92,6 +92,15 @@ const adminSchema = new mongoose.Schema({
     },
     resetPasswordExpires: {
         type: Date
+    },
+    // Password history for preventing reuse (OWASP recommendation)
+    passwordHistory: [{
+        hash: { type: String, required: true },
+        changedAt: { type: Date, default: Date.now }
+    }],
+    // Track when password was last changed
+    passwordChangedAt: {
+        type: Date
     }
 }, {
     timestamps: true
