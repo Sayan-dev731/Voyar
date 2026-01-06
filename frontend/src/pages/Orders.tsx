@@ -13,11 +13,13 @@ import {
     CreditCard,
     ShoppingBag,
     Trash2,
+    Ban,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/config/api';
+import { ConfirmationModal, Toast } from '@/components/ui/ConfirmationModal';
 
 interface OrderItem {
     product: string;
@@ -32,10 +34,15 @@ interface Order {
     _id: string;
     items: OrderItem[];
     totalAmount: number;
-    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-    paymentStatus: 'pending' | 'paid' | 'failed';
+    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'confirmed';
+    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     paymentMethod: string;
     paymentId?: string;
+    refundStatus?: 'not_applicable' | 'pending' | 'processing' | 'completed' | 'failed';
+    refundId?: string;
+    refundAmount?: number;
+    refundInitiatedAt?: string;
+    refundNotes?: string;
     shippingAddress: {
         name: string;
         phone: string;
@@ -105,8 +112,26 @@ const getPaymentStatusColor = (status: string) => {
             return 'bg-green-100 text-green-700';
         case 'failed':
             return 'bg-red-100 text-red-700';
+        case 'refunded':
+            return 'bg-blue-100 text-blue-700';
         default:
             return 'bg-yellow-100 text-yellow-700';
+    }
+};
+
+// Helper function for refund status badge
+const getRefundStatusBadge = (refundStatus?: string) => {
+    switch (refundStatus) {
+        case 'processing':
+            return { color: 'bg-amber-100 text-amber-700 border-amber-200', text: 'Refund Processing' };
+        case 'completed':
+            return { color: 'bg-green-100 text-green-700 border-green-200', text: 'Refund Completed' };
+        case 'failed':
+            return { color: 'bg-red-100 text-red-700 border-red-200', text: 'Refund Failed' };
+        case 'pending':
+            return { color: 'bg-blue-100 text-blue-700 border-blue-200', text: 'Refund Pending' };
+        default:
+            return null;
     }
 };
 
@@ -116,6 +141,24 @@ export default function Orders() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+
+    // Modal states
+    const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; orderId: string | null }>({
+        isOpen: false,
+        orderId: null
+    });
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; orderId: string | null }>({
+        isOpen: false,
+        orderId: null
+    });
+    const [actionLoading, setActionLoading] = useState(false);
+
+    // Toast state
+    const [toast, setToast] = useState<{ isOpen: boolean; message: string; type: 'success' | 'error' }>({
+        isOpen: false,
+        message: '',
+        type: 'success'
+    });
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -146,26 +189,114 @@ export default function Orders() {
         setExpandedOrder(expandedOrder === orderId ? null : orderId);
     };
 
-    const handleDeleteOrder = async (orderId: string) => {
-        if (!confirm('Are you sure you want to delete this order?')) return;
+    // Cancel order handler
+    const handleCancelOrder = async () => {
+        if (!cancelModal.orderId) return;
+        setActionLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/orders/${orderId}`, {
+            const response = await fetch(`${API_URL}/orders/${cancelModal.orderId}/cancel`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Update order in state with refund info
+                setOrders(orders.map(order =>
+                    order._id === cancelModal.orderId
+                        ? {
+                            ...order,
+                            status: 'cancelled' as const,
+                            refundStatus: data.order?.refundStatus,
+                            refundId: data.order?.refundId,
+                            refundAmount: data.order?.refundAmount,
+                            refundInitiatedAt: data.order?.refundInitiatedAt,
+                            refundNotes: data.order?.refundNotes
+                        }
+                        : order
+                ));
+
+                // Show appropriate success message
+                let successMessage = data.message || 'Order cancelled successfully';
+                if (data.refundInfo?.success) {
+                    successMessage = 'Order cancelled! Refund will be processed in 5-7 working days.';
+                }
+
+                setToast({
+                    isOpen: true,
+                    message: successMessage,
+                    type: 'success'
+                });
+            } else {
+                setToast({
+                    isOpen: true,
+                    message: data.message || 'Failed to cancel order',
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            setToast({
+                isOpen: true,
+                message: 'Failed to cancel order. Please try again.',
+                type: 'error'
+            });
+        } finally {
+            setActionLoading(false);
+            setCancelModal({ isOpen: false, orderId: null });
+        }
+    };
+
+    // Delete order handler (soft delete - removes from user view)
+    const handleDeleteOrder = async () => {
+        if (!deleteModal.orderId) return;
+        setActionLoading(true);
+
+        try {
+            const response = await fetch(`${API_URL}/orders/${deleteModal.orderId}/user-delete`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                setOrders(orders.filter(order => order._id !== orderId));
-                alert('Order deleted successfully');
+                setOrders(orders.filter(order => order._id !== deleteModal.orderId));
+                setToast({
+                    isOpen: true,
+                    message: 'Order removed from your history',
+                    type: 'success'
+                });
             } else {
-                const data = await response.json();
-                alert(data.message || 'Failed to delete order');
+                setToast({
+                    isOpen: true,
+                    message: data.message || 'Failed to delete order',
+                    type: 'error'
+                });
             }
         } catch (error) {
             console.error('Error deleting order:', error);
-            alert('Failed to delete order');
+            setToast({
+                isOpen: true,
+                message: 'Failed to delete order. Please try again.',
+                type: 'error'
+            });
+        } finally {
+            setActionLoading(false);
+            setDeleteModal({ isOpen: false, orderId: null });
         }
+    };
+
+    // Check if order can be cancelled (only pending, processing, or confirmed)
+    const canCancelOrder = (status: string) => {
+        return ['pending', 'processing', 'confirmed'].includes(status);
+    };
+
+    // Check if order can be deleted (only after delivered or cancelled)
+    const canDeleteOrder = (status: string) => {
+        return ['delivered', 'cancelled'].includes(status);
     };
 
     const formatDate = (dateString: string) => {
@@ -259,8 +390,16 @@ export default function Orders() {
                                                         order.paymentStatus
                                                     )}`}
                                                 >
-                                                    {order.paymentStatus === 'paid' ? 'Paid' : order.paymentStatus}
+                                                    {order.paymentStatus === 'paid' ? 'Paid' :
+                                                        order.paymentStatus === 'refunded' ? 'Refunded' :
+                                                            order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
                                                 </span>
+                                                {/* Refund Status Badge */}
+                                                {getRefundStatusBadge(order.refundStatus) && (
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getRefundStatusBadge(order.refundStatus)?.color}`}>
+                                                        {getRefundStatusBadge(order.refundStatus)?.text}
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className="text-sm text-black/60">
                                                 Placed on {formatDate(order.createdAt)}
@@ -385,7 +524,7 @@ export default function Orders() {
                                                     <div className="flex justify-between">
                                                         <span className="text-sm text-black/60">Method</span>
                                                         <span className="text-sm font-medium text-black capitalize">
-                                                            {order.paymentMethod}
+                                                            {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod}
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between">
@@ -419,6 +558,53 @@ export default function Orders() {
                                                             </span>
                                                         </div>
                                                     </div>
+
+                                                    {/* Refund Information */}
+                                                    {order.refundStatus && order.refundStatus !== 'not_applicable' && (
+                                                        <div className="border-t border-amber-100 pt-3 mt-3">
+                                                            <h4 className="text-sm font-semibold text-black mb-2">Refund Information</h4>
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-sm text-black/60">Refund Status</span>
+                                                                    <span className={`text-sm font-medium capitalize ${order.refundStatus === 'completed' ? 'text-green-600' :
+                                                                            order.refundStatus === 'processing' ? 'text-amber-600' :
+                                                                                order.refundStatus === 'failed' ? 'text-red-600' :
+                                                                                    'text-blue-600'
+                                                                        }`}>
+                                                                        {order.refundStatus}
+                                                                    </span>
+                                                                </div>
+                                                                {order.refundAmount && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-sm text-black/60">Refund Amount</span>
+                                                                        <span className="text-sm font-medium text-green-600">₹{order.refundAmount.toFixed(2)}</span>
+                                                                    </div>
+                                                                )}
+                                                                {order.refundId && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-sm text-black/60">Refund ID</span>
+                                                                        <span className="text-sm font-mono text-black/70">{order.refundId.slice(0, 15)}...</span>
+                                                                    </div>
+                                                                )}
+                                                                {order.refundStatus === 'processing' && (
+                                                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                                                                        <p className="text-xs text-amber-800">
+                                                                            <Clock className="h-3 w-3 inline mr-1" />
+                                                                            Your refund is being processed. It will be credited to your original payment method within 5-7 working days.
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                                {order.refundStatus === 'completed' && (
+                                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
+                                                                        <p className="text-xs text-green-800">
+                                                                            <CheckCircle className="h-3 w-3 inline mr-1" />
+                                                                            Refund has been successfully credited to your account.
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -512,17 +698,45 @@ export default function Orders() {
                                                     Write a Review
                                                 </Button>
                                             )}
-                                            <Button
-                                                variant="outline"
-                                                className="border-red-200 hover:border-red-400 hover:bg-red-50 text-red-600"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteOrder(order._id);
-                                                }}
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete Order
-                                            </Button>
+
+                                            {/* Cancel Order - Only for pending/processing */}
+                                            {canCancelOrder(order.status) && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-600"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCancelModal({ isOpen: true, orderId: order._id });
+                                                    }}
+                                                >
+                                                    <Ban className="mr-2 h-4 w-4" />
+                                                    Cancel Order
+                                                </Button>
+                                            )}
+
+                                            {/* Delete Order - Only for delivered/cancelled */}
+                                            {canDeleteOrder(order.status) && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="border-red-200 hover:border-red-400 hover:bg-red-50 text-red-600"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeleteModal({ isOpen: true, orderId: order._id });
+                                                    }}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Remove from History
+                                                </Button>
+                                            )}
+
+                                            {/* Info text for shipped orders */}
+                                            {order.status === 'shipped' && (
+                                                <p className="text-xs text-blue-600 w-full mt-2 flex items-center gap-1">
+                                                    <Truck className="h-3 w-3" />
+                                                    Order is on the way! You can remove it from history after delivery.
+                                                </p>
+                                            )}
+
                                             <p className="text-xs text-black/40 w-full mt-2">
                                                 Last updated: {formatDateTime(order.updatedAt)}
                                             </p>
@@ -534,6 +748,44 @@ export default function Orders() {
                     </div>
                 )}
             </div>
+
+            {/* Cancel Order Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={cancelModal.isOpen}
+                onClose={() => setCancelModal({ isOpen: false, orderId: null })}
+                onConfirm={handleCancelOrder}
+                title="Cancel Order?"
+                message={
+                    cancelModal.orderId && orders.find(o => o._id === cancelModal.orderId)?.paymentMethod === 'razorpay' && orders.find(o => o._id === cancelModal.orderId)?.paymentStatus === 'paid'
+                        ? "Are you sure you want to cancel this order? A refund will be automatically initiated and processed within 5-7 working days to your original payment method."
+                        : "Are you sure you want to cancel this order? This action cannot be undone."
+                }
+                confirmText="Yes, Cancel Order"
+                cancelText="Keep Order"
+                type="warning"
+                loading={actionLoading}
+            />
+
+            {/* Delete Order Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, orderId: null })}
+                onConfirm={handleDeleteOrder}
+                title="Remove from History?"
+                message="This order will be removed from your order history. You won't be able to see it anymore, but the order record will be kept in our system."
+                confirmText="Yes, Remove"
+                cancelText="Keep in History"
+                type="danger"
+                loading={actionLoading}
+            />
+
+            {/* Toast Notification */}
+            <Toast
+                isOpen={toast.isOpen}
+                onClose={() => setToast({ ...toast, isOpen: false })}
+                message={toast.message}
+                type={toast.type}
+            />
         </div>
     );
 }

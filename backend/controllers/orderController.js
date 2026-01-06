@@ -1,6 +1,7 @@
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import { sendBillEmail, sendOrderReceivedEmail, sendOrderStatusEmail } from '../config/email.js';
+import { initiateRefund } from './paymentController.js';
 
 // Create new order (legacy - use payment controller for Razorpay)
 export const createOrder = async (req, res) => {
@@ -89,7 +90,10 @@ export const createOrder = async (req, res) => {
 // Get user's orders
 export const getUserOrders = async (req, res) => {
     try {
-        const orders = await Order.find({ userId: req.user.id })
+        const orders = await Order.find({
+            userId: req.user.id,
+            hiddenFromUser: { $ne: true }  // Exclude soft-deleted orders
+        })
             .populate('items.product')
             .sort({ createdAt: -1 });
         res.json(orders);
@@ -136,6 +140,8 @@ export const updateOrderStatus = async (req, res) => {
         const previousStatus = order.status;
         order.status = status;
 
+        let refundResult = null;
+
         // Handle stock restoration for cancelled orders
         if (status === 'cancelled' && previousStatus !== 'cancelled' && order.stockReserved) {
             // Restore stock
@@ -157,6 +163,11 @@ export const updateOrderStatus = async (req, res) => {
                 await product.save();
             }
             order.stockReserved = false;
+
+            // Initiate refund for Razorpay payments
+            if (order.paymentMethod === 'razorpay' && order.paymentStatus === 'paid') {
+                refundResult = await initiateRefund(order);
+            }
         }
 
         await order.save();
@@ -185,7 +196,13 @@ export const updateOrderStatus = async (req, res) => {
             }
         }
 
-        res.json(order);
+        // Include refund information in response
+        const response = {
+            ...order.toObject(),
+            refundInfo: refundResult
+        };
+
+        res.json(response);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -199,6 +216,115 @@ export const deleteOrder = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
         res.json({ message: 'Order deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Cancel order (User only - before shipped)
+export const cancelOrder = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Verify user owns this order
+        if (order.userId.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to cancel this order' });
+        }
+
+        // Can only cancel if status is pending or processing or confirmed
+        if (!['pending', 'processing', 'confirmed'].includes(order.status)) {
+            return res.status(400).json({
+                message: 'Order cannot be cancelled. Only pending, processing, or confirmed orders can be cancelled.'
+            });
+        }
+
+        const previousStatus = order.status;
+        order.status = 'cancelled';
+
+        let refundResult = null;
+
+        // Restore stock if it was reserved
+        if (order.stockReserved) {
+            for (const item of order.items) {
+                const product = await Product.findById(item.product);
+                if (!product) continue;
+
+                if (item.selectedColor && product.colors && product.colors.length > 0) {
+                    const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
+                    if (colorIndex !== -1) {
+                        product.colors[colorIndex].quantity += item.quantity;
+                    }
+                    const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                    product.inStock = totalColorStock > 0;
+                } else {
+                    product.stock += item.quantity;
+                    product.inStock = true;
+                }
+                await product.save();
+            }
+            order.stockReserved = false;
+        }
+
+        // Initiate refund for Razorpay payments
+        if (order.paymentMethod === 'razorpay' && order.paymentStatus === 'paid') {
+            refundResult = await initiateRefund(order);
+        }
+
+        await order.save();
+
+        // Send cancellation email
+        try {
+            await sendOrderStatusEmail(order.customerEmail, order.customerName, order, 'cancelled');
+        } catch (emailError) {
+            console.error('Failed to send cancellation email:', emailError);
+        }
+
+        // Build response message
+        let responseMessage = 'Order cancelled successfully';
+        if (refundResult && refundResult.success) {
+            responseMessage += '. Refund initiated and will be processed in 5-7 working days.';
+        }
+
+        res.json({
+            message: responseMessage,
+            order,
+            refundInfo: refundResult
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// User delete order (soft delete - hides from user but keeps in admin)
+export const userDeleteOrder = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Verify user owns this order
+        if (order.userId.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to delete this order' });
+        }
+
+        // Can only delete after delivery
+        if (order.status !== 'delivered' && order.status !== 'cancelled') {
+            return res.status(400).json({
+                message: 'Order can only be removed from your history after delivery or if cancelled.'
+            });
+        }
+
+        // Soft delete - mark as hidden from user but keep in system
+        order.hiddenFromUser = true;
+        await order.save();
+
+        res.json({ message: 'Order removed from your order history' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -5,9 +5,10 @@ import {
     handlePaymentFailure,
     getOrderByToken,
     razorpayWebhook,
-    createCODOrder
+    createCODOrder,
+    getRefundStatus
 } from '../controllers/paymentController.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authMiddleware } from '../middleware/auth.js';
 
 // Security imports
 import { paymentLimiter } from '../middleware/rateLimiter.js';
@@ -90,5 +91,12 @@ router.post('/cod',
     paymentLimiter,
     createCODOrder
 );
+
+/**
+ * @route   GET /api/payment/refund-status/:orderId
+ * @desc    Get refund status for an order
+ * @access  Private (Admin)
+ */
+router.get('/refund-status/:orderId', authMiddleware, getRefundStatus);
 
 export default router;

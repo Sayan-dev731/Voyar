@@ -328,7 +328,37 @@ export const razorpayWebhook = async (req, res) => {
                 const order = await Order.findOne({ razorpayPaymentId: refund.payment_id });
 
                 if (order) {
+                    order.refundStatus = 'processing';
+                    order.refundId = refund.id;
+                    order.refundAmount = refund.amount / 100; // Convert paise to rupees
+                    order.refundInitiatedAt = new Date();
+                    order.refundNotes = `Refund created. Razorpay Refund ID: ${refund.id}`;
+                    await order.save();
+                }
+                break;
+            }
+
+            case 'refund.processed': {
+                const refund = payload.refund.entity;
+                const order = await Order.findOne({ refundId: refund.id });
+
+                if (order) {
+                    order.refundStatus = 'completed';
+                    order.refundCompletedAt = new Date();
                     order.paymentStatus = 'refunded';
+                    order.refundNotes = `Refund completed successfully. Amount: ₹${refund.amount / 100}`;
+                    await order.save();
+                }
+                break;
+            }
+
+            case 'refund.failed': {
+                const refund = payload.refund.entity;
+                const order = await Order.findOne({ refundId: refund.id });
+
+                if (order) {
+                    order.refundStatus = 'failed';
+                    order.refundNotes = `Refund failed. Reason: ${refund.failure_reason || 'Unknown'}`;
                     await order.save();
                 }
                 break;
@@ -427,5 +457,130 @@ export const createCODOrder = async (req, res) => {
     } catch (error) {
         console.error('Error creating COD order:', error);
         res.status(500).json({ message: error.message || 'Failed to create order' });
+    }
+};
+
+// Initiate Razorpay refund
+export const initiateRefund = async (order) => {
+    try {
+        // Only process refund for razorpay payments that were paid
+        if (order.paymentMethod !== 'razorpay' || order.paymentStatus !== 'paid') {
+            return {
+                success: false,
+                message: 'Refund not applicable for this payment method or payment status'
+            };
+        }
+
+        // Check if refund already initiated
+        if (order.refundStatus === 'processing' || order.refundStatus === 'completed') {
+            return {
+                success: false,
+                message: 'Refund already initiated or completed'
+            };
+        }
+
+        if (!order.razorpayPaymentId) {
+            return {
+                success: false,
+                message: 'Payment ID not found for refund'
+            };
+        }
+
+        const razorpayInstance = getRazorpayInstance();
+
+        // Create refund with full amount (in paise)
+        const refundOptions = {
+            speed: 'normal', // normal speed refund (5-7 working days)
+            notes: {
+                orderId: order._id.toString(),
+                reason: 'Order cancelled',
+                customerEmail: order.customerEmail
+            }
+        };
+
+        const refund = await razorpayInstance.payments.refund(
+            order.razorpayPaymentId,
+            {
+                amount: Math.round(order.totalAmount * 100), // Amount in paise
+                ...refundOptions
+            }
+        );
+
+        // Update order with refund details
+        order.refundStatus = 'processing';
+        order.refundId = refund.id;
+        order.refundAmount = order.totalAmount;
+        order.refundInitiatedAt = new Date();
+        order.refundNotes = `Refund initiated. Expected to complete in 5-7 working days. Refund ID: ${refund.id}`;
+        await order.save();
+
+        return {
+            success: true,
+            refundId: refund.id,
+            message: 'Refund initiated successfully. It will be processed in 5-7 working days.'
+        };
+
+    } catch (error) {
+        console.error('Error initiating refund:', error);
+
+        // Update order with failure details
+        order.refundStatus = 'failed';
+        order.refundNotes = `Refund failed: ${error.message || 'Unknown error'}`;
+        await order.save();
+
+        return {
+            success: false,
+            message: error.message || 'Failed to initiate refund'
+        };
+    }
+};
+
+// Get refund status
+export const getRefundStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        if (!order.refundId) {
+            return res.json({
+                success: true,
+                refundStatus: order.refundStatus || 'not_applicable',
+                message: 'No refund initiated for this order'
+            });
+        }
+
+        // Fetch latest refund status from Razorpay
+        const razorpayInstance = getRazorpayInstance();
+        const refund = await razorpayInstance.refunds.fetch(order.refundId);
+
+        // Update order if refund status changed
+        if (refund.status === 'processed' && order.refundStatus !== 'completed') {
+            order.refundStatus = 'completed';
+            order.refundCompletedAt = new Date();
+            order.paymentStatus = 'refunded';
+            await order.save();
+        } else if (refund.status === 'failed' && order.refundStatus !== 'failed') {
+            order.refundStatus = 'failed';
+            await order.save();
+        }
+
+        res.json({
+            success: true,
+            refundStatus: order.refundStatus,
+            refundId: order.refundId,
+            refundAmount: order.refundAmount,
+            refundInitiatedAt: order.refundInitiatedAt,
+            refundCompletedAt: order.refundCompletedAt,
+            razorpayStatus: refund.status,
+            message: order.refundNotes
+        });
+
+    } catch (error) {
+        console.error('Error fetching refund status:', error);
+        res.status(500).json({ message: error.message || 'Failed to fetch refund status' });
     }
 };

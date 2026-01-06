@@ -217,7 +217,8 @@ export default function Checkout() {
             return;
         }
 
-        if (items.length === 0) {
+        // Don't redirect to cart if we're on success or processing step
+        if (items.length === 0 && step !== 'success' && step !== 'processing') {
             navigate('/cart');
             return;
         }
@@ -254,7 +255,7 @@ export default function Checkout() {
         };
 
         fetchAddresses();
-    }, [isAuthenticated, items, navigate, token, user]);
+    }, [isAuthenticated, items, navigate, token, user, step]);
 
     const handleAddAddress = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -536,7 +537,8 @@ export default function Checkout() {
     };
 
     // Redirect if not authenticated or cart is empty
-    if (!isAuthenticated || items.length === 0) {
+    // Don't render if not authenticated or if cart is empty AND not on success/processing step
+    if (!isAuthenticated || (items.length === 0 && step !== 'success' && step !== 'processing')) {
         return null;
     }
 
@@ -594,9 +596,9 @@ export default function Checkout() {
                     </div>
                 )}
 
-                <div className="grid lg:grid-cols-3 gap-8">
+                <div className={`grid ${step === 'success' ? 'grid-cols-1' : 'lg:grid-cols-3'} gap-8`}>
                     {/* Main Content */}
-                    <div className="lg:col-span-2">
+                    <div className={step === 'success' ? 'col-span-1' : 'lg:col-span-2'}>
                         {/* Address Step */}
                         {step === 'address' && (
                             <div className="space-y-6">
@@ -888,37 +890,128 @@ export default function Checkout() {
 
                         {/* Success Step */}
                         {step === 'success' && (
-                            <Card className="border-amber-200/60 rounded-2xl">
-                                <CardContent className="p-12 text-center">
-                                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <Check className="h-10 w-10 text-green-600" />
+                            <Card className="border-amber-200/60 rounded-2xl overflow-hidden relative min-h-[600px]">
+                                {/* Confetti Animation */}
+                                <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                                    {[...Array(50)].map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="confetti-piece absolute"
+                                            style={{
+                                                left: `${Math.random() * 100}%`,
+                                                top: `-10px`,
+                                                width: `${Math.random() * 10 + 5}px`,
+                                                height: `${Math.random() * 10 + 5}px`,
+                                                backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'][Math.floor(Math.random() * 7)],
+                                                borderRadius: Math.random() > 0.5 ? '50%' : '0',
+                                                animation: `confetti-fall ${Math.random() * 3 + 2}s linear ${Math.random() * 2}s infinite`,
+                                                transform: `rotate(${Math.random() * 360}deg)`,
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+
+                                <style>{`
+                                    @keyframes confetti-fall {
+                                        0% {
+                                            transform: translateY(0) rotate(0deg);
+                                            opacity: 1;
+                                        }
+                                        100% {
+                                            transform: translateY(100vh) rotate(720deg);
+                                            opacity: 0;
+                                        }
+                                    }
+                                    @keyframes pulse-glow {
+                                        0%, 100% {
+                                            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+                                        }
+                                        50% {
+                                            box-shadow: 0 0 40px rgba(34, 197, 94, 0.6);
+                                        }
+                                    }
+                                    @keyframes bounce-in {
+                                        0% {
+                                            transform: scale(0);
+                                            opacity: 0;
+                                        }
+                                        50% {
+                                            transform: scale(1.2);
+                                        }
+                                        100% {
+                                            transform: scale(1);
+                                            opacity: 1;
+                                        }
+                                    }
+                                    @keyframes slide-up {
+                                        0% {
+                                            transform: translateY(30px);
+                                            opacity: 0;
+                                        }
+                                        100% {
+                                            transform: translateY(0);
+                                            opacity: 1;
+                                        }
+                                    }
+                                `}</style>
+
+                                <CardContent className="p-12 text-center relative z-10 bg-white">
+                                    {/* Main Success Icon with Animation */}
+                                    <div
+                                        className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl"
+                                        style={{ animation: 'bounce-in 0.6s ease-out, pulse-glow 2s ease-in-out infinite' }}
+                                    >
+                                        <CheckCircle2 className="h-12 w-12 text-white" />
                                     </div>
 
-                                    {/* Payment Success Banner */}
-                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6 mb-6 shadow-lg">
-                                        <div className="flex items-center justify-center gap-3 mb-2">
-                                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                                                <Check className="h-7 w-7 text-white" />
+                                    {/* Payment Success Banner with Animation */}
+                                    <div
+                                        className="bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 border-2 border-green-300 rounded-2xl p-8 mb-8 shadow-lg"
+                                        style={{ animation: 'slide-up 0.5s ease-out 0.3s backwards' }}
+                                    >
+                                        <div className="flex flex-col items-center justify-center gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <PartyPopper className="h-8 w-8 text-amber-500" />
+                                                <span className="text-4xl">🎉</span>
+                                                <PartyPopper className="h-8 w-8 text-amber-500 transform scale-x-[-1]" />
                                             </div>
-                                            <div>
-                                                <p className="text-green-800 font-bold text-2xl">Payment Successful!</p>
-                                                <p className="text-green-600 text-sm">Your payment has been processed successfully</p>
+                                            <div className="text-center">
+                                                <p className="text-green-800 font-bold text-3xl mb-2">Payment Successful!</p>
+                                                <p className="text-green-600 text-lg">Your payment has been processed successfully</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full">
+                                                <Shield className="h-5 w-5 text-green-600" />
+                                                <span className="text-green-700 font-medium text-sm">Secured by Razorpay</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <h2 className="text-3xl font-[600] text-black mb-2">Order Placed Successfully! 🎉</h2>
-                                    <p className="text-black/60 mb-6">
+                                    <h2
+                                        className="text-3xl font-[600] text-black mb-2"
+                                        style={{ animation: 'slide-up 0.5s ease-out 0.5s backwards' }}
+                                    >
+                                        Order Placed Successfully! 🎉
+                                    </h2>
+                                    <p
+                                        className="text-black/60 mb-6"
+                                        style={{ animation: 'slide-up 0.5s ease-out 0.6s backwards' }}
+                                    >
                                         Thank you for your purchase. Your order has been confirmed and placed successfully.
                                     </p>
                                     {orderId && (
-                                        <p className="text-sm text-black/50 mb-6">
-                                            Order ID: <span className="font-mono text-amber-600">{orderId}</span>
+                                        <p
+                                            className="text-sm text-black/50 mb-6"
+                                            style={{ animation: 'slide-up 0.5s ease-out 0.7s backwards' }}
+                                        >
+                                            Order ID: <span className="font-mono text-amber-600 bg-amber-50 px-2 py-1 rounded">{orderId}</span>
                                         </p>
                                     )}
 
                                     {/* What happens next */}
-                                    <div className="bg-amber-50 rounded-xl p-6 mb-6 text-left">
+                                    <div
+                                        className="bg-amber-50 rounded-xl p-6 mb-6 text-left"
+                                        style={{ animation: 'slide-up 0.5s ease-out 0.8s backwards' }}
+                                    >
                                         <h3 className="text-lg font-semibold text-black mb-4">What happens next?</h3>
                                         <div className="space-y-4">
                                             <div className="flex items-start gap-3">
@@ -951,19 +1044,22 @@ export default function Checkout() {
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                    <div
+                                        className="flex flex-col sm:flex-row gap-4 justify-center"
+                                        style={{ animation: 'slide-up 0.5s ease-out 0.9s backwards' }}
+                                    >
                                         <Button
                                             onClick={() => navigate('/orders')}
-                                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-lg"
+                                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-lg text-lg px-8 py-6"
                                             size="lg"
                                         >
-                                            <Package className="mr-2 h-5 w-5" />
-                                            View My Orders
+                                            <ShoppingBag className="mr-2 h-6 w-6" />
+                                            Go to My Orders
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => navigate('/')}
-                                            className="border-amber-300 hover:border-amber-500 hover:bg-amber-50"
+                                            className="border-amber-300 hover:border-amber-500 hover:bg-amber-50 text-lg px-8 py-6"
                                             size="lg"
                                         >
                                             Continue Shopping

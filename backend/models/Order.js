@@ -55,7 +55,7 @@ const orderSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['card', 'paypal', 'cash', 'demo', 'razorpay'],
+        enum: ['card', 'paypal', 'cash', 'demo', 'razorpay', 'cod'],
         default: 'razorpay'
     },
     paymentStatus: {
@@ -74,6 +74,27 @@ const orderSchema = new mongoose.Schema({
         type: String
     },
     razorpaySignature: {
+        type: String
+    },
+    // Refund tracking fields
+    refundStatus: {
+        type: String,
+        enum: ['not_applicable', 'pending', 'processing', 'completed', 'failed'],
+        default: 'not_applicable'
+    },
+    refundId: {
+        type: String
+    },
+    refundAmount: {
+        type: Number
+    },
+    refundInitiatedAt: {
+        type: Date
+    },
+    refundCompletedAt: {
+        type: Date
+    },
+    refundNotes: {
         type: String
     },
     // Payment token for accessing order via link (valid for limited time)
@@ -104,6 +125,11 @@ const orderSchema = new mongoose.Schema({
         orderDelivered: { type: Boolean, default: false },
         orderCancelled: { type: Boolean, default: false },
         billGenerated: { type: Boolean, default: false }
+    },
+    // Soft delete for user - order hidden from user but visible to admin
+    hiddenFromUser: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

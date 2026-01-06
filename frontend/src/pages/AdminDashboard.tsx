@@ -75,6 +75,12 @@ interface Order {
     paymentStatus?: string
     paymentMethod?: string
     paymentId?: string
+    refundStatus?: 'not_applicable' | 'pending' | 'processing' | 'completed' | 'failed'
+    refundId?: string
+    refundAmount?: number
+    refundInitiatedAt?: string
+    refundCompletedAt?: string
+    refundNotes?: string
     shippingAddress?: {
         name: string
         phone: string
@@ -238,6 +244,10 @@ export const AdminDashboard = () => {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false)
 
+    // Order status update loading state
+    const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null)
+    const [showStatusModal, setShowStatusModal] = useState<{ isOpen: boolean; orderId: string; newStatus: string; currentStatus: string } | null>(null)
+
     // Search and filter state for Products
     const [productSearch, setProductSearch] = useState('')
     const [productCategoryFilter, setProductCategoryFilter] = useState<string>('all')
@@ -395,14 +405,14 @@ export const AdminDashboard = () => {
                 const data = await res.json()
                 setSiteSettings(data.settings)
                 setShowEditSettings(false)
-                alert('Settings updated successfully!')
+                showToast('Settings updated successfully!', 'success')
             } else {
                 const error = await res.json()
-                alert(error.message || 'Failed to update settings')
+                showToast(error.message || 'Failed to update settings', 'error')
             }
         } catch (error) {
             console.error('Error updating settings:', error)
-            alert('Error updating settings')
+            showToast('Error updating settings', 'error')
         }
     }
 
@@ -433,8 +443,24 @@ export const AdminDashboard = () => {
         })
     }
 
-    const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    const handleUpdateOrderStatus = async (orderId: string, newStatus: string, skipConfirmation = false) => {
         const token = localStorage.getItem('adminToken')
+
+        // Get the current order to check for cancellation warning
+        const currentOrder = orders.find(o => o._id === orderId)
+
+        // If changing to cancelled and it's a razorpay paid order, show confirmation first
+        if (!skipConfirmation && newStatus === 'cancelled' && currentOrder?.paymentMethod === 'razorpay' && currentOrder?.paymentStatus === 'paid') {
+            setShowStatusModal({
+                isOpen: true,
+                orderId,
+                newStatus,
+                currentStatus: currentOrder.status
+            })
+            return
+        }
+
+        setStatusUpdateLoading(orderId)
         try {
             const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
                 method: 'PUT',
@@ -444,39 +470,52 @@ export const AdminDashboard = () => {
                 },
                 body: JSON.stringify({ status: newStatus })
             })
+
+            const data = await response.json()
+
             if (response.ok) {
-                showToast('Order status updated successfully!', 'success')
+                // Check if refund was initiated
+                if (data.refundInfo?.success) {
+                    showToast('Order cancelled and refund initiated! It will be processed in 5-7 working days.', 'success')
+                } else if (newStatus === 'cancelled' && data.refundInfo && !data.refundInfo.success) {
+                    showToast(`Order cancelled. ${data.refundInfo.message || 'Refund could not be processed.'}`, 'warning')
+                } else {
+                    showToast('Order status updated successfully!', 'success')
+                }
                 fetchData()
             } else {
-                showToast('Failed to update order status', 'error')
+                showToast(data.message || 'Failed to update order status', 'error')
             }
         } catch (error) {
             console.error('Error updating order:', error)
             showToast('Error updating order status', 'error')
+        } finally {
+            setStatusUpdateLoading(null)
+            setShowStatusModal(null)
         }
     }
 
     const handleDeleteOrder = async (orderId: string) => {
-        if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) return
+        showConfirm('Are you sure you want to delete this order? This action cannot be undone.', async () => {
+            const token = localStorage.getItem('adminToken')
+            try {
+                const response = await fetch(`${API_URL}/orders/${orderId}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` }
+                })
 
-        const token = localStorage.getItem('adminToken')
-        try {
-            const response = await fetch(`${API_URL}/orders/${orderId}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            })
-
-            if (response.ok) {
-                showToast('Order deleted successfully!', 'success')
-                fetchData()
-            } else {
-                const data = await response.json()
-                showToast(data.message || 'Failed to delete order', 'error')
+                if (response.ok) {
+                    showToast('Order deleted successfully!', 'success')
+                    fetchData()
+                } else {
+                    const data = await response.json()
+                    showToast(data.message || 'Failed to delete order', 'error')
+                }
+            } catch (error) {
+                console.error('Error deleting order:', error)
+                showToast('Error deleting order', 'error')
             }
-        } catch (error) {
-            console.error('Error deleting order:', error)
-            showToast('Error deleting order', 'error')
-        }
+        })
     }
 
     const handleGenerateBill = async (orderId: string) => {
@@ -1302,10 +1341,21 @@ export const AdminDashboard = () => {
                                                         </span>
                                                         <span className={`px-3 py-1 rounded-full text-xs font-[600] ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
                                                             order.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' :
-                                                                'bg-yellow-100 text-yellow-700'
+                                                                order.paymentStatus === 'refunded' ? 'bg-blue-100 text-blue-700' :
+                                                                    'bg-yellow-100 text-yellow-700'
                                                             }`}>
                                                             {(order.paymentStatus || 'pending').toUpperCase()}
                                                         </span>
+                                                        {/* Refund Status Badge */}
+                                                        {order.refundStatus && order.refundStatus !== 'not_applicable' && (
+                                                            <span className={`px-3 py-1 rounded-full text-xs font-[600] ${order.refundStatus === 'completed' ? 'bg-green-100 text-green-700' :
+                                                                    order.refundStatus === 'processing' ? 'bg-amber-100 text-amber-700' :
+                                                                        order.refundStatus === 'failed' ? 'bg-red-100 text-red-700' :
+                                                                            'bg-blue-100 text-blue-700'
+                                                                }`}>
+                                                                REFUND: {order.refundStatus.toUpperCase()}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-4 text-sm text-black/70">
                                                         <span className="flex items-center gap-1">
@@ -1331,17 +1381,25 @@ export const AdminDashboard = () => {
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    <select
-                                                        value={order.status}
-                                                        onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
-                                                        className="px-4 py-2 border-2 border-amber-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
-                                                    >
-                                                        <option value="pending">Pending</option>
-                                                        <option value="processing">Processing</option>
-                                                        <option value="shipped">Shipped</option>
-                                                        <option value="delivered">Delivered</option>
-                                                        <option value="cancelled">Cancelled</option>
-                                                    </select>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={order.status}
+                                                            onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
+                                                            disabled={statusUpdateLoading === order._id}
+                                                            className={`px-4 py-2 border-2 border-amber-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white w-full ${statusUpdateLoading === order._id ? 'opacity-50 cursor-wait' : ''}`}
+                                                        >
+                                                            <option value="pending">Pending</option>
+                                                            <option value="processing">Processing</option>
+                                                            <option value="shipped">Shipped</option>
+                                                            <option value="delivered">Delivered</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                        </select>
+                                                        {statusUpdateLoading === order._id && (
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                                                                <div className="animate-spin h-5 w-5 border-2 border-amber-500 border-t-transparent rounded-full"></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div className="flex gap-2">
                                                         <Button
                                                             size="sm"
@@ -2658,7 +2716,8 @@ export const AdminDashboard = () => {
                                     <p className="text-sm text-black/60 mb-1">Payment Status</p>
                                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-[600] ${selectedOrder.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
                                         selectedOrder.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' :
-                                            'bg-yellow-100 text-yellow-700'
+                                            selectedOrder.paymentStatus === 'refunded' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-yellow-100 text-yellow-700'
                                         }`}>
                                         {(selectedOrder.paymentStatus || 'pending').toUpperCase()}
                                     </span>
@@ -2872,9 +2931,125 @@ export const AdminDashboard = () => {
                                         <span className="text-3xl font-[700] text-green-600">₹{selectedOrder.totalAmount.toFixed(2)}</span>
                                     </div>
                                 </div>
+
+                                {/* Refund Information Section */}
+                                {selectedOrder.refundStatus && selectedOrder.refundStatus !== 'not_applicable' && (
+                                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                                        <h4 className="font-[600] text-black mb-3 flex items-center gap-2">
+                                            <RefreshCw className="h-4 w-4 text-blue-600" />
+                                            Refund Details
+                                        </h4>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-black/60">Refund Status:</span>
+                                                <span className={`font-[600] px-2 py-0.5 rounded-full text-sm ${selectedOrder.refundStatus === 'completed' ? 'bg-green-100 text-green-700' :
+                                                        selectedOrder.refundStatus === 'processing' ? 'bg-amber-100 text-amber-700' :
+                                                            selectedOrder.refundStatus === 'failed' ? 'bg-red-100 text-red-700' :
+                                                                'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {selectedOrder.refundStatus.charAt(0).toUpperCase() + selectedOrder.refundStatus.slice(1)}
+                                                </span>
+                                            </div>
+                                            {selectedOrder.refundAmount && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-black/60">Refund Amount:</span>
+                                                    <span className="font-[600] text-green-600">₹{selectedOrder.refundAmount.toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                            {selectedOrder.refundId && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-black/60">Refund ID:</span>
+                                                    <span className="font-mono text-xs text-black/70">{selectedOrder.refundId}</span>
+                                                </div>
+                                            )}
+                                            {selectedOrder.refundInitiatedAt && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-black/60">Initiated:</span>
+                                                    <span className="text-sm text-black/70">
+                                                        {new Date(selectedOrder.refundInitiatedAt).toLocaleDateString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedOrder.refundCompletedAt && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-black/60">Completed:</span>
+                                                    <span className="text-sm text-black/70">
+                                                        {new Date(selectedOrder.refundCompletedAt).toLocaleDateString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'short',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {selectedOrder.refundNotes && (
+                                                <div className="mt-2 pt-2 border-t border-blue-200">
+                                                    <p className="text-xs text-black/60">{selectedOrder.refundNotes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
+                </div>
+            )}
+
+            {/* Status Update Confirmation Modal */}
+            {showStatusModal?.isOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl transform transition-all">
+                        <div className="p-6">
+                            <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+                                <AlertCircle className="h-8 w-8 text-red-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-center text-black mb-2">Cancel Order & Initiate Refund?</h3>
+                            <p className="text-black/70 text-center mb-4">
+                                This order was paid via Razorpay. Cancelling it will automatically initiate a refund to the customer's original payment method.
+                            </p>
+                            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-6">
+                                <div className="flex items-center gap-2 text-amber-800 mb-2">
+                                    <Clock className="h-5 w-5" />
+                                    <span className="font-semibold">Refund Timeline</span>
+                                </div>
+                                <p className="text-sm text-amber-700">
+                                    The refund will be processed within <strong>5-7 working days</strong> and credited back to the customer's account.
+                                </p>
+                            </div>
+                            <div className="flex gap-3">
+                                <Button
+                                    onClick={() => setShowStatusModal(null)}
+                                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-black"
+                                    disabled={statusUpdateLoading !== null}
+                                >
+                                    Keep Order
+                                </Button>
+                                <Button
+                                    onClick={() => showStatusModal && handleUpdateOrderStatus(showStatusModal.orderId, showStatusModal.newStatus, true)}
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                    disabled={statusUpdateLoading !== null}
+                                >
+                                    {statusUpdateLoading ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                            Processing...
+                                        </div>
+                                    ) : (
+                                        'Cancel & Refund'
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
