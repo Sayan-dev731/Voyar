@@ -130,6 +130,90 @@ const orderSchema = new mongoose.Schema({
     hiddenFromUser: {
         type: Boolean,
         default: false
+    },
+    // Shiprocket shipment tracking fields
+    shiprocket: {
+        orderId: {
+            type: Number,
+            index: true
+        },
+        shipmentId: {
+            type: Number,
+            index: true
+        },
+        awbCode: {
+            type: String,
+            index: true
+        },
+        courierCompanyId: {
+            type: Number
+        },
+        courierName: {
+            type: String
+        },
+        pickupScheduledDate: {
+            type: Date
+        },
+        pickupTokenNumber: {
+            type: String
+        },
+        labelUrl: {
+            type: String
+        },
+        manifestUrl: {
+            type: String
+        },
+        invoiceUrl: {
+            type: String
+        },
+        // Current shipment status
+        shipmentStatus: {
+            type: String,
+            enum: [
+                'not_created',
+                'awb_assigned',
+                'label_generated',
+                'pickup_scheduled',
+                'pickup_queued',
+                'manifest_generated',
+                'picked_up',
+                'shipped',
+                'in_transit',
+                'out_for_delivery',
+                'delivered',
+                'rto_initiated',
+                'rto_delivered',
+                'cancelled',
+                'undelivered',
+                'lost',
+                'damaged'
+            ],
+            default: 'not_created'
+        },
+        shipmentStatusId: {
+            type: Number
+        },
+        estimatedDeliveryDate: {
+            type: Date
+        },
+        // Tracking history
+        trackingHistory: [{
+            date: Date,
+            status: String,
+            statusCode: String,
+            activity: String,
+            location: String,
+            srStatus: String,
+            srStatusLabel: String
+        }],
+        // Last tracking update
+        lastTrackedAt: {
+            type: Date
+        },
+        // Webhook data
+        lastWebhookUpdate: {
+            type: Date
+        }
     }
 }, {
     timestamps: true
@@ -138,6 +222,10 @@ const orderSchema = new mongoose.Schema({
 // Index for payment token lookups
 orderSchema.index({ paymentToken: 1 });
 orderSchema.index({ razorpayOrderId: 1 });
+// Index for Shiprocket lookups
+orderSchema.index({ 'shiprocket.orderId': 1 });
+orderSchema.index({ 'shiprocket.awbCode': 1 });
+orderSchema.index({ 'shiprocket.shipmentId': 1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

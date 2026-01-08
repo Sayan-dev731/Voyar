@@ -9,6 +9,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import shiprocketRoutes from './routes/shiprocketRoutes.js';
 
 // Security imports
 import { validateEnvironment } from './config/security.js';
@@ -132,6 +133,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/shiprocket', shiprocketRoutes);
 
 // Health check route (no rate limiting)
 app.get('/api/health', (req, res) => {

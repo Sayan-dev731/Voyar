@@ -20,6 +20,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/config/api';
 import { ConfirmationModal, Toast } from '@/components/ui/ConfirmationModal';
+import ShipmentTracker from '@/components/ShipmentTracker';
+
+interface TrackingActivity {
+    date: string;
+    status: string;
+    statusCode: string;
+    activity: string;
+    location: string;
+}
+
+interface ShiprocketData {
+    orderId?: number;
+    shipmentId?: number;
+    awbCode?: string;
+    courierName?: string;
+    shipmentStatus?: string;
+    estimatedDeliveryDate?: string;
+    trackingHistory?: TrackingActivity[];
+    lastTrackedAt?: string;
+}
 
 interface OrderItem {
     product: string;
@@ -43,6 +63,7 @@ interface Order {
     refundAmount?: number;
     refundInitiatedAt?: string;
     refundNotes?: string;
+    shiprocket?: ShiprocketData;
     shippingAddress: {
         name: string;
         phone: string;
@@ -567,9 +588,9 @@ export default function Orders() {
                                                                 <div className="flex justify-between">
                                                                     <span className="text-sm text-black/60">Refund Status</span>
                                                                     <span className={`text-sm font-medium capitalize ${order.refundStatus === 'completed' ? 'text-green-600' :
-                                                                            order.refundStatus === 'processing' ? 'text-amber-600' :
-                                                                                order.refundStatus === 'failed' ? 'text-red-600' :
-                                                                                    'text-blue-600'
+                                                                        order.refundStatus === 'processing' ? 'text-amber-600' :
+                                                                            order.refundStatus === 'failed' ? 'text-red-600' :
+                                                                                'text-blue-600'
                                                                         }`}>
                                                                         {order.refundStatus}
                                                                     </span>
@@ -680,6 +701,18 @@ export default function Orders() {
                                                 )}
                                             </div>
                                         </div>
+
+                                        {/* Shipment Tracking - Show for shipped/delivered orders or if shiprocket data exists */}
+                                        {(order.status === 'shipped' || order.status === 'delivered' || order.shiprocket?.awbCode) && order.status !== 'cancelled' && (
+                                            <div className="p-4 sm:p-6 border-t border-amber-200/60">
+                                                <ShipmentTracker
+                                                    orderId={order._id}
+                                                    token={token || ''}
+                                                    initialShiprocket={order.shiprocket}
+                                                    orderStatus={order.status}
+                                                />
+                                            </div>
+                                        )}
 
                                         {/* Order Actions */}
                                         <div className="p-4 sm:p-6 border-t border-amber-200/60 flex flex-wrap gap-3">

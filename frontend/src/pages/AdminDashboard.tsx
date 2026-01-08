@@ -32,12 +32,65 @@ import {
     Save,
     Search,
     Filter,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Truck,
+    Navigation,
+    FileText,
+    Send,
+    ExternalLink
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Product } from '@/types/product'
 import { API_URL } from '@/config/api'
+
+interface ShiprocketData {
+    orderId?: number
+    shipmentId?: number
+    awbCode?: string
+    courierCompanyId?: number
+    courierName?: string
+    pickupScheduledDate?: string
+    pickupTokenNumber?: string
+    labelUrl?: string
+    manifestUrl?: string
+    invoiceUrl?: string
+    shipmentStatus?: string
+    shipmentStatusId?: number
+    estimatedDeliveryDate?: string
+    trackingHistory?: Array<{
+        date: string
+        status: string
+        statusCode: string
+        activity: string
+        location: string
+    }>
+    lastTrackedAt?: string
+    lastWebhookUpdate?: string
+}
+
+interface TrackingActivity {
+    date: string
+    status?: string
+    statusCode?: string
+    activity?: string
+    location?: string
+    'sr-status-label'?: string
+}
+
+interface TrackingDataResponse {
+    tracking: {
+        currentStatus?: string
+        awbCode?: string
+        courierName?: string
+        estimatedDelivery?: string
+        pickupDate?: string
+        trackUrl?: string
+        activities?: TrackingActivity[]
+    }
+    shiprocket?: ShiprocketData
+    message?: string
+}
 
 interface Order {
     _id: string
@@ -90,6 +143,7 @@ interface Order {
         zipCode: string
         country: string
     }
+    shiprocket?: ShiprocketData
     createdAt: string
 }
 
@@ -262,6 +316,12 @@ export const AdminDashboard = () => {
     // Search and filter state for Users
     const [userSearch, setUserSearch] = useState('')
     const [userVerificationFilter, setUserVerificationFilter] = useState<string>('all')
+
+    // Shiprocket shipment management state
+    const [shipmentLoading, setShipmentLoading] = useState<string | null>(null)
+    const [showTrackingModal, setShowTrackingModal] = useState<{ isOpen: boolean; order: Order | null }>({ isOpen: false, order: null })
+    const [trackingData, setTrackingData] = useState<TrackingDataResponse | null>(null)
+    const [trackingLoading, setTrackingLoading] = useState(false)
 
     // Filtered data
     const filteredProducts = products.filter(product => {
@@ -539,6 +599,162 @@ export const AdminDashboard = () => {
             showToast('Error generating bill', 'error')
         }
     }
+
+    // ==================== Shiprocket Shipment Management ====================
+
+    // Quick Ship - Create shipment, assign courier, and schedule pickup in one click
+    const handleQuickShip = async (orderId: string) => {
+        const token = localStorage.getItem('adminToken')
+        setShipmentLoading(orderId)
+        try {
+            showToast('Creating shipment...', 'success')
+            const response = await fetch(`${API_URL}/shiprocket/orders/${orderId}/quick-ship`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                showToast(`Shipment created! AWB: ${data.shiprocket?.awbCode || 'Pending'}`, 'success')
+                fetchData() // Refresh orders to get updated shiprocket data
+            } else {
+                showToast(data.message || 'Failed to create shipment', 'error')
+            }
+        } catch (error) {
+            console.error('Error creating shipment:', error)
+            showToast('Error creating shipment', 'error')
+        } finally {
+            setShipmentLoading(null)
+        }
+    }
+
+    // Create Shipment Only
+    const handleCreateShipment = async (orderId: string) => {
+        const token = localStorage.getItem('adminToken')
+        setShipmentLoading(orderId)
+        try {
+            const response = await fetch(`${API_URL}/shiprocket/orders/${orderId}/create-shipment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                showToast('Shipment created in Shiprocket!', 'success')
+                fetchData()
+            } else {
+                showToast(data.message || 'Failed to create shipment', 'error')
+            }
+        } catch (error) {
+            console.error('Error creating shipment:', error)
+            showToast('Error creating shipment', 'error')
+        } finally {
+            setShipmentLoading(null)
+        }
+    }
+
+    // Generate Shipping Label
+    const handleGenerateLabel = async (orderId: string) => {
+        const token = localStorage.getItem('adminToken')
+        setShipmentLoading(orderId)
+        try {
+            const response = await fetch(`${API_URL}/shiprocket/orders/${orderId}/generate-label`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` }
+            })
+
+            const data = await response.json()
+
+            if (response.ok && data.labelUrl) {
+                window.open(data.labelUrl, '_blank')
+                showToast('Label generated!', 'success')
+                fetchData()
+            } else {
+                showToast(data.message || 'Failed to generate label', 'error')
+            }
+        } catch (error) {
+            console.error('Error generating label:', error)
+            showToast('Error generating label', 'error')
+        } finally {
+            setShipmentLoading(null)
+        }
+    }
+
+    // View Tracking Details
+    const handleViewTracking = async (order: Order) => {
+        setShowTrackingModal({ isOpen: true, order })
+        setTrackingLoading(true)
+        setTrackingData(null)
+
+        const token = localStorage.getItem('adminToken')
+        try {
+            const response = await fetch(`${API_URL}/shiprocket/admin/track/${order._id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                setTrackingData(data)
+            } else {
+                showToast(data.message || 'Failed to fetch tracking', 'error')
+            }
+        } catch (error) {
+            console.error('Error fetching tracking:', error)
+            showToast('Error fetching tracking', 'error')
+        } finally {
+            setTrackingLoading(false)
+        }
+    }
+
+    // Cancel Shipment
+    const handleCancelShipment = async (orderId: string) => {
+        showConfirm('Are you sure you want to cancel this shipment?', async () => {
+            const token = localStorage.getItem('adminToken')
+            setShipmentLoading(orderId)
+            try {
+                const response = await fetch(`${API_URL}/shiprocket/orders/${orderId}/cancel-shipment`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+
+                const data = await response.json()
+
+                if (response.ok) {
+                    showToast('Shipment cancelled!', 'success')
+                    fetchData()
+                } else {
+                    showToast(data.message || 'Failed to cancel shipment', 'error')
+                }
+            } catch (error) {
+                console.error('Error cancelling shipment:', error)
+                showToast('Error cancelling shipment', 'error')
+            } finally {
+                setShipmentLoading(null)
+            }
+        })
+    }
+
+    // Get shipment status badge color
+    const getShipmentStatusColor = (status?: string) => {
+        if (!status || status === 'not_created') return 'bg-gray-100 text-gray-600'
+        if (status === 'delivered') return 'bg-green-100 text-green-700'
+        if (status === 'shipped' || status === 'in_transit' || status === 'out_for_delivery') return 'bg-blue-100 text-blue-700'
+        if (status === 'picked_up' || status === 'pickup_scheduled') return 'bg-purple-100 text-purple-700'
+        if (status === 'awb_assigned' || status === 'label_generated') return 'bg-amber-100 text-amber-700'
+        if (status === 'cancelled' || status === 'rto_initiated') return 'bg-red-100 text-red-700'
+        return 'bg-gray-100 text-gray-600'
+    }
+
+    // ==================== End Shiprocket Functions ====================
 
     // Refresh data
     const handleRefresh = () => {
@@ -1349,9 +1565,9 @@ export const AdminDashboard = () => {
                                                         {/* Refund Status Badge */}
                                                         {order.refundStatus && order.refundStatus !== 'not_applicable' && (
                                                             <span className={`px-3 py-1 rounded-full text-xs font-[600] ${order.refundStatus === 'completed' ? 'bg-green-100 text-green-700' :
-                                                                    order.refundStatus === 'processing' ? 'bg-amber-100 text-amber-700' :
-                                                                        order.refundStatus === 'failed' ? 'bg-red-100 text-red-700' :
-                                                                            'bg-blue-100 text-blue-700'
+                                                                order.refundStatus === 'processing' ? 'bg-amber-100 text-amber-700' :
+                                                                    order.refundStatus === 'failed' ? 'bg-red-100 text-red-700' :
+                                                                        'bg-blue-100 text-blue-700'
                                                                 }`}>
                                                                 REFUND: {order.refundStatus.toUpperCase()}
                                                             </span>
@@ -1530,6 +1746,141 @@ export const AdminDashboard = () => {
                                                 <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                                                     <p className="text-xs text-black/60 mb-1">Order ID</p>
                                                     <p className="font-mono text-xs text-black/80">{order._id}</p>
+                                                </div>
+
+                                                {/* Shiprocket Shipment Management */}
+                                                <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <Truck className="h-5 w-5 text-purple-600" />
+                                                        <h5 className="font-[600] text-black">Shipment</h5>
+                                                        {order.shiprocket?.shipmentStatus && (
+                                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getShipmentStatusColor(order.shiprocket.shipmentStatus)}`}>
+                                                                {order.shiprocket.shipmentStatus.replace(/_/g, ' ').toUpperCase()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {order.shiprocket?.awbCode ? (
+                                                        <div className="space-y-2 text-sm">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-black/60">AWB:</span>
+                                                                <span className="font-mono font-[600] text-black">{order.shiprocket.awbCode}</span>
+                                                            </div>
+                                                            {order.shiprocket.courierName && (
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-black/60">Courier:</span>
+                                                                    <span className="font-[600] text-black">{order.shiprocket.courierName}</span>
+                                                                </div>
+                                                            )}
+                                                            {order.shiprocket.estimatedDeliveryDate && (
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-black/60">ETA:</span>
+                                                                    <span className="text-black">
+                                                                        {new Date(order.shiprocket.estimatedDeliveryDate).toLocaleDateString('en-IN', {
+                                                                            day: 'numeric',
+                                                                            month: 'short'
+                                                                        })}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <div className="pt-2 border-t border-purple-200 flex flex-wrap gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={() => handleViewTracking(order)}
+                                                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                                                                    disabled={shipmentLoading === order._id}
+                                                                >
+                                                                    <Navigation className="mr-1 h-3 w-3" />
+                                                                    Track
+                                                                </Button>
+                                                                {order.shiprocket.labelUrl ? (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => window.open(order.shiprocket?.labelUrl, '_blank')}
+                                                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+                                                                    >
+                                                                        <FileText className="mr-1 h-3 w-3" />
+                                                                        Label
+                                                                    </Button>
+                                                                ) : (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => handleGenerateLabel(order._id)}
+                                                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+                                                                        disabled={shipmentLoading === order._id}
+                                                                    >
+                                                                        <FileText className="mr-1 h-3 w-3" />
+                                                                        Get Label
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                            {order.shiprocket.shipmentStatus !== 'delivered' && order.shiprocket.shipmentStatus !== 'cancelled' && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={() => handleCancelShipment(order._id)}
+                                                                    variant="outline"
+                                                                    className="w-full mt-1 border-red-200 text-red-600 hover:bg-red-50 text-xs"
+                                                                    disabled={shipmentLoading === order._id}
+                                                                >
+                                                                    <X className="mr-1 h-3 w-3" />
+                                                                    Cancel Shipment
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    ) : order.shiprocket?.orderId ? (
+                                                        <div className="space-y-2 text-sm">
+                                                            <p className="text-black/60 text-xs">Shiprocket order created. Assign courier to get AWB.</p>
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleQuickShip(order._id)}
+                                                                className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                                                                disabled={shipmentLoading === order._id}
+                                                            >
+                                                                {shipmentLoading === order._id ? (
+                                                                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                                                                ) : (
+                                                                    <Send className="mr-1 h-3 w-3" />
+                                                                )}
+                                                                Assign Courier
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-2">
+                                                            {['confirmed', 'processing'].includes(order.status) && order.status !== 'cancelled' ? (
+                                                                <>
+                                                                    <p className="text-black/60 text-xs">No shipment created yet</p>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => handleQuickShip(order._id)}
+                                                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                                                                        disabled={shipmentLoading === order._id}
+                                                                    >
+                                                                        {shipmentLoading === order._id ? (
+                                                                            <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                                                                        ) : (
+                                                                            <Truck className="mr-1 h-3 w-3" />
+                                                                        )}
+                                                                        Quick Ship
+                                                                    </Button>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => handleCreateShipment(order._id)}
+                                                                        variant="outline"
+                                                                        className="w-full border-purple-200 text-purple-600 hover:bg-purple-50 text-xs"
+                                                                        disabled={shipmentLoading === order._id}
+                                                                    >
+                                                                        Create Shipment Only
+                                                                    </Button>
+                                                                </>
+                                                            ) : (
+                                                                <p className="text-black/60 text-xs">
+                                                                    {order.status === 'pending' ? 'Confirm order to create shipment' :
+                                                                        order.status === 'cancelled' ? 'Order cancelled' :
+                                                                            order.status === 'delivered' ? 'Order delivered' : 'Cannot create shipment'}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -2943,9 +3294,9 @@ export const AdminDashboard = () => {
                                             <div className="flex justify-between">
                                                 <span className="text-black/60">Refund Status:</span>
                                                 <span className={`font-[600] px-2 py-0.5 rounded-full text-sm ${selectedOrder.refundStatus === 'completed' ? 'bg-green-100 text-green-700' :
-                                                        selectedOrder.refundStatus === 'processing' ? 'bg-amber-100 text-amber-700' :
-                                                            selectedOrder.refundStatus === 'failed' ? 'bg-red-100 text-red-700' :
-                                                                'bg-blue-100 text-blue-700'
+                                                    selectedOrder.refundStatus === 'processing' ? 'bg-amber-100 text-amber-700' :
+                                                        selectedOrder.refundStatus === 'failed' ? 'bg-red-100 text-red-700' :
+                                                            'bg-blue-100 text-blue-700'
                                                     }`}>
                                                     {selectedOrder.refundStatus.charAt(0).toUpperCase() + selectedOrder.refundStatus.slice(1)}
                                                 </span>
@@ -3001,6 +3352,169 @@ export const AdminDashboard = () => {
                             </div>
                         </CardContent>
                     </Card>
+                </div>
+            )}
+
+            {/* Shipment Tracking Modal */}
+            {showTrackingModal.isOpen && showTrackingModal.order && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-black">Shipment Tracking</h3>
+                                <p className="text-sm text-black/60 mt-1">
+                                    Order #{showTrackingModal.order._id.slice(-8).toUpperCase()}
+                                </p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowTrackingModal({ isOpen: false, order: null })}
+                            >
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {trackingLoading ? (
+                                <div className="text-center py-12">
+                                    <div className="animate-spin h-10 w-10 border-4 border-purple-200 border-t-purple-600 rounded-full mx-auto mb-4"></div>
+                                    <p className="text-black/60">Loading tracking information...</p>
+                                </div>
+                            ) : trackingData?.tracking ? (
+                                <div className="space-y-6">
+                                    {/* Current Status */}
+                                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <Truck className="h-5 w-5 text-purple-600" />
+                                                <span className="font-semibold text-black">Current Status</span>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getShipmentStatusColor(trackingData.shiprocket?.shipmentStatus)}`}>
+                                                {trackingData.tracking.currentStatus || 'Processing'}
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <span className="text-black/60">AWB Code:</span>
+                                                <p className="font-mono font-semibold">{trackingData.tracking.awbCode}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-black/60">Courier:</span>
+                                                <p className="font-semibold">{trackingData.tracking.courierName}</p>
+                                            </div>
+                                            {trackingData.tracking.estimatedDelivery && (
+                                                <div>
+                                                    <span className="text-black/60">Expected Delivery:</span>
+                                                    <p className="font-semibold">
+                                                        {new Date(trackingData.tracking.estimatedDelivery).toLocaleDateString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'long',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {trackingData.tracking.pickupDate && (
+                                                <div>
+                                                    <span className="text-black/60">Pickup Date:</span>
+                                                    <p className="font-semibold">
+                                                        {new Date(trackingData.tracking.pickupDate).toLocaleDateString('en-IN', {
+                                                            day: 'numeric',
+                                                            month: 'short'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {trackingData.tracking.trackUrl && (
+                                            <a
+                                                href={trackingData.tracking.trackUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 mt-3"
+                                            >
+                                                Track on courier website
+                                                <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                        )}
+                                    </div>
+
+                                    {/* Tracking Timeline */}
+                                    {trackingData.tracking.activities && trackingData.tracking.activities.length > 0 && (
+                                        <div>
+                                            <h4 className="font-semibold text-black mb-4">Tracking History</h4>
+                                            <div className="space-y-0 relative">
+                                                {trackingData.tracking.activities.slice(0, 15).map((activity: TrackingActivity, index: number) => (
+                                                    <div key={index} className="flex gap-3 pb-4 relative">
+                                                        {index < (trackingData.tracking.activities?.length ?? 0) - 1 && (
+                                                            <div className="absolute left-[9px] top-6 w-0.5 h-full bg-purple-200" />
+                                                        )}
+                                                        <div className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center z-10 ${index === 0 ? 'bg-purple-600' : 'bg-purple-200'
+                                                            }`}>
+                                                            {index === 0 ? (
+                                                                <div className="w-2 h-2 bg-white rounded-full" />
+                                                            ) : (
+                                                                <div className="w-2 h-2 bg-purple-400 rounded-full" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex flex-wrap justify-between gap-2">
+                                                                <p className={`font-medium text-sm ${index === 0 ? 'text-purple-700' : 'text-black'}`}>
+                                                                    {activity['sr-status-label'] || activity.status || activity.activity}
+                                                                </p>
+                                                                <span className="text-xs text-gray-500">
+                                                                    {new Date(activity.date).toLocaleDateString('en-IN', {
+                                                                        day: 'numeric',
+                                                                        month: 'short',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </span>
+                                                            </div>
+                                                            {activity.activity && (
+                                                                <p className="text-xs text-black/60 mt-0.5">{activity.activity}</p>
+                                                            )}
+                                                            {activity.location && (
+                                                                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                                                                    <MapPin className="h-3 w-3" />
+                                                                    <span>{activity.location}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <Truck className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                                    <p className="text-black/60 mb-2">No tracking information available</p>
+                                    <p className="text-sm text-black/40">
+                                        {trackingData?.message || 'Tracking updates will appear once the shipment is dispatched'}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => handleViewTracking(showTrackingModal.order!)}
+                                disabled={trackingLoading}
+                            >
+                                <RefreshCw className={`mr-2 h-4 w-4 ${trackingLoading ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </Button>
+                            <Button
+                                onClick={() => setShowTrackingModal({ isOpen: false, order: null })}
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
 
