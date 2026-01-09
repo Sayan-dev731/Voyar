@@ -297,6 +297,7 @@ export const AdminDashboard = () => {
     // Order details modal state
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false)
+    const [refreshingRefund, setRefreshingRefund] = useState(false)
 
     // Order status update loading state
     const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null)
@@ -597,6 +598,72 @@ export const AdminDashboard = () => {
         } catch (error) {
             console.error('Error generating bill:', error)
             showToast('Error generating bill', 'error')
+        }
+    }
+
+    // Refresh refund status for selected order
+    const refreshRefundStatus = async () => {
+        if (!selectedOrder?._id) return
+
+        setRefreshingRefund(true)
+        const token = localStorage.getItem('adminToken')
+
+        try {
+            // Use the dedicated refund-status endpoint that checks Razorpay
+            const response = await fetch(`${API_URL}/payment/refund-status/${selectedOrder._id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+
+                // Update selectedOrder with latest refund data
+                setSelectedOrder({
+                    ...selectedOrder,
+                    refundStatus: data.refundStatus,
+                    refundId: data.refundId,
+                    refundAmount: data.refundAmount,
+                    refundInitiatedAt: data.refundInitiatedAt,
+                    refundCompletedAt: data.refundCompletedAt,
+                    refundNotes: data.message || selectedOrder.refundNotes,
+                    paymentStatus: data.refundStatus === 'completed' ? 'refunded' : selectedOrder.paymentStatus
+                })
+
+                // Update orders list
+                setOrders(orders.map(order =>
+                    order._id === selectedOrder._id
+                        ? {
+                            ...order,
+                            refundStatus: data.refundStatus,
+                            refundId: data.refundId,
+                            refundAmount: data.refundAmount,
+                            refundInitiatedAt: data.refundInitiatedAt,
+                            refundCompletedAt: data.refundCompletedAt,
+                            refundNotes: data.message || order.refundNotes,
+                            paymentStatus: data.refundStatus === 'completed' ? 'refunded' : order.paymentStatus
+                        }
+                        : order
+                ))
+
+                // Show toast based on Razorpay status
+                if (data.refundStatus === 'completed') {
+                    showToast('Refund completed! Amount will be credited to customer\'s bank within 5-7 working days.', 'success')
+                } else if (data.refundStatus === 'processing') {
+                    showToast(`Refund is still processing. Razorpay Status: ${data.razorpayStatus || 'processing'}`, 'info')
+                } else if (data.refundStatus === 'failed') {
+                    showToast('Refund failed. Please check Razorpay dashboard.', 'error')
+                } else {
+                    showToast('Refund status updated', 'success')
+                }
+            } else {
+                const errorData = await response.json()
+                showToast(errorData.message || 'Failed to fetch refund status', 'error')
+            }
+        } catch (error) {
+            console.error('Failed to refresh refund status:', error)
+            showToast('Failed to refresh refund status. Check console.', 'error')
+        } finally {
+            setRefreshingRefund(false)
         }
     }
 
@@ -3286,10 +3353,25 @@ export const AdminDashboard = () => {
                                 {/* Refund Information Section */}
                                 {selectedOrder.refundStatus && selectedOrder.refundStatus !== 'not_applicable' && (
                                     <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-                                        <h4 className="font-[600] text-black mb-3 flex items-center gap-2">
-                                            <RefreshCw className="h-4 w-4 text-blue-600" />
-                                            Refund Details
-                                        </h4>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-[600] text-black flex items-center gap-2">
+                                                <RefreshCw className="h-4 w-4 text-blue-600" />
+                                                Refund Details
+                                            </h4>
+                                            {selectedOrder.refundStatus === 'processing' && (
+                                                <button
+                                                    onClick={refreshRefundStatus}
+                                                    disabled={refreshingRefund}
+                                                    className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded transition-colors disabled:opacity-50"
+                                                    title="Refresh refund status from Razorpay"
+                                                >
+                                                    <RefreshCw
+                                                        className={`h-3 w-3 ${refreshingRefund ? 'animate-spin' : ''}`}
+                                                    />
+                                                    {refreshingRefund ? 'Checking...' : 'Refresh Status'}
+                                                </button>
+                                            )}
+                                        </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between">
                                                 <span className="text-black/60">Refund Status:</span>

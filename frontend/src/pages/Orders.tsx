@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Package,
@@ -14,6 +14,7 @@ import {
     ShoppingBag,
     Trash2,
     Ban,
+    RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -162,6 +163,7 @@ export default function Orders() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+    const [refreshingRefund, setRefreshingRefund] = useState<string | null>(null);
 
     // Modal states
     const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; orderId: string | null }>({
@@ -180,6 +182,14 @@ export default function Orders() {
         message: '',
         type: 'success'
     });
+
+    // Use ref to track orders for polling without causing re-renders
+    const ordersRef = useRef<Order[]>([]);
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        ordersRef.current = orders;
+    }, [orders]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -204,10 +214,81 @@ export default function Orders() {
         };
 
         fetchOrders();
+
+        // Poll for refund status updates every 30 seconds for orders with processing refunds
+        const pollInterval = setInterval(() => {
+            const hasProcessingRefunds = ordersRef.current.some(
+                order => order.refundStatus === 'processing'
+            );
+            if (hasProcessingRefunds) {
+                fetchOrders();
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(pollInterval);
     }, [isAuthenticated, navigate, token]);
 
     const toggleOrderExpand = (orderId: string) => {
         setExpandedOrder(expandedOrder === orderId ? null : orderId);
+    };
+
+    // Refresh refund status for a specific order
+    const refreshRefundStatus = async (orderId: string) => {
+        setRefreshingRefund(orderId);
+        try {
+            // Use the dedicated refund-status endpoint that checks Razorpay
+            const response = await fetch(`${API_URL}/payment/refund-status/${orderId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (response.ok) {
+                // Update the specific order in state
+                setOrders(orders.map(order =>
+                    order._id === orderId
+                        ? {
+                            ...order,
+                            refundStatus: data.refundStatus,
+                            refundId: data.refundId,
+                            refundAmount: data.refundAmount,
+                            refundInitiatedAt: data.refundInitiatedAt,
+                            refundCompletedAt: data.refundCompletedAt,
+                            refundNotes: data.message,
+                            paymentStatus: data.refundStatus === 'completed' ? 'refunded' : order.paymentStatus
+                        }
+                        : order
+                ));
+
+                // Show toast if status changed
+                if (data.refundStatus === 'completed') {
+                    setToast({
+                        isOpen: true,
+                        message: 'Refund completed! The amount will be credited to your bank account within 5-7 working days.',
+                        type: 'success'
+                    });
+                } else if (data.refundStatus === 'processing') {
+                    setToast({
+                        isOpen: true,
+                        message: `Refund is still processing. Razorpay status: ${data.razorpayStatus || 'processing'}`,
+                        type: 'success'
+                    });
+                }
+            } else {
+                setToast({
+                    isOpen: true,
+                    message: data.message || 'Failed to fetch refund status',
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Failed to refresh refund status:', error);
+            setToast({
+                isOpen: true,
+                message: 'Failed to refresh refund status',
+                type: 'error'
+            });
+        } finally {
+            setRefreshingRefund(null);
+        }
     };
 
     // Cancel order handler
@@ -583,7 +664,22 @@ export default function Orders() {
                                                     {/* Refund Information */}
                                                     {order.refundStatus && order.refundStatus !== 'not_applicable' && (
                                                         <div className="border-t border-amber-100 pt-3 mt-3">
-                                                            <h4 className="text-sm font-semibold text-black mb-2">Refund Information</h4>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <h4 className="text-sm font-semibold text-black">Refund Information</h4>
+                                                                {order.refundStatus === 'processing' && (
+                                                                    <button
+                                                                        onClick={() => refreshRefundStatus(order._id)}
+                                                                        disabled={refreshingRefund === order._id}
+                                                                        className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 disabled:opacity-50"
+                                                                        title="Refresh refund status"
+                                                                    >
+                                                                        <RefreshCw
+                                                                            className={`h-3 w-3 ${refreshingRefund === order._id ? 'animate-spin' : ''}`}
+                                                                        />
+                                                                        Refresh
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                             <div className="space-y-2">
                                                                 <div className="flex justify-between">
                                                                     <span className="text-sm text-black/60">Refund Status</span>
@@ -619,7 +715,7 @@ export default function Orders() {
                                                                     <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
                                                                         <p className="text-xs text-green-800">
                                                                             <CheckCircle className="h-3 w-3 inline mr-1" />
-                                                                            Refund has been successfully credited to your account.
+                                                                            Refund has been successfully credited to your account. It will be reflected back to your original payment method within 5-7 working days.
                                                                         </p>
                                                                     </div>
                                                                 )}

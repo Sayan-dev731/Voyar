@@ -77,8 +77,13 @@ router.get('/order/:token', getOrderByToken);
  * @desc    Razorpay webhook endpoint
  * @access  Public (authenticated via Razorpay signature)
  * @note    Raw body parser needed for signature verification
+ *          DO NOT add any body parsing middleware before this
+ *          The signature must be verified against the raw request body
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), razorpayWebhook);
+router.post('/webhook',
+    express.raw({ type: 'application/json' }),
+    razorpayWebhook
+);
 
 /**
  * @route   POST /api/payment/cod

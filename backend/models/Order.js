@@ -131,6 +131,18 @@ const orderSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    // Razorpay webhook events tracking
+    webhookEvents: [{
+        event: String,
+        timestamp: Date,
+        paymentId: String,
+        refundId: String,
+        amount: Number,
+        errorCode: String,
+        errorDescription: String,
+        reason: String,
+        speed: String
+    }],
     // Shiprocket shipment tracking fields
     shiprocket: {
         orderId: {
