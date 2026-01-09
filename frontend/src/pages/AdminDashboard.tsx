@@ -1244,8 +1244,8 @@ export const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'overview'
-                                ? 'text-white shadow-lg'
-                                : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
+                            ? 'text-white shadow-lg'
+                            : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
                             }`}
                         style={{
                             fontFamily: 'DM Sans, sans-serif',
@@ -1261,8 +1261,8 @@ export const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('products')}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'products'
-                                ? 'text-white shadow-lg'
-                                : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
+                            ? 'text-white shadow-lg'
+                            : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
                             }`}
                         style={{
                             fontFamily: 'DM Sans, sans-serif',
@@ -1287,8 +1287,8 @@ export const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('orders')}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'orders'
-                                ? 'text-white shadow-lg'
-                                : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
+                            ? 'text-white shadow-lg'
+                            : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
                             }`}
                         style={{
                             fontFamily: 'DM Sans, sans-serif',
@@ -1313,8 +1313,8 @@ export const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'users'
-                                ? 'text-white shadow-lg'
-                                : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
+                            ? 'text-white shadow-lg'
+                            : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
                             }`}
                         style={{
                             fontFamily: 'DM Sans, sans-serif',
@@ -1339,8 +1339,8 @@ export const AdminDashboard = () => {
                     <button
                         onClick={() => setActiveTab('settings')}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${activeTab === 'settings'
-                                ? 'text-white shadow-lg'
-                                : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
+                            ? 'text-white shadow-lg'
+                            : 'text-[#525252] hover:text-[#0d0d0d] hover:bg-[#faf9f7]'
                             }`}
                         style={{
                             fontFamily: 'DM Sans, sans-serif',
@@ -1601,7 +1601,7 @@ export const AdminDashboard = () => {
                                         <line x1="0" y1="100" x2="800" y2="100" stroke="#f1f5f9" strokeWidth="1" />
                                         <line x1="0" y1="150" x2="800" y2="150" stroke="#f1f5f9" strokeWidth="1" />
                                         <line x1="0" y1="200" x2="800" y2="200" stroke="#f1f5f9" strokeWidth="1" />
-                                        
+
                                         {/* Area fill */}
                                         <path
                                             d="M0,180 L100,160 L200,140 L300,110 L400,90 L500,70 L600,55 L700,45 L800,30 L800,250 L0,250 Z"
