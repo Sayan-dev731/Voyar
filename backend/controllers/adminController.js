@@ -874,7 +874,7 @@ export const updateSiteSettings = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
-        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges, codEnabled } = req.body;
+        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges, codEnabled, pickupAddress } = req.body;
 
         let settings = await SiteSettings.findOne();
         if (!settings) {
@@ -887,6 +887,34 @@ export const updateSiteSettings = async (req, res) => {
         if (platformCharges !== undefined) settings.platformCharges = platformCharges;
         if (deliveryCharges !== undefined) settings.deliveryCharges = deliveryCharges;
         if (codEnabled !== undefined) settings.codEnabled = codEnabled;
+
+        // Update pickup address if provided
+        if (pickupAddress) {
+            settings.pickupAddress = {
+                pickupLocationName: pickupAddress.pickupLocationName || settings.pickupAddress?.pickupLocationName || 'Primary',
+                name: pickupAddress.name || settings.pickupAddress?.name || '',
+                email: pickupAddress.email || settings.pickupAddress?.email || '',
+                phone: pickupAddress.phone || settings.pickupAddress?.phone || '',
+                address: pickupAddress.address || settings.pickupAddress?.address || '',
+                address2: pickupAddress.address2 || settings.pickupAddress?.address2 || '',
+                city: pickupAddress.city || settings.pickupAddress?.city || '',
+                state: pickupAddress.state || settings.pickupAddress?.state || '',
+                country: pickupAddress.country || settings.pickupAddress?.country || 'India',
+                pincode: pickupAddress.pincode || settings.pickupAddress?.pincode || '',
+                lat: pickupAddress.lat || settings.pickupAddress?.lat || '',
+                long: pickupAddress.long || settings.pickupAddress?.long || ''
+            };
+
+            // Mark as configured if essential fields are filled
+            settings.pickupAddressConfigured = !!(
+                pickupAddress.name &&
+                pickupAddress.phone &&
+                pickupAddress.address &&
+                pickupAddress.city &&
+                pickupAddress.state &&
+                pickupAddress.pincode
+            );
+        }
 
         await settings.save();
 

@@ -626,6 +626,100 @@ export const validateSiteSettings = [
         .optional()
         .isFloat({ min: 0, max: 100000 }).withMessage('Delivery charges must be a positive number'),
 
+    body('pickupAddress')
+        .optional()
+        .custom((value) => {
+            // Allow null, undefined, or object
+            if (value === null || value === undefined) return true;
+            if (typeof value === 'object') return true;
+            throw new Error('Pickup address must be an object');
+        }),
+
+    body('pickupAddress.pickupLocationName')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .isLength({ max: 100 }).withMessage('Pickup location name must not exceed 100 characters')
+        .customSanitizer(sanitizeString),
+
+    body('pickupAddress.name')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .isLength({ max: 100 }).withMessage('Contact name must not exceed 100 characters')
+        .customSanitizer(sanitizeString),
+
+    body('pickupAddress.email')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .custom((value) => {
+            if (!value) return true; // Allow empty
+            // Basic email validation
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                throw new Error('Invalid email format');
+            }
+            return true;
+        }),
+
+    body('pickupAddress.phone')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .custom((value) => {
+            if (!value) return true; // Allow empty
+            // Allow 10-15 digits, with or without special characters
+            const cleaned = value.replace(/[^0-9]/g, '');
+            if (cleaned.length < 10 || cleaned.length > 15) {
+                throw new Error('Phone must be 10-15 digits');
+            }
+            return true;
+        }),
+
+    body('pickupAddress.address')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .isLength({ max: 200 }).withMessage('Address must not exceed 200 characters')
+        .customSanitizer(sanitizeString),
+
+    body('pickupAddress.address2')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .isLength({ max: 200 }).withMessage('Address line 2 must not exceed 200 characters')
+        .customSanitizer(sanitizeString),
+
+    body('pickupAddress.city')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .isLength({ max: 100 }).withMessage('City must not exceed 100 characters')
+        .customSanitizer(sanitizeString),
+
+    body('pickupAddress.state')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .isLength({ max: 100 }).withMessage('State must not exceed 100 characters')
+        .customSanitizer(sanitizeString),
+
+    body('pickupAddress.country')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .isLength({ max: 100 }).withMessage('Country must not exceed 100 characters')
+        .customSanitizer(sanitizeString),
+
+    body('pickupAddress.pincode')
+        .optional({ nullable: true, checkFalsy: true })
+        .trim()
+        .custom((value) => {
+            if (!value) return true; // Allow empty
+            // Allow 4-10 digits
+            if (!/^[0-9]{4,10}$/.test(value)) {
+                throw new Error('Pincode must be 4-10 digits');
+            }
+            return true;
+        }),
+
+    body('pickupAddress.lat')
+        .optional({ nullable: true, checkFalsy: true }),
+
+    body('pickupAddress.long')
+        .optional({ nullable: true, checkFalsy: true }),
+
     handleValidationErrors
 ];
 

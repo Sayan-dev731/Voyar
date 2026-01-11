@@ -11,7 +11,11 @@ import {
     getPickupAddresses,
     handleWebhook,
     quickShip,
-    bulkTrackingUpdate
+    bulkTrackingUpdate,
+    testShiprocketConnection,
+    syncPickupLocations,
+    createPickupLocation,
+    selectPickupLocation
 } from '../controllers/shiprocketController.js';
 import { authMiddleware, protect } from '../middleware/auth.js';
 
@@ -22,6 +26,12 @@ router.post('/webhook', handleWebhook);
 
 // User routes - tracking (requires user authentication)
 router.get('/track/:orderId', protect, getTrackingDetails);
+
+// Admin routes - test connection and pickup management
+router.get('/test-connection', authMiddleware, testShiprocketConnection);
+router.get('/sync-pickup-locations', authMiddleware, syncPickupLocations);
+router.post('/pickup-location', authMiddleware, createPickupLocation);
+router.post('/select-pickup-location', authMiddleware, selectPickupLocation);
 
 // Admin routes - shipment management
 router.post('/orders/:orderId/create-shipment', authMiddleware, createShipment);

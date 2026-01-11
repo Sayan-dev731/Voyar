@@ -18,6 +18,9 @@ import {
     clearCart,
     syncCart,
     changePassword,
+    verify2FAOTP,
+    resend2FAOTP,
+    update2FASettings,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -118,6 +121,30 @@ router.post('/reset-password/:token',
     resetPassword
 );
 
+/**
+ * @route   POST /api/users/verify-2fa
+ * @desc    Verify 2FA OTP code
+ * @access  Public
+ * @security Rate limited (auth)
+ */
+router.post('/verify-2fa',
+    authLimiter,
+    allowedFields(['userId', 'otp']),
+    verify2FAOTP
+);
+
+/**
+ * @route   POST /api/users/resend-2fa-otp
+ * @desc    Resend 2FA OTP code
+ * @access  Public
+ * @security Rate limited (email)
+ */
+router.post('/resend-2fa-otp',
+    emailLimiter,
+    allowedFields(['userId']),
+    resend2FAOTP
+);
+
 // =============================================================================
 // PROTECTED ROUTES - PROFILE
 // =============================================================================
@@ -140,6 +167,19 @@ router.put('/profile',
     allowedFields(['name', 'phone', 'gender', 'dateOfBirth', 'profileImage']),
     validateProfileUpdate,
     updateProfile
+);
+
+/**
+ * @route   PUT /api/users/2fa-settings
+ * @desc    Enable/Disable 2FA
+ * @access  Private
+ * @security Rate limited (sensitive)
+ */
+router.put('/2fa-settings',
+    protect,
+    sensitiveLimiter,
+    allowedFields(['enabled']),
+    update2FASettings
 );
 
 /**
@@ -168,7 +208,7 @@ router.put('/change-password',
  */
 router.post('/addresses',
     protect,
-    allowedFields(['name', 'phone', 'street', 'city', 'state', 'zipCode', 'country', 'type', 'isDefault']),
+    allowedFields(['name', 'phone', 'street', 'landmark', 'city', 'state', 'zipCode', 'pincode', 'country', 'type', 'isDefault']),
     validateAddress,
     addAddress
 );
@@ -181,7 +221,7 @@ router.post('/addresses',
  */
 router.put('/addresses/:addressId',
     protect,
-    allowedFields(['name', 'phone', 'street', 'city', 'state', 'zipCode', 'country', 'type', 'isDefault']),
+    allowedFields(['name', 'phone', 'street', 'landmark', 'city', 'state', 'zipCode', 'pincode', 'country', 'type', 'isDefault']),
     updateAddress
 );
 

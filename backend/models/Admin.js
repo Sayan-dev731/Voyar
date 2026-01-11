@@ -27,6 +27,63 @@ const siteSettingsSchema = new mongoose.Schema({
     codEnabled: {
         type: Boolean,
         default: true
+    },
+    // Shiprocket Pickup Address Configuration
+    pickupAddress: {
+        pickupLocationName: {
+            type: String,
+            default: 'Primary'
+        },
+        name: {
+            type: String,
+            default: ''
+        },
+        email: {
+            type: String,
+            default: ''
+        },
+        phone: {
+            type: String,
+            default: ''
+        },
+        address: {
+            type: String,
+            default: ''
+        },
+        address2: {
+            type: String,
+            default: ''
+        },
+        city: {
+            type: String,
+            default: ''
+        },
+        state: {
+            type: String,
+            default: ''
+        },
+        country: {
+            type: String,
+            default: 'India'
+        },
+        pincode: {
+            type: String,
+            default: ''
+        },
+        // Shiprocket specific fields
+        lat: {
+            type: String,
+            default: ''
+        },
+        long: {
+            type: String,
+            default: ''
+        }
+    },
+    // Flag to indicate if pickup address is configured
+    pickupAddressConfigured: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

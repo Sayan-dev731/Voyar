@@ -40,6 +40,15 @@ import {
     ExternalLink,
     TrendingUp
 } from 'lucide-react'
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer
+} from 'recharts'
 import type { Product } from '@/types/product'
 import { API_URL } from '@/config/api'
 
@@ -281,16 +290,42 @@ export const AdminDashboard = () => {
         supportEmail: 'support@voyar.com',
         platformCharges: 0,
         deliveryCharges: 0,
-        codEnabled: true
+        codEnabled: true,
+        pickupAddressConfigured: false,
+        pickupAddress: {
+            pickupLocationName: '',
+            name: '',
+            email: '',
+            phone: '',
+            address: '',
+            address2: '',
+            city: '',
+            state: '',
+            country: 'India',
+            pincode: ''
+        }
     })
     const [showEditSettings, setShowEditSettings] = useState(false)
+    const [showEditPickupAddress, setShowEditPickupAddress] = useState(false)
     const [settingsForm, setSettingsForm] = useState({
         recoveryEmail: '',
         siteName: '',
         supportEmail: '',
         platformCharges: 0,
         deliveryCharges: 0,
-        codEnabled: true
+        codEnabled: true,
+        pickupAddress: {
+            pickupLocationName: '',
+            name: '',
+            email: '',
+            phone: '',
+            address: '',
+            address2: '',
+            city: '',
+            state: '',
+            country: 'India',
+            pincode: ''
+        }
     })
 
     // Order details modal state
@@ -322,6 +357,17 @@ export const AdminDashboard = () => {
     const [showTrackingModal, setShowTrackingModal] = useState<{ isOpen: boolean; order: Order | null }>({ isOpen: false, order: null })
     const [trackingData, setTrackingData] = useState<TrackingDataResponse | null>(null)
     const [trackingLoading, setTrackingLoading] = useState(false)
+
+    // Chart data state
+    const [revenueChartData, setRevenueChartData] = useState([
+        { date: 'Jan 02', thisWeek: 0, lastWeek: 0, day: 'Day 1' },
+        { date: 'Jan 03', thisWeek: 0, lastWeek: 0, day: 'Day 2' },
+        { date: 'Jan 04', thisWeek: 0, lastWeek: 0, day: 'Day 3' },
+        { date: 'Jan 05', thisWeek: 0, lastWeek: 0, day: 'Day 4' },
+        { date: 'Jan 06', thisWeek: 0, lastWeek: 0, day: 'Day 5' },
+        { date: 'Jan 07', thisWeek: 0, lastWeek: 0, day: 'Day 6' },
+        { date: 'Jan 08', thisWeek: 0, lastWeek: 0, day: 'Day 7' }
+    ])
 
     // Filtered data
     const filteredProducts = products.filter(product => {
@@ -422,6 +468,10 @@ export const AdminDashboard = () => {
             if (statsRes.ok) {
                 const statsData = await statsRes.json()
                 setStats(statsData)
+                // Update chart data with real revenue data
+                if (statsData.chartData && statsData.chartData.length > 0) {
+                    setRevenueChartData(statsData.chartData)
+                }
             }
 
             // Fetch site settings
@@ -440,6 +490,73 @@ export const AdminDashboard = () => {
         }
     }
 
+    // Custom tooltip for the chart
+    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; payload: { date: string; thisWeek: number; lastWeek: number } }> }) => {
+        if (active && payload && payload.length) {
+            const currentData = payload[0]?.payload
+            const thisWeekValue = payload[0]?.value || 0
+            const lastWeekValue = payload[1]?.value || 0
+
+            return (
+                <div
+                    className="bg-white rounded-lg shadow-xl border border-gray-200 p-4"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                    <p className="text-sm font-medium text-[#0d0d0d] mb-2">
+                        {currentData?.date}
+                    </p>
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ background: '#3b82f6' }}></div>
+                                <span className="text-xs text-[#525252]">This Week</span>
+                            </div>
+                            <span className="text-sm font-semibold text-[#0d0d0d]">
+                                ₹{thisWeekValue.toLocaleString()}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ background: '#94a3b8' }}></div>
+                                <span className="text-xs text-[#525252]">Last Week</span>
+                            </div>
+                            <span className="text-sm font-semibold text-[#0d0d0d]">
+                                ₹{lastWeekValue.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-[#8a8a8a]">Change</span>
+                            <span className={`text-xs font-medium ${thisWeekValue > lastWeekValue
+                                ? 'text-[#16a34a]'
+                                : 'text-[#dc2626]'
+                                }`}>
+                                {lastWeekValue > 0
+                                    ? `${(((thisWeekValue - lastWeekValue) / lastWeekValue) * 100).toFixed(1)}%`
+                                    : 'N/A'
+                                }
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+        return null
+    }
+
+    // Handle chart click
+    const handleChartClick = (event?: unknown) => {
+        const data = event as { activePayload?: Array<{ payload: { date: string; thisWeek: number; lastWeek: number } }> } | undefined
+        if (data && data.activePayload && data.activePayload.length > 0) {
+            const clickedData = data.activePayload[0].payload
+            showToast(
+                `${clickedData.date}: ₹${clickedData.thisWeek.toLocaleString()} revenue`,
+                'info'
+            )
+        }
+    }
+
     const handleUpdateSettings = async () => {
         const token = localStorage.getItem('adminToken')
         try {
@@ -450,7 +567,8 @@ export const AdminDashboard = () => {
                 supportEmail: settingsForm.supportEmail,
                 platformCharges: settingsForm.platformCharges,
                 deliveryCharges: settingsForm.deliveryCharges,
-                codEnabled: settingsForm.codEnabled
+                codEnabled: settingsForm.codEnabled,
+                pickupAddress: settingsForm.pickupAddress
             }
 
             const res = await fetch(`${API_URL}/admin/settings`, {
@@ -465,6 +583,7 @@ export const AdminDashboard = () => {
                 const data = await res.json()
                 setSiteSettings(data.settings)
                 setShowEditSettings(false)
+                setShowEditPickupAddress(false)
                 showToast('Settings updated successfully!', 'success')
             } else {
                 const error = await res.json()
@@ -1589,54 +1708,54 @@ export const AdminDashboard = () => {
                             </div>
                             <div className="p-6">
                                 <div className="h-64 relative">
-                                    <svg className="w-full h-full" viewBox="0 0 800 250" preserveAspectRatio="none">
-                                        <defs>
-                                            <linearGradient id="mainChartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                <stop offset="0%" style={{ stopColor: '#3b82f6', stopOpacity: 0.3 }} />
-                                                <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 0.05 }} />
-                                            </linearGradient>
-                                        </defs>
-                                        {/* Grid lines */}
-                                        <line x1="0" y1="50" x2="800" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-                                        <line x1="0" y1="100" x2="800" y2="100" stroke="#f1f5f9" strokeWidth="1" />
-                                        <line x1="0" y1="150" x2="800" y2="150" stroke="#f1f5f9" strokeWidth="1" />
-                                        <line x1="0" y1="200" x2="800" y2="200" stroke="#f1f5f9" strokeWidth="1" />
-
-                                        {/* Area fill */}
-                                        <path
-                                            d="M0,180 L100,160 L200,140 L300,110 L400,90 L500,70 L600,55 L700,45 L800,30 L800,250 L0,250 Z"
-                                            fill="url(#mainChartGradient)"
-                                        />
-                                        {/* Line */}
-                                        <path
-                                            d="M0,180 L100,160 L200,140 L300,110 L400,90 L500,70 L600,55 L700,45 L800,30"
-                                            fill="none"
-                                            stroke="#3b82f6"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                        {/* Dots */}
-                                        <circle cx="0" cy="180" r="4" fill="#3b82f6" />
-                                        <circle cx="100" cy="160" r="4" fill="#3b82f6" />
-                                        <circle cx="200" cy="140" r="4" fill="#3b82f6" />
-                                        <circle cx="300" cy="110" r="4" fill="#3b82f6" />
-                                        <circle cx="400" cy="90" r="4" fill="#3b82f6" />
-                                        <circle cx="500" cy="70" r="4" fill="#3b82f6" />
-                                        <circle cx="600" cy="55" r="4" fill="#3b82f6" />
-                                        <circle cx="700" cy="45" r="4" fill="#3b82f6" />
-                                        <circle cx="800" cy="30" r="5" fill="#3b82f6" stroke="white" strokeWidth="2" />
-                                    </svg>
-                                    {/* X-axis labels */}
-                                    <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2 text-xs text-[#8a8a8a]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-                                        <span>Jan 02</span>
-                                        <span>Jan 03</span>
-                                        <span>Jan 04</span>
-                                        <span>Jan 05</span>
-                                        <span>Jan 06</span>
-                                        <span>Jan 07</span>
-                                        <span>Jan 08</span>
-                                    </div>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart
+                                            data={revenueChartData}
+                                            onClick={handleChartClick}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            <defs>
+                                                <linearGradient id="colorThisWeek" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+                                                </linearGradient>
+                                                <linearGradient id="colorLastWeek" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.2} />
+                                                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.05} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                            <XAxis
+                                                dataKey="date"
+                                                stroke="#8a8a8a"
+                                                style={{ fontSize: '12px', fontFamily: 'DM Sans, sans-serif' }}
+                                                tick={{ fill: '#8a8a8a' }}
+                                            />
+                                            <YAxis
+                                                stroke="#8a8a8a"
+                                                style={{ fontSize: '12px', fontFamily: 'DM Sans, sans-serif' }}
+                                                tick={{ fill: '#8a8a8a' }}
+                                                tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                                            />
+                                            <Tooltip content={<CustomTooltip />} />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="lastWeek"
+                                                stroke="#94a3b8"
+                                                strokeWidth={2}
+                                                fill="url(#colorLastWeek)"
+                                                activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="thisWeek"
+                                                stroke="#3b82f6"
+                                                strokeWidth={3}
+                                                fill="url(#colorThisWeek)"
+                                                activeDot={{ r: 8, strokeWidth: 2, stroke: '#fff' }}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
                         </div>
@@ -2687,7 +2806,7 @@ export const AdminDashboard = () => {
                                                             </button>
                                                         )}
                                                     </div>
-                                                ) : order.shiprocket?.orderId ? (
+                                                ) : order.shiprocket?.orderId && order.status !== 'cancelled' && order.status !== 'delivered' ? (
                                                     <div className="space-y-2 text-sm">
                                                         <p className="text-[#525252] text-xs">Shiprocket order created. Assign courier to get AWB.</p>
                                                         <button
@@ -3448,6 +3567,282 @@ export const AdminDashboard = () => {
                                         </p>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Shiprocket Pickup Address */}
+                            <div
+                                className="bg-white rounded-2xl p-6 lg:col-span-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.06)',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                                }}
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <Truck className="h-5 w-5 text-[#9333ea]" />
+                                        <h3
+                                            className="text-lg font-medium text-[#0d0d0d]"
+                                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                        >
+                                            Shiprocket Pickup Address
+                                        </h3>
+                                        {siteSettings.pickupAddressConfigured ? (
+                                            <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-green-100 text-green-700">Configured</span>
+                                        ) : (
+                                            <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-orange-100 text-orange-700">Not Configured</span>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setSettingsForm({
+                                                ...settingsForm,
+                                                pickupAddress: siteSettings.pickupAddress || {
+                                                    pickupLocationName: 'Primary',
+                                                    name: '',
+                                                    email: '',
+                                                    phone: '',
+                                                    address: '',
+                                                    address2: '',
+                                                    city: '',
+                                                    state: '',
+                                                    country: 'India',
+                                                    pincode: ''
+                                                }
+                                            })
+                                            setShowEditPickupAddress(!showEditPickupAddress)
+                                        }}
+                                        className="px-4 py-2 rounded-xl border border-[rgba(0,0,0,0.12)] text-[#525252] hover:text-[#0d0d0d] hover:border-[#0d0d0d] transition-all text-sm"
+                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                    >
+                                        {showEditPickupAddress ? 'Cancel' : siteSettings.pickupAddressConfigured ? 'Edit' : 'Add'}
+                                    </button>
+                                </div>
+                                <p className="text-sm text-[#8a8a8a] mb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                    Configure the pickup address for Shiprocket shipments. This address will be used for all order pickups.
+                                </p>
+                                {showEditPickupAddress ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Pickup Location Name*
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., Primary, Warehouse"
+                                                value={settingsForm.pickupAddress?.pickupLocationName || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, pickupLocationName: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Contact Name*
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Contact person name"
+                                                value={settingsForm.pickupAddress?.name || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, name: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Phone Number*
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                placeholder="10 digit mobile number"
+                                                value={settingsForm.pickupAddress?.phone || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, phone: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Email
+                                            </label>
+                                            <input
+                                                type="email"
+                                                placeholder="Email address"
+                                                value={settingsForm.pickupAddress?.email || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, email: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Address Line 1*
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Street address, building name"
+                                                value={settingsForm.pickupAddress?.address || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, address: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Address Line 2 (Landmark)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Landmark, area"
+                                                value={settingsForm.pickupAddress?.address2 || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, address2: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                City*
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="City"
+                                                value={settingsForm.pickupAddress?.city || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, city: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                State*
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="State"
+                                                value={settingsForm.pickupAddress?.state || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, state: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Pincode*
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="6 digit pincode"
+                                                value={settingsForm.pickupAddress?.pincode || ''}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, pincode: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium text-[#525252] mb-1 block" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Country
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Country"
+                                                value={settingsForm.pickupAddress?.country || 'India'}
+                                                onChange={(e) => setSettingsForm({
+                                                    ...settingsForm,
+                                                    pickupAddress: { ...settingsForm.pickupAddress, country: e.target.value }
+                                                })}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#9333ea] focus:bg-white transition-all"
+                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <button
+                                                onClick={() => handleUpdateSettings()}
+                                                className="w-full px-5 py-3 rounded-xl text-white font-medium transition-all"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, #9333ea 0%, #6b21a8 100%)',
+                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    boxShadow: '0 4px 16px rgba(147, 51, 234, 0.3)'
+                                                }}
+                                            >
+                                                Save Pickup Address
+                                            </button>
+                                        </div>
+                                        <div className="md:col-span-2 pt-2">
+                                            <p className="text-xs text-[#8a8a8a] mb-2 p-3 rounded-lg bg-[#faf9f7]">
+                                                <strong>Important:</strong> The "Pickup Location Name" must match exactly with a pickup location you've created in your Shiprocket dashboard.
+                                                Go to <a href="https://app.shiprocket.in/settings/pickup-addresses" target="_blank" rel="noopener noreferrer" className="text-[#9333ea] underline">Shiprocket → Settings → Pickup Addresses</a> to add or verify your pickup locations.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : siteSettings.pickupAddressConfigured && siteSettings.pickupAddress ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Location Name</span>
+                                            <p className="font-medium text-[#0d0d0d]">{siteSettings.pickupAddress.pickupLocationName || 'Primary'}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Contact Name</span>
+                                            <p className="font-medium text-[#0d0d0d]">{siteSettings.pickupAddress.name}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Phone</span>
+                                            <p className="font-medium text-[#0d0d0d]">{siteSettings.pickupAddress.phone}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Pincode</span>
+                                            <p className="font-medium text-[#0d0d0d]">{siteSettings.pickupAddress.pincode}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl md:col-span-2" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Address</span>
+                                            <p className="font-medium text-[#0d0d0d]">
+                                                {siteSettings.pickupAddress.address}
+                                                {siteSettings.pickupAddress.address2 && `, ${siteSettings.pickupAddress.address2}`}
+                                            </p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">City</span>
+                                            <p className="font-medium text-[#0d0d0d]">{siteSettings.pickupAddress.city}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">State</span>
+                                            <p className="font-medium text-[#0d0d0d]">{siteSettings.pickupAddress.state}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-[#8a8a8a]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                        <Truck className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                                        <p>No pickup address configured yet.</p>
+                                        <p className="text-sm mt-1">Click "Add" to configure your Shiprocket pickup address.</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Data Management */}
@@ -4915,6 +5310,223 @@ export const AdminDashboard = () => {
                                                     <p className="text-xs text-[#525252]">{selectedOrder.refundNotes}</p>
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Shipment Tracking Section from Webhook Data */}
+                                {selectedOrder.shiprocket && selectedOrder.shiprocket.awbCode && (
+                                    <div className="mt-6">
+                                        <h3 className="mb-4" style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, color: '#0d0d0d', fontSize: '1.125rem' }}>
+                                            Shipment Tracking
+                                        </h3>
+                                        <div
+                                            className="p-5 rounded-xl"
+                                            style={{ background: 'linear-gradient(135deg, rgba(201,162,39,0.08) 0%, rgba(201,162,39,0.04) 100%)', border: '1px solid rgba(201,162,39,0.2)' }}
+                                        >
+                                            {/* Current Status Header */}
+                                            <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: '1px solid rgba(201,162,39,0.15)' }}>
+                                                <div className="flex items-center gap-2">
+                                                    <Truck className="h-5 w-5 text-[#c9a227]" />
+                                                    <span style={{ fontWeight: 600, color: '#0d0d0d' }}>Current Status</span>
+                                                </div>
+                                                <div
+                                                    className="px-3 py-1 rounded-full text-sm font-medium"
+                                                    style={{
+                                                        background: selectedOrder.shiprocket.shipmentStatus === 'delivered' ? 'rgba(22, 163, 74, 0.1)' :
+                                                            selectedOrder.shiprocket.shipmentStatus === 'in_transit' ? 'rgba(59, 130, 246, 0.1)' :
+                                                                selectedOrder.shiprocket.shipmentStatus === 'picked_up' ? 'rgba(234, 88, 12, 0.1)' :
+                                                                    'rgba(147, 51, 234, 0.1)',
+                                                        color: selectedOrder.shiprocket.shipmentStatus === 'delivered' ? '#16a34a' :
+                                                            selectedOrder.shiprocket.shipmentStatus === 'in_transit' ? '#3b82f6' :
+                                                                selectedOrder.shiprocket.shipmentStatus === 'picked_up' ? '#ea580c' :
+                                                                    '#9333ea'
+                                                    }}
+                                                >
+                                                    {selectedOrder.shiprocket.shipmentStatus?.replace(/_/g, ' ').toUpperCase()}
+                                                </div>
+                                            </div>
+
+                                            {/* Shipment Details Grid */}
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <span className="text-sm text-[#8a8a8a]">AWB Code:</span>
+                                                    <p className="font-mono text-sm mt-1" style={{ fontWeight: 600, color: '#0d0d0d' }}>
+                                                        {selectedOrder.shiprocket.awbCode}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <span className="text-sm text-[#8a8a8a]">Courier:</span>
+                                                    <p className="text-sm mt-1" style={{ fontWeight: 600, color: '#0d0d0d' }}>
+                                                        {selectedOrder.shiprocket.courierName || 'Not Assigned'}
+                                                    </p>
+                                                </div>
+                                                {selectedOrder.shiprocket.pickupScheduledDate && (
+                                                    <div>
+                                                        <span className="text-sm text-[#8a8a8a]">Pickup Date:</span>
+                                                        <p className="text-sm mt-1" style={{ fontWeight: 600, color: '#0d0d0d' }}>
+                                                            {new Date(selectedOrder.shiprocket.pickupScheduledDate).toLocaleDateString('en-IN', {
+                                                                day: 'numeric',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {selectedOrder.shiprocket.estimatedDeliveryDate && (
+                                                    <div>
+                                                        <span className="text-sm text-[#8a8a8a]">Estimated Delivery:</span>
+                                                        <p className="text-sm mt-1" style={{ fontWeight: 600, color: '#16a34a' }}>
+                                                            {new Date(selectedOrder.shiprocket.estimatedDeliveryDate).toLocaleDateString('en-IN', {
+                                                                day: 'numeric',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Last Updated */}
+                                            {selectedOrder.shiprocket.lastWebhookUpdate && (
+                                                <div className="flex items-center gap-2 text-xs text-[#8a8a8a] mt-3 pt-3" style={{ borderTop: '1px solid rgba(201,162,39,0.15)' }}>
+                                                    <Clock className="h-3 w-3" />
+                                                    Last updated: {new Date(selectedOrder.shiprocket.lastWebhookUpdate).toLocaleString('en-IN', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Tracking Timeline */}
+                                        {selectedOrder.shiprocket.trackingHistory && selectedOrder.shiprocket.trackingHistory.length > 0 && (
+                                            <div className="mt-6">
+                                                <h4 className="mb-4 text-sm" style={{ fontWeight: 600, color: '#525252', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                    Tracking History
+                                                </h4>
+                                                <div className="space-y-0 relative">
+                                                    {selectedOrder.shiprocket.trackingHistory.map((scan: { date: string; status: string; statusCode?: string; activity?: string; location?: string; srStatus?: string; srStatusLabel?: string }, index: number) => (
+                                                        <div key={index} className="flex gap-3 pb-4 relative">
+                                                            {/* Timeline connector */}
+                                                            {index < (selectedOrder.shiprocket?.trackingHistory?.length ?? 0) - 1 && (
+                                                                <div
+                                                                    className="absolute left-[9px] top-6 w-0.5 h-full"
+                                                                    style={{ background: 'rgba(201,162,39,0.25)' }}
+                                                                />
+                                                            )}
+
+                                                            {/* Timeline dot */}
+                                                            <div
+                                                                className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center z-10"
+                                                                style={{
+                                                                    background: index === 0 ? 'linear-gradient(135deg, #c9a227 0%, #8b6f1b 100%)' : 'rgba(201,162,39,0.15)',
+                                                                    border: index === 0 ? '2px solid #c9a227' : '2px solid rgba(201,162,39,0.3)'
+                                                                }}
+                                                            >
+                                                                {index === 0 && (
+                                                                    <div className="w-2 h-2 bg-white rounded-full" />
+                                                                )}
+                                                            </div>
+
+                                                            {/* Scan details */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex flex-wrap justify-between gap-2 items-start">
+                                                                    <div className="flex-1">
+                                                                        <p
+                                                                            className="font-medium text-sm"
+                                                                            style={{
+                                                                                color: index === 0 ? '#8b6f1b' : '#0d0d0d',
+                                                                                fontFamily: 'DM Sans, sans-serif'
+                                                                            }}
+                                                                        >
+                                                                            {scan.srStatusLabel || scan.status}
+                                                                        </p>
+                                                                        {scan.activity && scan.activity !== scan.srStatusLabel && (
+                                                                            <p className="text-xs text-[#525252] mt-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                                                {scan.activity}
+                                                                            </p>
+                                                                        )}
+                                                                        {scan.location && (
+                                                                            <div className="flex items-center gap-1 mt-1.5 text-xs text-[#8a8a8a]">
+                                                                                <MapPin className="h-3 w-3" />
+                                                                                <span>{scan.location}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <span
+                                                                        className="text-xs text-[#8a8a8a] whitespace-nowrap"
+                                                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                                    >
+                                                                        {new Date(scan.date).toLocaleString('en-IN', {
+                                                                            day: 'numeric',
+                                                                            month: 'short',
+                                                                            hour: '2-digit',
+                                                                            minute: '2-digit'
+                                                                        })}
+                                                                    </span>
+                                                                </div>
+                                                                {scan.statusCode && (
+                                                                    <div className="mt-1">
+                                                                        <code
+                                                                            className="text-xs px-2 py-0.5 rounded"
+                                                                            style={{
+                                                                                background: 'rgba(0,0,0,0.05)',
+                                                                                color: '#525252',
+                                                                                fontFamily: 'monospace'
+                                                                            }}
+                                                                        >
+                                                                            {scan.statusCode}
+                                                                        </code>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Show all scans count */}
+                                                {selectedOrder.shiprocket.trackingHistory.length > 10 && (
+                                                    <div className="text-center mt-4 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                                                        <p className="text-xs text-[#8a8a8a]">
+                                                            Showing all {selectedOrder.shiprocket.trackingHistory.length} tracking events
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Action Buttons */}
+                                        <div className="mt-6 flex gap-3">
+                                            {selectedOrder.shiprocket.labelUrl && (
+                                                <a
+                                                    href={selectedOrder.shiprocket.labelUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                                                    style={{
+                                                        background: 'white',
+                                                        border: '1px solid rgba(0,0,0,0.12)',
+                                                        color: '#525252'
+                                                    }}
+                                                >
+                                                    <FileText className="h-4 w-4" />
+                                                    View Label
+                                                </a>
+                                            )}
+                                            <button
+                                                onClick={() => handleViewTracking(selectedOrder)}
+                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, #c9a227 0%, #8b6f1b 100%)',
+                                                    color: 'white'
+                                                }}
+                                            >
+                                                <RefreshCw className="h-4 w-4" />
+                                                Refresh Tracking
+                                            </button>
                                         </div>
                                     </div>
                                 )}

@@ -127,6 +127,19 @@ const userSchema = new mongoose.Schema({
     passwordChangedAt: {
         type: Date
     },
+    // Two-Factor Authentication (2FA) fields
+    twoFactorEnabled: {
+        type: Boolean,
+        default: false
+    },
+    twoFactorSecret: {
+        type: String,
+        select: false // OTP code, don't include in queries
+    },
+    twoFactorExpires: {
+        type: Date,
+        select: false
+    },
     phone: {
         type: String,
         trim: true,

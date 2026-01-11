@@ -1,8 +1,9 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../config/email.js';
+import { sendVerificationEmail, sendPasswordResetEmail, send2FAOTPEmail } from '../config/email.js';
 import { validatePasswordStrength } from '../config/security.js';
+import { generateOTP, generateOTPExpiry } from '../utils/otpGenerator.js';
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -187,14 +188,14 @@ export const verifyEmail = async (req, res) => {
 // @desc    Login user
 // @route   POST /api/users/login
 // @access  Public
-// @security Account lockout, Failed attempt tracking
+// @security Account lockout, Failed attempt tracking, 2FA support
 // =============================================================================
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
         // Find user and include password and lockout fields
-        const user = await User.findOne({ email }).select('+password +failedLoginAttempts +lockUntil');
+        const user = await User.findOne({ email }).select('+password +failedLoginAttempts +lockUntil +twoFactorEnabled');
 
         if (!user) {
             // Don't reveal that user doesn't exist (timing attack prevention)
@@ -234,6 +235,35 @@ export const login = async (req, res) => {
             });
         }
 
+        // If 2FA is enabled, send OTP instead of logging in
+        if (user.twoFactorEnabled) {
+            // Generate OTP
+            const otp = generateOTP();
+            const otpExpiry = generateOTPExpiry(10); // 10 minutes
+
+            // Save OTP to user
+            user.twoFactorSecret = otp;
+            user.twoFactorExpires = otpExpiry;
+            await user.save();
+
+            // Send OTP via email
+            try {
+                await send2FAOTPEmail(user.email, user.name, otp);
+            } catch (emailError) {
+                console.error('Failed to send 2FA OTP email:', emailError);
+                return res.status(500).json({
+                    message: 'Failed to send verification code. Please try again.'
+                });
+            }
+
+            return res.status(200).json({
+                message: 'Verification code sent to your email',
+                requires2FA: true,
+                userId: user._id,
+                email: user.email
+            });
+        }
+
         // Reset failed login attempts on successful login
         await user.resetLoginAttempts();
 
@@ -248,6 +278,7 @@ export const login = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 isVerified: user.isVerified,
+                twoFactorEnabled: user.twoFactorEnabled
             },
         });
     } catch (error) {
@@ -316,6 +347,7 @@ export const getProfile = async (req, res) => {
                 profileImage: user.profileImage,
                 addresses: user.addresses,
                 isVerified: user.isVerified,
+                twoFactorEnabled: user.twoFactorEnabled || false,
                 orders: user.orders,
                 cart: user.cart,
                 wishlist: user.wishlist,
@@ -921,5 +953,168 @@ export const resetPassword = async (req, res) => {
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({ message: 'Server error during password reset' });
+    }
+};
+
+// =============================================================================
+// @desc    Verify 2FA OTP
+// @route   POST /api/users/verify-2fa
+// @access  Public
+// =============================================================================
+export const verify2FAOTP = async (req, res) => {
+    try {
+        const { userId, otp } = req.body;
+
+        if (!userId || !otp) {
+            return res.status(400).json({ message: 'User ID and OTP are required' });
+        }
+
+        // Find user and include 2FA fields
+        const user = await User.findById(userId).select('+twoFactorSecret +twoFactorExpires +failedLoginAttempts +lockUntil');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if account is locked
+        if (user.isLocked) {
+            const lockTimeRemaining = Math.ceil((user.lockUntil - Date.now()) / 60000);
+            return res.status(423).json({
+                message: `Account temporarily locked. Try again in ${lockTimeRemaining} minutes.`,
+                locked: true
+            });
+        }
+
+        // Check if OTP exists and is not expired
+        if (!user.twoFactorSecret || !user.twoFactorExpires) {
+            return res.status(400).json({ message: 'No OTP found. Please request a new one.' });
+        }
+
+        if (user.twoFactorExpires < Date.now()) {
+            return res.status(400).json({
+                message: 'OTP has expired. Please request a new one.',
+                expired: true
+            });
+        }
+
+        // Verify OTP
+        if (user.twoFactorSecret !== otp) {
+            // Increment failed attempts
+            await user.incLoginAttempts();
+
+            const attemptsRemaining = 5 - (user.failedLoginAttempts + 1);
+            return res.status(401).json({
+                message: `Invalid OTP${attemptsRemaining > 0 && attemptsRemaining < 3 ? `. ${attemptsRemaining} attempts remaining.` : ''}`
+            });
+        }
+
+        // OTP is valid - clear it and login
+        user.twoFactorSecret = undefined;
+        user.twoFactorExpires = undefined;
+        await user.resetLoginAttempts();
+        await user.save();
+
+        // Generate token
+        const token = generateToken(user._id);
+
+        res.json({
+            message: 'Login successful',
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                isVerified: user.isVerified,
+                twoFactorEnabled: user.twoFactorEnabled
+            },
+        });
+    } catch (error) {
+        console.error('Verify 2FA OTP error:', error);
+        res.status(500).json({ message: 'Server error during OTP verification' });
+    }
+};
+
+// =============================================================================
+// @desc    Resend 2FA OTP
+// @route   POST /api/users/resend-2fa-otp
+// @access  Public
+// =============================================================================
+export const resend2FAOTP = async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ message: 'User ID is required' });
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (!user.twoFactorEnabled) {
+            return res.status(400).json({ message: '2FA is not enabled for this account' });
+        }
+
+        // Generate new OTP
+        const otp = generateOTP();
+        const otpExpiry = generateOTPExpiry(10);
+
+        user.twoFactorSecret = otp;
+        user.twoFactorExpires = otpExpiry;
+        await user.save();
+
+        // Send OTP via email
+        try {
+            await send2FAOTPEmail(user.email, user.name, otp);
+            res.json({ message: 'New verification code sent to your email' });
+        } catch (emailError) {
+            console.error('Failed to send 2FA OTP email:', emailError);
+            res.status(500).json({ message: 'Failed to send verification code' });
+        }
+    } catch (error) {
+        console.error('Resend 2FA OTP error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// =============================================================================
+// @desc    Enable/Disable 2FA
+// @route   PUT /api/users/2fa-settings
+// @access  Private (requires authentication)
+// =============================================================================
+export const update2FASettings = async (req, res) => {
+    try {
+        const { enabled } = req.body;
+        const userId = req.user.id; // From auth middleware
+
+        if (typeof enabled !== 'boolean') {
+            return res.status(400).json({ message: 'Enabled must be a boolean value' });
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.twoFactorEnabled = enabled;
+
+        // Clear any existing OTP when disabling
+        if (!enabled) {
+            user.twoFactorSecret = undefined;
+            user.twoFactorExpires = undefined;
+        }
+
+        await user.save();
+
+        res.json({
+            message: `2FA ${enabled ? 'enabled' : 'disabled'} successfully`,
+            twoFactorEnabled: user.twoFactorEnabled
+        });
+    } catch (error) {
+        console.error('Update 2FA settings error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };

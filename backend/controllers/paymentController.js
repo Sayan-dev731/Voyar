@@ -340,6 +340,23 @@ export const razorpayWebhook = async (req, res) => {
 
         console.log(`[Webhook] Processing event: ${eventType}`);
 
+        // Helper function to find order
+        const findOrderByPayment = async (payment) => {
+            let order = await Order.findOne({ razorpayOrderId: payment.order_id });
+            if (!order && payment.id) {
+                order = await Order.findOne({ razorpayPaymentId: payment.id });
+            }
+            return order;
+        };
+
+        const findOrderByRefund = async (refund) => {
+            let order = await Order.findOne({ refundId: refund.id });
+            if (!order) {
+                order = await Order.findOne({ razorpayPaymentId: refund.payment_id });
+            }
+            return order;
+        };
+
         switch (eventType) {
             // =====================================================
             // PAYMENT EVENTS
@@ -347,18 +364,18 @@ export const razorpayWebhook = async (req, res) => {
 
             case 'payment.authorized': {
                 // Payment authorized but not yet captured
-                // Useful for manual capture flows
                 const payment = payload.payment.entity;
                 console.log(`[Webhook] Payment authorized: ${payment.id}`);
 
-                const order = await Order.findOne({ razorpayOrderId: payment.order_id });
+                const order = await findOrderByPayment(payment);
                 if (order) {
                     order.razorpayPaymentId = payment.id;
                     order.webhookEvents = order.webhookEvents || [];
                     order.webhookEvents.push({
                         event: 'payment.authorized',
                         timestamp: new Date(),
-                        paymentId: payment.id
+                        paymentId: payment.id,
+                        amount: payment.amount / 100
                     });
                     await order.save();
                     console.log(`[Webhook] Order ${order._id} - Payment authorized`);
@@ -371,7 +388,7 @@ export const razorpayWebhook = async (req, res) => {
                 const payment = payload.payment.entity;
                 console.log(`[Webhook] Payment captured: ${payment.id}`);
 
-                const order = await Order.findOne({ razorpayOrderId: payment.order_id });
+                const order = await findOrderByPayment(payment);
 
                 if (order && order.paymentStatus !== 'paid') {
                     order.paymentStatus = 'paid';
@@ -433,7 +450,7 @@ export const razorpayWebhook = async (req, res) => {
                 const payment = payload.payment.entity;
                 console.log(`[Webhook] Payment failed: ${payment.id}`);
 
-                const order = await Order.findOne({ razorpayOrderId: payment.order_id });
+                const order = await findOrderByPayment(payment);
 
                 if (order) {
                     order.paymentStatus = 'failed';
@@ -455,28 +472,166 @@ export const razorpayWebhook = async (req, res) => {
             }
 
             // =====================================================
+            // PAYMENT DISPUTE EVENTS
+            // =====================================================
+
+            case 'payment.dispute.created': {
+                const dispute = payload.dispute?.entity || payload.payment?.entity;
+                const paymentId = dispute.payment_id || dispute.id;
+                console.log(`[Webhook] Payment dispute created: ${paymentId}`);
+
+                const order = await Order.findOne({ razorpayPaymentId: paymentId });
+                if (order) {
+                    order.webhookEvents = order.webhookEvents || [];
+                    order.webhookEvents.push({
+                        event: 'payment.dispute.created',
+                        timestamp: new Date(),
+                        paymentId: paymentId,
+                        reason: dispute.reason || 'Dispute raised'
+                    });
+                    order.adminNotes = (order.adminNotes || '') + `\n⚠️ DISPUTE CREATED on ${new Date().toISOString()}: ${dispute.reason || 'Customer dispute'}`;
+                    await order.save();
+                    console.log(`[Webhook] Order ${order._id} - Dispute created`);
+                }
+                break;
+            }
+
+            case 'payment.dispute.won': {
+                const dispute = payload.dispute?.entity || payload.payment?.entity;
+                const paymentId = dispute.payment_id || dispute.id;
+                console.log(`[Webhook] Payment dispute won: ${paymentId}`);
+
+                const order = await Order.findOne({ razorpayPaymentId: paymentId });
+                if (order) {
+                    order.webhookEvents = order.webhookEvents || [];
+                    order.webhookEvents.push({
+                        event: 'payment.dispute.won',
+                        timestamp: new Date(),
+                        paymentId: paymentId
+                    });
+                    order.adminNotes = (order.adminNotes || '') + `\n✅ DISPUTE WON on ${new Date().toISOString()}`;
+                    await order.save();
+                    console.log(`[Webhook] Order ${order._id} - Dispute won`);
+                }
+                break;
+            }
+
+            case 'payment.dispute.lost': {
+                const dispute = payload.dispute?.entity || payload.payment?.entity;
+                const paymentId = dispute.payment_id || dispute.id;
+                console.log(`[Webhook] Payment dispute lost: ${paymentId}`);
+
+                const order = await Order.findOne({ razorpayPaymentId: paymentId });
+                if (order) {
+                    order.paymentStatus = 'refunded';
+                    order.refundStatus = 'completed';
+                    order.refundNotes = 'Refund due to dispute lost';
+                    order.webhookEvents = order.webhookEvents || [];
+                    order.webhookEvents.push({
+                        event: 'payment.dispute.lost',
+                        timestamp: new Date(),
+                        paymentId: paymentId
+                    });
+                    order.adminNotes = (order.adminNotes || '') + `\n❌ DISPUTE LOST on ${new Date().toISOString()} - Payment refunded to customer`;
+                    await order.save();
+                    console.log(`[Webhook] Order ${order._id} - Dispute lost, payment refunded`);
+                }
+                break;
+            }
+
+            case 'payment.dispute.closed': {
+                const dispute = payload.dispute?.entity || payload.payment?.entity;
+                const paymentId = dispute.payment_id || dispute.id;
+                console.log(`[Webhook] Payment dispute closed: ${paymentId}`);
+
+                const order = await Order.findOne({ razorpayPaymentId: paymentId });
+                if (order) {
+                    order.webhookEvents = order.webhookEvents || [];
+                    order.webhookEvents.push({
+                        event: 'payment.dispute.closed',
+                        timestamp: new Date(),
+                        paymentId: paymentId
+                    });
+                    order.adminNotes = (order.adminNotes || '') + `\nDispute closed on ${new Date().toISOString()}`;
+                    await order.save();
+                }
+                break;
+            }
+
+            case 'payment.dispute.under_review': {
+                const dispute = payload.dispute?.entity || payload.payment?.entity;
+                const paymentId = dispute.payment_id || dispute.id;
+                console.log(`[Webhook] Payment dispute under review: ${paymentId}`);
+
+                const order = await Order.findOne({ razorpayPaymentId: paymentId });
+                if (order) {
+                    order.webhookEvents = order.webhookEvents || [];
+                    order.webhookEvents.push({
+                        event: 'payment.dispute.under_review',
+                        timestamp: new Date(),
+                        paymentId: paymentId
+                    });
+                    order.adminNotes = (order.adminNotes || '') + `\n🔍 Dispute under review on ${new Date().toISOString()}`;
+                    await order.save();
+                }
+                break;
+            }
+
+            case 'payment.dispute.action_required': {
+                const dispute = payload.dispute?.entity || payload.payment?.entity;
+                const paymentId = dispute.payment_id || dispute.id;
+                console.log(`[Webhook] Payment dispute action required: ${paymentId}`);
+
+                const order = await Order.findOne({ razorpayPaymentId: paymentId });
+                if (order) {
+                    order.webhookEvents = order.webhookEvents || [];
+                    order.webhookEvents.push({
+                        event: 'payment.dispute.action_required',
+                        timestamp: new Date(),
+                        paymentId: paymentId
+                    });
+                    order.adminNotes = (order.adminNotes || '') + `\n🚨 DISPUTE ACTION REQUIRED on ${new Date().toISOString()} - Check Razorpay dashboard`;
+                    await order.save();
+                    console.log(`[Webhook] Order ${order._id} - Dispute action required`);
+                }
+                break;
+            }
+
+            // =====================================================
+            // PAYMENT DOWNTIME EVENTS
+            // =====================================================
+
+            case 'payment.downtime.started':
+            case 'payment.downtime.updated':
+            case 'payment.downtime.resolved': {
+                // These are system-level events, just log them
+                console.log(`[Webhook] Payment downtime event: ${eventType}`);
+                break;
+            }
+
+            // =====================================================
             // REFUND EVENTS
             // =====================================================
 
             case 'refund.created': {
-                // Refund initiated
                 const refund = payload.refund.entity;
                 console.log(`[Webhook] Refund created: ${refund.id}`);
 
-                const order = await Order.findOne({ razorpayPaymentId: refund.payment_id });
+                const order = await findOrderByRefund(refund);
 
                 if (order) {
                     order.refundStatus = 'processing';
                     order.refundId = refund.id;
-                    order.refundAmount = refund.amount / 100; // Convert paise to rupees
+                    order.refundAmount = refund.amount / 100;
                     order.refundInitiatedAt = new Date();
-                    order.refundNotes = `Refund created. Razorpay Refund ID: ${refund.id}`;
+                    order.refundNotes = `Refund created. Razorpay Refund ID: ${refund.id}. Speed: ${refund.speed_requested || 'normal'}`;
                     order.webhookEvents = order.webhookEvents || [];
                     order.webhookEvents.push({
                         event: 'refund.created',
                         timestamp: new Date(),
                         refundId: refund.id,
-                        amount: refund.amount / 100
+                        amount: refund.amount / 100,
+                        speed: refund.speed_requested
                     });
                     await order.save();
 
@@ -486,67 +641,62 @@ export const razorpayWebhook = async (req, res) => {
             }
 
             case 'refund.processed': {
-                // Refund successfully processed - money returned to customer
                 const refund = payload.refund.entity;
                 console.log(`[Webhook] Refund processed: ${refund.id}`);
 
-                // Try finding by refundId first, then by paymentId
-                let order = await Order.findOne({ refundId: refund.id });
-                if (!order) {
-                    order = await Order.findOne({ razorpayPaymentId: refund.payment_id });
-                }
+                const order = await findOrderByRefund(refund);
 
                 if (order) {
                     order.refundStatus = 'completed';
                     order.refundCompletedAt = new Date();
                     order.paymentStatus = 'refunded';
                     order.refundId = refund.id;
-                    order.refundNotes = `Refund completed. Amount: ₹${refund.amount / 100}. The amount will be credited to your bank account within 5-7 working days.`;
+                    order.refundAmount = refund.amount / 100;
+                    order.refundNotes = `✅ Refund completed. Amount: ₹${refund.amount / 100}. The amount has been credited to customer's account.`;
                     order.webhookEvents = order.webhookEvents || [];
                     order.webhookEvents.push({
                         event: 'refund.processed',
                         timestamp: new Date(),
                         refundId: refund.id,
-                        amount: refund.amount / 100
+                        amount: refund.amount / 100,
+                        speed: refund.speed_processed
                     });
                     await order.save();
+                    console.log(`[Webhook] Order ${order._id} - Refund processed successfully: ₹${refund.amount / 100}`);
                 }
                 break;
             }
 
             case 'refund.failed': {
-                // Refund failed
                 const refund = payload.refund.entity;
                 console.log(`[Webhook] Refund failed: ${refund.id}`);
 
-                let order = await Order.findOne({ refundId: refund.id });
-                if (!order) {
-                    order = await Order.findOne({ razorpayPaymentId: refund.payment_id });
-                }
+                const order = await findOrderByRefund(refund);
 
                 if (order) {
                     order.refundStatus = 'failed';
-                    order.refundNotes = `Refund failed. Reason: ${refund.notes?.failure_reason || 'Unknown'}`;
+                    const failureReason = refund.notes?.failure_reason || refund.failure_reason || 'Unknown reason';
+                    order.refundNotes = `❌ Refund failed. Reason: ${failureReason}. Please contact support.`;
                     order.webhookEvents = order.webhookEvents || [];
                     order.webhookEvents.push({
                         event: 'refund.failed',
                         timestamp: new Date(),
                         refundId: refund.id,
-                        reason: refund.notes?.failure_reason
+                        reason: failureReason
                     });
+                    order.adminNotes = (order.adminNotes || '') + `\n❌ Refund ${refund.id} failed on ${new Date().toISOString()}: ${failureReason}`;
                     await order.save();
 
-                    console.log(`[Webhook] Order ${order._id} - Refund failed: ${refund.notes?.failure_reason}`);
+                    console.log(`[Webhook] Order ${order._id} - Refund failed: ${failureReason}`);
                 }
                 break;
             }
 
             case 'refund.speed_changed': {
-                // Refund speed changed (normal to instant or vice versa)
                 const refund = payload.refund.entity;
                 console.log(`[Webhook] Refund speed changed: ${refund.id}`);
 
-                const order = await Order.findOne({ refundId: refund.id });
+                const order = await findOrderByRefund(refund);
                 if (order) {
                     order.webhookEvents = order.webhookEvents || [];
                     order.webhookEvents.push({
@@ -555,18 +705,17 @@ export const razorpayWebhook = async (req, res) => {
                         refundId: refund.id,
                         speed: refund.speed_processed
                     });
-                    order.refundNotes = `Refund speed: ${refund.speed_processed}`;
+                    order.refundNotes = `Refund speed changed to: ${refund.speed_processed}`;
                     await order.save();
                 }
                 break;
             }
 
             // =====================================================
-            // ORDER EVENTS (Razorpay Orders, not your orders)
+            // ORDER EVENTS (Razorpay Orders)
             // =====================================================
 
             case 'order.paid': {
-                // Razorpay order fully paid
                 const razorpayOrder = payload.order.entity;
                 console.log(`[Webhook] Razorpay order paid: ${razorpayOrder.id}`);
 
@@ -574,9 +723,118 @@ export const razorpayWebhook = async (req, res) => {
                 if (order && order.paymentStatus !== 'paid') {
                     order.paymentStatus = 'paid';
                     order.status = 'confirmed';
+                    order.webhookEvents = order.webhookEvents || [];
+                    order.webhookEvents.push({
+                        event: 'order.paid',
+                        timestamp: new Date(),
+                        amount: razorpayOrder.amount / 100
+                    });
                     await order.save();
                     console.log(`[Webhook] Order ${order._id} marked as paid via order.paid event`);
                 }
+                break;
+            }
+
+            case 'order.notification.delivered':
+            case 'order.notification.failed': {
+                // Notification events - just log
+                console.log(`[Webhook] Order notification event: ${eventType}`);
+                break;
+            }
+
+            // =====================================================
+            // INVOICE EVENTS
+            // =====================================================
+
+            case 'invoice.paid': {
+                console.log(`[Webhook] Invoice paid: ${payload.invoice?.entity?.id}`);
+                break;
+            }
+
+            case 'invoice.partially_paid': {
+                console.log(`[Webhook] Invoice partially paid: ${payload.invoice?.entity?.id}`);
+                break;
+            }
+
+            case 'invoice.expired': {
+                console.log(`[Webhook] Invoice expired: ${payload.invoice?.entity?.id}`);
+                break;
+            }
+
+            // =====================================================
+            // PAYMENT LINK EVENTS
+            // =====================================================
+
+            case 'payment_link.paid': {
+                const paymentLink = payload.payment_link?.entity;
+                console.log(`[Webhook] Payment link paid: ${paymentLink?.id}`);
+                break;
+            }
+
+            case 'payment_link.partially_paid': {
+                const paymentLink = payload.payment_link?.entity;
+                console.log(`[Webhook] Payment link partially paid: ${paymentLink?.id}`);
+                break;
+            }
+
+            case 'payment_link.expired': {
+                const paymentLink = payload.payment_link?.entity;
+                console.log(`[Webhook] Payment link expired: ${paymentLink?.id}`);
+                break;
+            }
+
+            case 'payment_link.cancelled': {
+                const paymentLink = payload.payment_link?.entity;
+                console.log(`[Webhook] Payment link cancelled: ${paymentLink?.id}`);
+                break;
+            }
+
+            // =====================================================
+            // SETTLEMENT EVENTS
+            // =====================================================
+
+            case 'settlement.processed': {
+                console.log(`[Webhook] Settlement processed: ${payload.settlement?.entity?.id}`);
+                // Settlement events are for bank transfers to your account
+                break;
+            }
+
+            // =====================================================
+            // SUBSCRIPTION EVENTS (if you use Razorpay subscriptions)
+            // =====================================================
+
+            case 'subscription.authenticated':
+            case 'subscription.activated':
+            case 'subscription.charged':
+            case 'subscription.pending':
+            case 'subscription.halted':
+            case 'subscription.cancelled':
+            case 'subscription.completed':
+            case 'subscription.paused':
+            case 'subscription.resumed':
+            case 'subscription.updated': {
+                console.log(`[Webhook] Subscription event: ${eventType}`);
+                // Handle subscription events if you implement subscriptions
+                break;
+            }
+
+            // =====================================================
+            // FUND ACCOUNT EVENTS (for payouts)
+            // =====================================================
+
+            case 'fund_account.validation.completed':
+            case 'fund_account.validation.failed': {
+                console.log(`[Webhook] Fund account event: ${eventType}`);
+                break;
+            }
+
+            // =====================================================
+            // ACCOUNT EVENTS (for marketplace/route)
+            // =====================================================
+
+            case 'account.instantly_activated':
+            case 'account.activated_kyc_pending': {
+                console.log(`[Webhook] Account event: ${eventType}`);
                 break;
             }
 
@@ -585,13 +843,11 @@ export const razorpayWebhook = async (req, res) => {
         }
 
         // Always respond with 200 OK to acknowledge receipt
-        // Razorpay will retry if it doesn't receive 2xx response
         res.status(200).json({ status: 'ok', event: eventType });
 
     } catch (error) {
         console.error('[Webhook] Error processing webhook:', error);
         // Still return 200 to prevent Razorpay from retrying indefinitely
-        // Log the error for investigation
         res.status(200).json({ status: 'error', message: 'Internal processing error' });
     }
 };

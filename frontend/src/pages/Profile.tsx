@@ -111,6 +111,10 @@ export default function Profile() {
         confirmPassword: '',
     });
 
+    // 2FA state
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+    const [isUpdating2FA, setIsUpdating2FA] = useState(false);
+
     useEffect(() => {
         if (!token) {
             navigate('/login');
@@ -132,6 +136,7 @@ export default function Profile() {
                         gender: data.user.gender || '',
                         dateOfBirth: data.user.dateOfBirth ? data.user.dateOfBirth.split('T')[0] : '',
                     });
+                    setTwoFactorEnabled(data.user.twoFactorEnabled || false);
                 }
             } catch (error) {
                 console.error('Failed to fetch profile:', error);
@@ -305,6 +310,39 @@ export default function Profile() {
             setMessage({ type: 'error', text: 'Failed to change password' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleToggle2FA = async () => {
+        setIsUpdating2FA(true);
+        try {
+            const response = await fetch(`${API_URL}/users/2fa-settings`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    enabled: !twoFactorEnabled,
+                }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setTwoFactorEnabled(data.twoFactorEnabled);
+                setMessage({
+                    type: 'success',
+                    text: data.twoFactorEnabled
+                        ? 'Two-factor authentication enabled successfully!'
+                        : 'Two-factor authentication disabled successfully!',
+                });
+            } else {
+                setMessage({ type: 'error', text: data.message });
+            }
+        } catch (error) {
+            console.error('Toggle 2FA error:', error);
+            setMessage({ type: 'error', text: 'Failed to update two-factor authentication' });
+        } finally {
+            setIsUpdating2FA(false);
         }
     };
 
@@ -860,6 +898,43 @@ export default function Profile() {
                                                         <span className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full">Not Verified</span>
                                                     )}
                                                 </div>
+                                            </div>
+
+                                            {/* Two-Factor Authentication */}
+                                            <div className="p-6 rounded-xl border border-gray-200">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Shield className="h-5 w-5 text-amber-600" />
+                                                        <div>
+                                                            <h3 className="font-semibold text-black">Two-Factor Authentication</h3>
+                                                            <p className="text-sm text-black/60">
+                                                                Add an extra layer of security to your account
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleToggle2FA}
+                                                        disabled={isUpdating2FA}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${twoFactorEnabled ? 'bg-amber-600' : 'bg-gray-200'
+                                                            } ${isUpdating2FA ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <span
+                                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'
+                                                                }`}
+                                                        />
+                                                    </button>
+                                                </div>
+                                                {twoFactorEnabled && (
+                                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                                        <div className="flex items-start gap-2 text-sm text-black/60">
+                                                            <Shield className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                                            <p>
+                                                                Two-factor authentication is <span className="font-semibold text-green-700">enabled</span>.
+                                                                You'll receive a 6-digit OTP via email when logging in.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

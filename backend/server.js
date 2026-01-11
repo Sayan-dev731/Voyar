@@ -10,6 +10,7 @@ import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import shiprocketRoutes from './routes/shiprocketRoutes.js';
+import shiprocketWebhookRoutes from './routes/shiprocketWebhookRoutes.js';
 
 // Security imports
 import { validateEnvironment } from './config/security.js';
@@ -62,7 +63,8 @@ const allowedOrigins = [
     'http://localhost:5174',
     'https://voyar.vercel.app',
     'https://www.voyareyewear.com',
-    'https://voyareyewear.com'
+    'https://voyareyewear.com',
+    'https://nonfeudally-unstandardised-loyce.ngrok-free.dev'
 ];
 
 app.use(cors({
@@ -134,6 +136,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/shiprocket', shiprocketRoutes);
+app.use('/api/shipping-webhook', shiprocketWebhookRoutes);
 
 // Health check route (no rate limiting)
 app.get('/api/health', (req, res) => {

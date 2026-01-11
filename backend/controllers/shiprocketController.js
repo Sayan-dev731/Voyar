@@ -1,21 +1,236 @@
 import Order from '../models/Order.js';
+import { SiteSettings } from '../models/Admin.js';
 import {
     createShiprocketOrder,
     getCourierServiceability,
     assignCourier,
     schedulePickup,
     trackByAWB,
-    trackByOrderId,
     cancelShipment,
     cancelShiprocketOrder,
     getPickupLocations,
     generateLabel,
     generateInvoice,
-    generateManifest,
     mapShiprocketStatus,
-    getStatusLabel
+    getStatusLabel,
+    addPickupLocation,
+    getShiprocketToken,
+    verifyPickupLocation,
+    getDefaultPickupLocation,
+    getPickupLocationDetails,
+    updateOrderPickupLocation
 } from '../config/shiprocket.js';
 import { sendOrderStatusEmail } from '../config/email.js';
+
+/**
+ * Test Shiprocket connection and credentials
+ * Admin only
+ */
+export const testShiprocketConnection = async (req, res) => {
+    try {
+        // Try to get token to verify credentials
+        await getShiprocketToken();
+
+        // Get all pickup locations (force refresh)
+        const pickupResult = await getPickupLocations(true);
+        const pickupLocations = pickupResult.data?.shipping_address || [];
+
+        // Get default pickup location name
+        const defaultLocation = pickupLocations.length > 0 ? pickupLocations[0].pickup_location : null;
+
+        res.json({
+            success: true,
+            message: 'Shiprocket connection successful',
+            pickupLocations: pickupLocations.map(loc => ({
+                name: loc.pickup_location,
+                address: loc.address,
+                city: loc.city,
+                state: loc.state,
+                pincode: loc.pin_code,
+                phone: loc.phone,
+                isDefault: loc.pickup_location === defaultLocation
+            })),
+            defaultPickupLocation: defaultLocation,
+            totalLocations: pickupLocations.length
+        });
+    } catch (error) {
+        console.error('Shiprocket connection test failed:', error.message);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to connect to Shiprocket',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Sync pickup location - Get available pickup locations from Shiprocket
+ * Admin only
+ */
+export const syncPickupLocations = async (req, res) => {
+    try {
+        // Force refresh pickup locations from Shiprocket
+        const pickupResult = await getPickupLocations(true);
+        const pickupLocations = pickupResult.data?.shipping_address || [];
+
+        if (pickupLocations.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No pickup locations found in Shiprocket. Please add a pickup location in your Shiprocket dashboard.',
+                helpUrl: 'https://app.shiprocket.in/settings/pickup-addresses'
+            });
+        }
+
+        // Get current settings
+        const settings = await SiteSettings.findOne();
+
+        res.json({
+            success: true,
+            message: `Found ${pickupLocations.length} pickup location(s)`,
+            pickupLocations: pickupLocations.map(loc => ({
+                name: loc.pickup_location,
+                address: loc.address,
+                address2: loc.address_2 || '',
+                city: loc.city,
+                state: loc.state,
+                pincode: loc.pin_code,
+                phone: loc.phone,
+                email: loc.email || '',
+                country: loc.country || 'India'
+            })),
+            currentSettingsLocation: settings?.pickupAddress?.pickupLocationName || null
+        });
+    } catch (error) {
+        console.error('Sync pickup locations error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to sync pickup locations'
+        });
+    }
+};
+
+/**
+ * Add new pickup location to Shiprocket
+ * Admin only
+ */
+export const createPickupLocation = async (req, res) => {
+    try {
+        const { name, email, phone, address, address2, city, state, pincode, pickupLocationName } = req.body;
+
+        // Validate required fields
+        if (!name || !phone || !address || !city || !state || !pincode) {
+            return res.status(400).json({
+                message: 'Missing required fields: name, phone, address, city, state, pincode'
+            });
+        }
+
+        const locationData = {
+            pickupLocationName: pickupLocationName || name.replace(/\s+/g, '_'),
+            name,
+            email: email || '',
+            phone,
+            address,
+            address2: address2 || '',
+            city,
+            state,
+            pincode,
+            country: 'India'
+        };
+
+        const result = await addPickupLocation(locationData);
+
+        // Update site settings with the new pickup location
+        let settings = await SiteSettings.findOne();
+        if (!settings) {
+            settings = new SiteSettings({});
+        }
+
+        settings.pickupAddress = {
+            pickupLocationName: locationData.pickupLocationName,
+            name: locationData.name,
+            email: locationData.email,
+            phone: locationData.phone,
+            address: locationData.address,
+            address2: locationData.address2,
+            city: locationData.city,
+            state: locationData.state,
+            pincode: locationData.pincode,
+            country: 'India'
+        };
+        settings.pickupAddressConfigured = true;
+        await settings.save();
+
+        res.json({
+            success: true,
+            message: 'Pickup location added successfully',
+            result,
+            settings: settings.pickupAddress
+        });
+    } catch (error) {
+        console.error('Create pickup location error:', error.message);
+        const errorMsg = error.response?.data?.message || error.message;
+        res.status(500).json({
+            success: false,
+            message: errorMsg || 'Failed to add pickup location'
+        });
+    }
+};
+
+/**
+ * Select and save a pickup location from Shiprocket to settings
+ * Admin only
+ */
+export const selectPickupLocation = async (req, res) => {
+    try {
+        const { pickupLocationName } = req.body;
+
+        if (!pickupLocationName) {
+            return res.status(400).json({ message: 'Pickup location name is required' });
+        }
+
+        // Verify the location exists in Shiprocket
+        const verifiedName = await verifyPickupLocation(pickupLocationName);
+        if (!verifiedName) {
+            return res.status(404).json({
+                message: `Pickup location "${pickupLocationName}" not found in Shiprocket`
+            });
+        }
+
+        // Get full details of the location
+        const locationDetails = await getPickupLocationDetails(verifiedName);
+
+        // Update site settings
+        let settings = await SiteSettings.findOne();
+        if (!settings) {
+            settings = new SiteSettings({});
+        }
+
+        settings.pickupAddress = {
+            pickupLocationName: verifiedName,
+            name: locationDetails?.name || '',
+            phone: locationDetails?.phone || '',
+            address: locationDetails?.address || '',
+            city: locationDetails?.city || '',
+            state: locationDetails?.state || '',
+            pincode: locationDetails?.pincode || '',
+            country: 'India'
+        };
+        settings.pickupAddressConfigured = true;
+        await settings.save();
+
+        res.json({
+            success: true,
+            message: `Pickup location "${verifiedName}" selected successfully`,
+            pickupAddress: settings.pickupAddress
+        });
+    } catch (error) {
+        console.error('Select pickup location error:', error.message);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to select pickup location'
+        });
+    }
+};
 
 /**
  * Create shipment in Shiprocket for an order
@@ -38,6 +253,19 @@ export const createShipment = async (req, res) => {
             });
         }
 
+        // Validate shipping address
+        if (!order.shippingAddress ||
+            !order.shippingAddress.name ||
+            !order.shippingAddress.phone ||
+            !order.shippingAddress.street ||
+            !order.shippingAddress.city ||
+            !order.shippingAddress.state ||
+            !(order.shippingAddress.zipCode || order.shippingAddress.pincode)) {
+            return res.status(400).json({
+                message: 'Please add shipping address first. Required: name, phone, street, city, state, and pincode.'
+            });
+        }
+
         // Only create shipment for confirmed/processing orders
         if (!['confirmed', 'processing'].includes(order.status)) {
             return res.status(400).json({
@@ -45,15 +273,21 @@ export const createShipment = async (req, res) => {
             });
         }
 
-        // Create order in Shiprocket
-        const result = await createShiprocketOrder(order);
+        // Get pickup address from settings (optional - Shiprocket will use default if not found)
+        const settings = await SiteSettings.findOne();
+        const pickupAddress = settings?.pickupAddress;
+
+        console.log(`Creating shipment for order ${order._id}`);
+
+        // Create order in Shiprocket - pickup location will be auto-fetched if needed
+        const result = await createShiprocketOrder(order, pickupAddress);
 
         if (result.order_id) {
             // Update order with Shiprocket details
             order.shiprocket = {
                 orderId: result.order_id,
                 shipmentId: result.shipment_id,
-                shipmentStatus: 'awb_assigned',
+                shipmentStatus: 'created',
                 lastTrackedAt: new Date()
             };
             order.status = 'processing';
@@ -69,10 +303,9 @@ export const createShipment = async (req, res) => {
             throw new Error(result.message || 'Failed to create shipment');
         }
     } catch (error) {
-        console.error('Create shipment error:', error.response?.data || error.message);
-        res.status(500).json({
-            message: error.response?.data?.message || error.message || 'Failed to create shipment'
-        });
+        console.error('Create shipment error:', error.message);
+        const errorMessage = error.message || 'Failed to create shipment';
+        res.status(500).json({ message: errorMessage });
     }
 };
 
@@ -561,85 +794,169 @@ export const quickShip = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (!['confirmed', 'processing'].includes(order.status)) {
+        // Validate shipping address
+        if (!order.shippingAddress ||
+            !order.shippingAddress.name ||
+            !order.shippingAddress.phone ||
+            !order.shippingAddress.street ||
+            !order.shippingAddress.city ||
+            !order.shippingAddress.state ||
+            !(order.shippingAddress.zipCode || order.shippingAddress.pincode)) {
             return res.status(400).json({
-                message: 'Order must be confirmed or processing to ship'
+                message: 'Please add shipping address first. Required: name, phone, street, city, state, and pincode.'
             });
         }
+
+        // Allow pending, confirmed, or processing orders to be shipped
+        if (!['pending', 'confirmed', 'processing'].includes(order.status)) {
+            return res.status(400).json({
+                message: 'Order must be pending, confirmed, or processing to ship. Current status: ' + order.status
+            });
+        }
+
+        // Get pickup address from settings (optional)
+        const settings = await SiteSettings.findOne();
+        const pickupAddress = settings?.pickupAddress;
 
         const steps = [];
 
         // Step 1: Create shipment if not exists
         if (!order.shiprocket?.orderId) {
-            const createResult = await createShiprocketOrder(order);
+            const createResult = await createShiprocketOrder(order, pickupAddress);
             if (createResult.order_id) {
                 order.shiprocket = {
                     orderId: createResult.order_id,
                     shipmentId: createResult.shipment_id,
-                    shipmentStatus: 'awb_assigned',
+                    // Map Shiprocket status to our enum - 'NEW' becomes 'new'
+                    shipmentStatus: createResult.status === 'NEW' ? 'new' : 'created',
                     lastTrackedAt: new Date()
                 };
-                steps.push({ step: 'create', success: true, orderId: createResult.order_id });
+                steps.push({ step: 'create', success: true, orderId: createResult.order_id, shipmentId: createResult.shipment_id });
             } else {
                 throw new Error('Failed to create shipment');
             }
         }
 
-        // Step 2: Get recommended courier if not provided
+        // Step 2: Get pickup location details for pincode
+        let pickupPincode = pickupAddress?.pincode;
+        if (!pickupPincode) {
+            const defaultLocation = await getDefaultPickupLocation();
+            if (defaultLocation) {
+                const locationDetails = await getPickupLocationDetails(defaultLocation);
+                pickupPincode = locationDetails?.pincode || process.env.PICKUP_PINCODE || '110001';
+            }
+        }
+
+        // Step 3: Get recommended courier if not provided
         let selectedCourierId = courierId;
+        let selectedCourierName = null;
+
         if (!selectedCourierId) {
-            const pickupPincode = process.env.PICKUP_PINCODE || '110001';
+            const deliveryPincode = order.shippingAddress.zipCode || order.shippingAddress.pincode;
+            console.log(`Getting couriers for pickup: ${pickupPincode}, delivery: ${deliveryPincode}`);
+
             const couriers = await getCourierServiceability(
                 pickupPincode,
-                order.shippingAddress.zipCode,
+                deliveryPincode,
                 0.5,
                 order.paymentMethod === 'cod'
             );
 
+            console.log(`Courier serviceability:`, JSON.stringify({
+                available: couriers.data?.available_courier_companies?.length || 0,
+                recommended: couriers.data?.recommended_courier_company_id
+            }));
+
             if (couriers.data?.recommended_courier_company_id) {
                 selectedCourierId = couriers.data.recommended_courier_company_id;
+                const courier = couriers.data.available_courier_companies?.find(
+                    c => c.courier_company_id === selectedCourierId
+                );
+                selectedCourierName = courier?.courier_name;
             } else if (couriers.data?.available_courier_companies?.length > 0) {
-                selectedCourierId = couriers.data.available_courier_companies[0].courier_company_id;
+                // Select cheapest courier
+                const sortedCouriers = couriers.data.available_courier_companies.sort(
+                    (a, b) => a.rate - b.rate
+                );
+                selectedCourierId = sortedCouriers[0].courier_company_id;
+                selectedCourierName = sortedCouriers[0].courier_name;
+            }
+
+            if (!selectedCourierId) {
+                steps.push({ step: 'get_couriers', success: false, error: 'No couriers available for this route' });
+            } else {
+                console.log(`Selected courier: ${selectedCourierName} (ID: ${selectedCourierId})`);
             }
         }
 
-        // Step 3: Assign courier if not already assigned
+        // Step 4: Assign courier if not already assigned
         if (!order.shiprocket.awbCode && selectedCourierId) {
-            const assignResult = await assignCourier(order.shiprocket.shipmentId, selectedCourierId);
-            if (assignResult.response?.data?.awb_code) {
-                order.shiprocket.awbCode = assignResult.response.data.awb_code;
-                order.shiprocket.courierCompanyId = assignResult.response.data.courier_company_id;
-                order.shiprocket.courierName = assignResult.response.data.courier_name;
-                steps.push({
-                    step: 'assign_courier',
-                    success: true,
-                    awbCode: assignResult.response.data.awb_code,
-                    courierName: assignResult.response.data.courier_name
-                });
+            try {
+                const assignResult = await assignCourier(order.shiprocket.shipmentId, selectedCourierId);
+                console.log(`Assign courier result:`, JSON.stringify(assignResult));
+
+                // Handle different response structures from Shiprocket
+                const awbCode = assignResult.response?.data?.awb_code ||
+                    assignResult.awb_code ||
+                    assignResult.data?.awb_code;
+                const courierName = assignResult.response?.data?.courier_name ||
+                    assignResult.courier_name ||
+                    selectedCourierName;
+                const courierCompanyId = assignResult.response?.data?.courier_company_id ||
+                    assignResult.courier_company_id ||
+                    selectedCourierId;
+
+                if (awbCode) {
+                    order.shiprocket.awbCode = awbCode;
+                    order.shiprocket.courierCompanyId = courierCompanyId;
+                    order.shiprocket.courierName = courierName;
+                    order.shiprocket.shipmentStatus = 'awb_assigned';
+                    steps.push({
+                        step: 'assign_courier',
+                        success: true,
+                        awbCode: awbCode,
+                        courierName: courierName
+                    });
+                } else {
+                    console.error('No AWB code in assign response:', assignResult);
+                    steps.push({
+                        step: 'assign_courier',
+                        success: false,
+                        error: 'No AWB code returned',
+                        response: assignResult
+                    });
+                }
+            } catch (assignError) {
+                console.error('Courier assignment failed:', assignError.message);
+                steps.push({ step: 'assign_courier', success: false, error: assignError.message });
             }
+        } else if (!selectedCourierId) {
+            steps.push({ step: 'assign_courier', success: false, error: 'No courier selected' });
         }
 
-        // Step 4: Schedule pickup
-        if (order.shiprocket.shipmentId && !order.shiprocket.pickupScheduledDate) {
+        // Step 5: Schedule pickup
+        if (order.shiprocket.shipmentId && order.shiprocket.awbCode && !order.shiprocket.pickupScheduledDate) {
             try {
                 const pickupResult = await schedulePickup(order.shiprocket.shipmentId);
-                if (pickupResult.pickup_status) {
+                console.log(`Pickup result:`, JSON.stringify(pickupResult));
+                if (pickupResult.pickup_status || pickupResult.status) {
                     order.shiprocket.pickupScheduledDate = new Date();
-                    order.shiprocket.pickupTokenNumber = pickupResult.pickup_token_number;
+                    order.shiprocket.pickupTokenNumber = pickupResult.pickup_token_number || pickupResult.token;
                     order.shiprocket.shipmentStatus = 'pickup_scheduled';
                     steps.push({
                         step: 'schedule_pickup',
                         success: true,
-                        pickupToken: pickupResult.pickup_token_number
+                        pickupToken: pickupResult.pickup_token_number || pickupResult.token
                     });
                 }
             } catch (pickupError) {
+                console.error('Pickup scheduling failed:', pickupError.message);
                 steps.push({ step: 'schedule_pickup', success: false, error: pickupError.message });
             }
         }
 
-        // Update order status
-        order.status = 'processing';
+        // Update order status to shipped
+        order.status = 'shipped';
         order.shiprocket.lastTrackedAt = new Date();
         await order.save();
 
@@ -657,10 +974,9 @@ export const quickShip = async (req, res) => {
             shiprocket: order.shiprocket
         });
     } catch (error) {
-        console.error('Quick ship error:', error.response?.data || error.message);
-        res.status(500).json({
-            message: error.response?.data?.message || error.message || 'Failed to ship order'
-        });
+        console.error('Quick ship error:', error.message);
+        const errorMessage = error.message || 'Failed to ship order';
+        res.status(500).json({ message: errorMessage });
     }
 };
 
@@ -731,6 +1047,10 @@ export const bulkTrackingUpdate = async (req, res) => {
 };
 
 export default {
+    testShiprocketConnection,
+    syncPickupLocations,
+    createPickupLocation,
+    selectPickupLocation,
     createShipment,
     getAvailableCouriers,
     assignCourierToOrder,

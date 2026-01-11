@@ -631,3 +631,50 @@ export const sendPaymentFailureEmail = async (customerEmail, customerName, order
     throw new Error('Failed to send payment failure email');
   }
 };
+
+// Send 2FA OTP email
+export const send2FAOTPEmail = async (email, name, otp) => {
+  const transporter = createTransporter();
+
+  if (!transporter) {
+    console.warn('Email transporter not available. Skipping email send.');
+    throw new Error('Email service not configured');
+  }
+
+  const content = `
+    <h2>Hi ${name},</h2>
+    <p>You are attempting to log in to your Voyar account. To complete the login process, please use the One-Time Password (OTP) below:</p>
+    
+    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px; margin: 30px 0; font-size: 32px; font-weight: bold; letter-spacing: 8px;">
+      ${otp}
+    </div>
+
+    <p><strong>This OTP will expire in 10 minutes.</strong></p>
+
+    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 5px;">
+      <p style="margin: 0; color: #92400e;">
+        <strong>Security Notice:</strong> Never share this OTP with anyone. Voyar support will never ask for your OTP.
+      </p>
+    </div>
+
+    <p>If you didn't attempt to log in, please secure your account immediately by changing your password.</p>
+    
+    <p>Best regards,<br>The Voyar Team</p>
+  `;
+
+  const mailOptions = {
+    from: `"Voyar Eyewear" <${process.env.EMAIL_ID}>`,
+    to: email,
+    subject: 'Your 2FA Login Code - Voyar Eyewear',
+    html: getEmailTemplate('Two-Factor Authentication', 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', content),
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`2FA OTP email sent to ${email}`);
+  } catch (error) {
+    console.error('Error sending 2FA OTP email:', error);
+    throw new Error('Failed to send 2FA OTP email');
+  }
+};
+

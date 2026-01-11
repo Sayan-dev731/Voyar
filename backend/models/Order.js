@@ -48,10 +48,15 @@ const orderSchema = new mongoose.Schema({
         name: String,
         phone: String,
         street: String,
+        landmark: String, // Optional landmark for better delivery
         city: String,
         state: String,
-        zipCode: String,
-        country: String
+        zipCode: String, // Shiprocket uses pincode
+        pincode: String, // Alias for zipCode - Shiprocket compatible
+        country: {
+            type: String,
+            default: 'India'
+        }
     },
     paymentMethod: {
         type: String,
@@ -146,16 +151,13 @@ const orderSchema = new mongoose.Schema({
     // Shiprocket shipment tracking fields
     shiprocket: {
         orderId: {
-            type: Number,
-            index: true
+            type: Number
         },
         shipmentId: {
-            type: Number,
-            index: true
+            type: Number
         },
         awbCode: {
-            type: String,
-            index: true
+            type: String
         },
         courierCompanyId: {
             type: Number
@@ -183,10 +185,13 @@ const orderSchema = new mongoose.Schema({
             type: String,
             enum: [
                 'not_created',
+                'new',           // Shiprocket status: NEW
+                'created',       // When order is first created in Shiprocket
                 'awb_assigned',
                 'label_generated',
                 'pickup_scheduled',
                 'pickup_queued',
+                'pickup_generated',
                 'manifest_generated',
                 'picked_up',
                 'shipped',
@@ -194,11 +199,14 @@ const orderSchema = new mongoose.Schema({
                 'out_for_delivery',
                 'delivered',
                 'rto_initiated',
+                'rto_in_transit',
                 'rto_delivered',
                 'cancelled',
                 'undelivered',
                 'lost',
-                'damaged'
+                'damaged',
+                'pending',
+                'processing'
             ],
             default: 'not_created'
         },
