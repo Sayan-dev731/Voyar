@@ -26,8 +26,16 @@ export default function Signup() {
             return;
         }
 
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters long');
+        // Validate password strength to match backend requirements
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters long');
+            setLoading(false);
+            return;
+        }
+
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+        if (!passwordRegex.test(password)) {
+            setError('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)');
             setLoading(false);
             return;
         }
@@ -44,6 +52,11 @@ export default function Signup() {
             const data = await response.json();
 
             if (!response.ok) {
+                // Handle validation errors from backend
+                if (data.errors && Array.isArray(data.errors)) {
+                    const errorMessages = data.errors.map((err: { message: string }) => err.message).join('. ');
+                    throw new Error(errorMessages);
+                }
                 throw new Error(data.message || 'Signup failed');
             }
 
@@ -127,10 +140,13 @@ export default function Signup() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 border border-black/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                                placeholder="Minimum 6 characters"
+                                placeholder="Min 8 chars, uppercase, lowercase, number & special char"
                                 required
                             />
                         </div>
+                        <p className="mt-1 text-xs text-black/50">
+                            Must include uppercase, lowercase, number, and special character (@$!%*?&)
+                        </p>
                     </div>
 
                     <div>
