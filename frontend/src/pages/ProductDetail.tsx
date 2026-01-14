@@ -195,16 +195,13 @@ export const ProductDetail = () => {
         setReviewError('')
 
         try {
-            const response = await fetch(`${API_URL}/reviews`, {
+            const response = await fetch(`${API_URL}/reviews/product/${id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    productId: id,
-                    ...reviewForm
-                })
+                body: JSON.stringify(reviewForm)
             })
 
             if (response.ok) {
@@ -243,7 +240,7 @@ export const ProductDetail = () => {
 
         try {
             const response = await fetch(`${API_URL}/reviews/${reviewId}/helpful`, {
-                method: 'PUT',
+                method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             })
 
