@@ -366,7 +366,7 @@ export const LensSelector = ({
                                     <Eye className="w-4 h-4" /> Right Eye (OD)
                                 </h4>
                                 <div className="grid grid-cols-3 gap-3">
-                                    {['SPH', 'CYL', 'AXIS'].map((label, i) => (
+                                    {['SPH', 'CYL', 'AXIS'].map((label) => (
                                         <div key={label}>
                                             <label className="block text-xs text-gray-500 mb-1.5">{label}</label>
                                             <select
