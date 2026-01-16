@@ -1,10 +1,36 @@
-import { useState, useEffect } from 'react'
-import { ShoppingCart, Search, Menu, X, User, LogOut, Heart, Gift } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { ShoppingCart, Search, Menu, X, User, LogOut, Heart, ChevronDown, Phone, MapPin, Package } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
+
+interface CategoryItem {
+    label: string
+    href: string
+    badge?: string
+}
+
+interface MegaMenuData {
+    eyeglasses: CategoryItem[]
+    sunglasses: CategoryItem[]
+}
+
+const megaMenuData: MegaMenuData = {
+    eyeglasses: [
+        { label: 'Men', href: '/collections?category=eyeglasses&gender=men' },
+        { label: 'Women', href: '/collections?category=eyeglasses&gender=women' },
+        { label: '@999', href: '/collections?category=eyeglasses&price=999', badge: 'Sale' },
+        { label: 'Sports', href: '/collections?category=eyeglasses&style=sports' },
+    ],
+    sunglasses: [
+        { label: 'Men', href: '/collections?category=sunglasses&gender=men' },
+        { label: 'Women', href: '/collections?category=sunglasses&gender=women' },
+        { label: '@999', href: '/collections?category=sunglasses&price=999', badge: 'Sale' },
+        { label: 'Sports', href: '/collections?category=sunglasses&style=sports' },
+    ],
+}
 
 export const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false)
@@ -12,6 +38,8 @@ export const Navbar = () => {
     const [searchQuery, setSearchQuery] = useState('')
     const [showSearch, setShowSearch] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
+    const [activeDropdown, setActiveDropdown] = useState<'eyeglasses' | 'sunglasses' | null>(null)
+    const dropdownTimeoutRef = useRef<number | null>(null)
     const navigate = useNavigate()
     const { totalItems } = useCart()
     const { user, isAuthenticated, logout } = useAuth()
@@ -24,13 +52,29 @@ export const Navbar = () => {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
-    const navLinks = [
-        { name: 'Eyeglasses', href: '/#eyeglasses' },
-        { name: 'Sunglasses', href: '/#sunglasses' },
-        { name: 'Collections', href: '/collections' },
-        { name: 'Contact', href: '/contact' },
-        { name: 'About', href: '/#about' },
-    ]
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => {
+            setActiveDropdown(null)
+        }
+        if (activeDropdown) {
+            document.addEventListener('click', handleClickOutside)
+            return () => document.removeEventListener('click', handleClickOutside)
+        }
+    }, [activeDropdown])
+
+    const handleDropdownEnter = (menu: 'eyeglasses' | 'sunglasses') => {
+        if (dropdownTimeoutRef.current) {
+            clearTimeout(dropdownTimeoutRef.current)
+        }
+        setActiveDropdown(menu)
+    }
+
+    const handleDropdownLeave = () => {
+        dropdownTimeoutRef.current = window.setTimeout(() => {
+            setActiveDropdown(null)
+        }, 150)
+    }
 
     const handleLogout = () => {
         logout()
@@ -54,21 +98,51 @@ export const Navbar = () => {
 
     return (
         <>
+            {/* Top Info Bar */}
+            <div className="hidden lg:block bg-amber-50 border-b border-amber-100">
+                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-9 text-xs">
+                        <div className="flex items-center gap-6 text-black/60">
+                            <a href="tel:+919667194067" className="flex items-center gap-1.5 hover:text-amber-600 transition-colors">
+                                <Phone className="h-3 w-3" />
+                                <span>+91 9667194067</span>
+                            </a>
+                            <span className="flex items-center gap-1.5">
+                                <MapPin className="h-3 w-3" />
+                                <span>Patna, Bihar</span>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-6 text-black/60">
+                            <Link to="/orders" className="flex items-center gap-1.5 hover:text-amber-600 transition-colors">
+                                <Package className="h-3 w-3" />
+                                <span>Track Order</span>
+                            </Link>
+                            <Link to="/contact" className="hover:text-amber-600 transition-colors">
+                                Return & Exchange
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Navbar */}
             <nav
                 className={cn(
-                    'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-                    isScrolled ? 'bg-black border-b border-white/10 shadow-sm' : 'bg-black'
+                    'sticky top-0 left-0 right-0 z-50 transition-all duration-300',
+                    isScrolled
+                        ? 'bg-white/95 backdrop-blur-md border-b border-amber-100 shadow-sm'
+                        : 'bg-white border-b border-amber-100'
                 )}
             >
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Mobile header (matches reference) */}
+                    {/* Mobile header */}
                     <div className="lg:hidden">
                         <div className="relative flex items-center h-16">
                             <div className="flex items-center gap-2">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
+                                    className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50"
                                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                                     aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
                                 >
@@ -78,11 +152,6 @@ export const Navbar = () => {
                                         <Menu className="h-5 w-5" />
                                     )}
                                 </Button>
-
-                                <div className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-3 py-2 text-sm font-semibold text-black">
-                                    <Gift className="h-4 w-4" />
-                                    <span>₹599</span>
-                                </div>
                             </div>
 
                             <button
@@ -104,65 +173,40 @@ export const Navbar = () => {
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
+                                    className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50"
+                                    onClick={() => setShowSearch(!showSearch)}
+                                    aria-label="Search"
+                                >
+                                    <Search className="h-5 w-5" />
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50"
                                     aria-label="Wishlist"
                                 >
                                     <Heart className="h-5 w-5" />
                                 </Button>
 
                                 {isAuthenticated ? (
-                                    <div className="relative">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
-                                            onClick={() => setShowUserMenu(!showUserMenu)}
-                                            aria-label="User menu"
-                                        >
-                                            <User className="h-5 w-5" />
-                                        </Button>
-
-                                        {showUserMenu && (
-                                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-black/10 py-1 z-50">
-                                                <div className="px-4 py-2 border-b border-black/10">
-                                                    <p className="text-sm font-medium text-black truncate">{user?.name}</p>
-                                                    <p className="text-xs text-black/60 truncate">{user?.email}</p>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        navigate('/profile')
-                                                        setShowUserMenu(false)
-                                                    }}
-                                                    className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
-                                                >
-                                                    My Profile
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        navigate('/orders')
-                                                        setShowUserMenu(false)
-                                                    }}
-                                                    className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
-                                                >
-                                                    My Orders
-                                                </button>
-                                                <button
-                                                    onClick={handleLogout}
-                                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                >
-                                                    <LogOut className="h-4 w-4" />
-                                                    Logout
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50"
+                                        onClick={() => navigate('/profile')}
+                                        aria-label="Profile"
+                                    >
+                                        <User className="h-5 w-5" />
+                                    </Button>
                                 ) : (
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10"
+                                        className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50"
                                         onClick={() => navigate('/login')}
                                         aria-label="Login"
                                     >
@@ -174,13 +218,13 @@ export const Navbar = () => {
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 text-white/90 hover:text-white hover:bg-white/10 relative"
+                                    className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50 relative"
                                     onClick={() => navigate('/cart')}
                                     aria-label="Cart"
                                 >
                                     <ShoppingCart className="h-5 w-5" />
                                     {totalItems > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                                        <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                                             {totalItems}
                                         </span>
                                     )}
@@ -188,29 +232,32 @@ export const Navbar = () => {
                             </div>
                         </div>
 
-                        {/* Search bar (always visible on mobile) */}
-                        <div className="pb-3">
-                            <form onSubmit={handleSearch} className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search products..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full h-12 rounded-2xl bg-white border border-black/10 px-4 pr-12 text-sm text-black placeholder:text-black/40 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                                />
-                                <button
-                                    type="submit"
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black/50"
-                                    aria-label="Search"
-                                >
-                                    <Search className="h-5 w-5" />
-                                </button>
-                            </form>
-                        </div>
+                        {/* Mobile Search bar */}
+                        {showSearch && (
+                            <div className="pb-3">
+                                <form onSubmit={handleSearch} className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search products..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full h-12 rounded-xl bg-amber-50 border border-amber-200 px-4 pr-12 text-sm text-black placeholder:text-black/40 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:border-amber-400"
+                                        autoFocus
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-600"
+                                        aria-label="Search"
+                                    >
+                                        <Search className="h-5 w-5" />
+                                    </button>
+                                </form>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Desktop header (keep existing behavior) */}
-                    <div className="hidden lg:flex items-center justify-between h-20">
+                    {/* Desktop header */}
+                    <div className="hidden lg:flex items-center justify-between h-16">
                         {/* Logo */}
                         <div className="flex-shrink-0 cursor-pointer" onClick={handleLogoClick}>
                             <div className="flex items-center gap-2">
@@ -223,28 +270,168 @@ export const Navbar = () => {
                             </div>
                         </div>
 
-                        {/* Desktop Navigation */}
-                        <div className="hidden lg:flex items-center space-x-8">
-                            {navLinks.map((link) => (
-                                <a
-                                    key={link.name}
-                                    href={link.href}
-                                    className="text-sm font-medium text-white/80 hover:text-amber-400 transition-colors duration-200"
+                        {/* Desktop Navigation with Mega Menus */}
+                        <div className="flex items-center space-x-1">
+                            {/* Eyeglasses Dropdown */}
+                            <div
+                                className="relative"
+                                onMouseEnter={() => handleDropdownEnter('eyeglasses')}
+                                onMouseLeave={handleDropdownLeave}
+                            >
+                                <button
+                                    className={cn(
+                                        "flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors rounded-lg",
+                                        activeDropdown === 'eyeglasses'
+                                            ? "text-amber-600 bg-amber-50"
+                                            : "text-black/70 hover:text-amber-600 hover:bg-amber-50"
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setActiveDropdown(activeDropdown === 'eyeglasses' ? null : 'eyeglasses')
+                                    }}
                                 >
-                                    {link.name}
-                                </a>
-                            ))}
+                                    Eyeglasses
+                                    <ChevronDown className={cn(
+                                        "h-4 w-4 transition-transform duration-200",
+                                        activeDropdown === 'eyeglasses' && "rotate-180"
+                                    )} />
+                                </button>
+
+                                {/* Eyeglasses Mega Menu */}
+                                {activeDropdown === 'eyeglasses' && (
+                                    <div
+                                        className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-amber-100 py-2 z-50"
+                                        onMouseEnter={() => handleDropdownEnter('eyeglasses')}
+                                        onMouseLeave={handleDropdownLeave}
+                                    >
+                                        <div className="px-3 py-2 border-b border-amber-100 mb-1">
+                                            <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Shop Eyeglasses</span>
+                                        </div>
+                                        {megaMenuData.eyeglasses.map((item) => (
+                                            <Link
+                                                key={item.label}
+                                                to={item.href}
+                                                className="flex items-center justify-between px-4 py-2.5 text-sm text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                                onClick={() => setActiveDropdown(null)}
+                                            >
+                                                <span>{item.label}</span>
+                                                {item.badge && (
+                                                    <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                                                        {item.badge}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        ))}
+                                        <div className="border-t border-amber-100 mt-1 pt-1">
+                                            <Link
+                                                to="/collections?category=eyeglasses"
+                                                className="block px-4 py-2.5 text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
+                                                onClick={() => setActiveDropdown(null)}
+                                            >
+                                                View All Eyeglasses →
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Sunglasses Dropdown */}
+                            <div
+                                className="relative"
+                                onMouseEnter={() => handleDropdownEnter('sunglasses')}
+                                onMouseLeave={handleDropdownLeave}
+                            >
+                                <button
+                                    className={cn(
+                                        "flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors rounded-lg",
+                                        activeDropdown === 'sunglasses'
+                                            ? "text-amber-600 bg-amber-50"
+                                            : "text-black/70 hover:text-amber-600 hover:bg-amber-50"
+                                    )}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setActiveDropdown(activeDropdown === 'sunglasses' ? null : 'sunglasses')
+                                    }}
+                                >
+                                    Sunglasses
+                                    <ChevronDown className={cn(
+                                        "h-4 w-4 transition-transform duration-200",
+                                        activeDropdown === 'sunglasses' && "rotate-180"
+                                    )} />
+                                </button>
+
+                                {/* Sunglasses Mega Menu */}
+                                {activeDropdown === 'sunglasses' && (
+                                    <div
+                                        className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-amber-100 py-2 z-50"
+                                        onMouseEnter={() => handleDropdownEnter('sunglasses')}
+                                        onMouseLeave={handleDropdownLeave}
+                                    >
+                                        <div className="px-3 py-2 border-b border-amber-100 mb-1">
+                                            <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Shop Sunglasses</span>
+                                        </div>
+                                        {megaMenuData.sunglasses.map((item) => (
+                                            <Link
+                                                key={item.label}
+                                                to={item.href}
+                                                className="flex items-center justify-between px-4 py-2.5 text-sm text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                                onClick={() => setActiveDropdown(null)}
+                                            >
+                                                <span>{item.label}</span>
+                                                {item.badge && (
+                                                    <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                                                        {item.badge}
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        ))}
+                                        <div className="border-t border-amber-100 mt-1 pt-1">
+                                            <Link
+                                                to="/collections?category=sunglasses"
+                                                className="block px-4 py-2.5 text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
+                                                onClick={() => setActiveDropdown(null)}
+                                            >
+                                                View All Sunglasses →
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Other Nav Links */}
+                            <Link
+                                to="/collections"
+                                className="px-4 py-2 text-sm font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors rounded-lg"
+                            >
+                                New Arrivals
+                            </Link>
+                            <Link
+                                to="/contact"
+                                className="px-4 py-2 text-sm font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors rounded-lg"
+                            >
+                                Contact
+                            </Link>
                         </div>
 
                         {/* Right Side Icons */}
-                        <div className="flex items-center space-x-2 sm:space-x-3">
+                        <div className="flex items-center space-x-1">
+                            {/* Search */}
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="hidden md:flex h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
+                                className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                                 onClick={() => setShowSearch(!showSearch)}
                             >
-                                <Search className="h-4 w-4" />
+                                <Search className="h-5 w-5" />
+                            </Button>
+
+                            {/* Wishlist */}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                            >
+                                <Heart className="h-5 w-5" />
                             </Button>
 
                             {/* User Menu */}
@@ -253,24 +440,24 @@ export const Navbar = () => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors flex"
+                                        className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                                         onClick={() => setShowUserMenu(!showUserMenu)}
                                     >
-                                        <User className="h-4 w-4" />
+                                        <User className="h-5 w-5" />
                                     </Button>
 
                                     {showUserMenu && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-black/10 py-1 z-50">
-                                            <div className="px-4 py-2 border-b border-black/10">
+                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-amber-100 py-2 z-50">
+                                            <div className="px-4 py-3 border-b border-amber-100">
                                                 <p className="text-sm font-medium text-black truncate">{user?.name}</p>
-                                                <p className="text-xs text-black/60 truncate">{user?.email}</p>
+                                                <p className="text-xs text-black/50 truncate">{user?.email}</p>
                                             </div>
                                             <button
                                                 onClick={() => {
                                                     navigate('/profile')
                                                     setShowUserMenu(false)
                                                 }}
-                                                className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
+                                                className="w-full text-left px-4 py-2.5 text-sm text-black/70 hover:bg-amber-50 hover:text-amber-600 transition-colors"
                                             >
                                                 My Profile
                                             </button>
@@ -279,49 +466,42 @@ export const Navbar = () => {
                                                     navigate('/orders')
                                                     setShowUserMenu(false)
                                                 }}
-                                                className="w-full text-left px-4 py-2 text-sm text-black/80 hover:bg-amber-50 hover:text-amber-600"
+                                                className="w-full text-left px-4 py-2.5 text-sm text-black/70 hover:bg-amber-50 hover:text-amber-600 transition-colors"
                                             >
                                                 My Orders
                                             </button>
-                                            <button
-                                                onClick={handleLogout}
-                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                            >
-                                                <LogOut className="h-4 w-4" />
-                                                Logout
-                                            </button>
+                                            <div className="border-t border-amber-100 mt-1 pt-1">
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                                                >
+                                                    <LogOut className="h-4 w-4" />
+                                                    Logout
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             ) : (
-                                <>
-                                    <Button
-                                        variant="ghost"
-                                        className="hidden sm:flex text-sm font-medium text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
-                                        onClick={() => navigate('/login')}
-                                    >
-                                        Login
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="flex sm:hidden h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors"
-                                        onClick={() => navigate('/login')}
-                                    >
-                                        <User className="h-4 w-4" />
-                                    </Button>
-                                </>
+                                <Button
+                                    variant="ghost"
+                                    className="text-sm font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                    onClick={() => navigate('/login')}
+                                >
+                                    Sign In
+                                </Button>
                             )}
 
+                            {/* Cart */}
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-10 w-10 text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors relative"
+                                className="h-10 w-10 text-black/70 hover:text-amber-600 hover:bg-amber-50 transition-colors relative"
                                 onClick={() => navigate('/cart')}
                             >
-                                <ShoppingCart className="h-4 w-4" />
+                                <ShoppingCart className="h-5 w-5" />
                                 {totalItems > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                                    <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                                         {totalItems}
                                     </span>
                                 )}
@@ -330,20 +510,27 @@ export const Navbar = () => {
                     </div>
                 </div>
 
-                {/* Search Bar */}
+                {/* Desktop Search Bar */}
                 {showSearch && (
-                    <div className="hidden lg:block border-t border-white/10 bg-black">
-                        <div className="px-4 py-4">
-                            <form onSubmit={handleSearch} className="relative">
+                    <div className="hidden lg:block border-t border-amber-100 bg-white">
+                        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                            <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
                                 <input
                                     type="text"
                                     placeholder="Search for eyeglasses, sunglasses..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full px-4 py-3 pl-10 pr-4 bg-white/10 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 transition-all text-sm text-white placeholder:text-white/50"
+                                    className="w-full px-5 py-3 pl-12 pr-4 bg-amber-50 border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all text-sm text-black placeholder:text-black/40"
                                     autoFocus
                                 />
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-600" />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSearch(false)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 hover:text-black/60"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -351,33 +538,91 @@ export const Navbar = () => {
 
                 {/* Mobile Menu */}
                 {isMobileMenuOpen && (
-                    <div className="lg:hidden border-t border-white/10 bg-black shadow-lg">
-                        <div className="px-4 pt-4 pb-6 space-y-1">
-                            {navLinks.map((link) => (
-                                <a
-                                    key={link.name}
-                                    href={link.href}
-                                    className="block px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
+                    <div className="lg:hidden border-t border-amber-100 bg-white shadow-lg max-h-[70vh] overflow-y-auto">
+                        <div className="px-4 pt-4 pb-6">
+                            {/* Eyeglasses Section */}
+                            <div className="mb-4">
+                                <h3 className="px-3 py-2 text-xs font-semibold text-amber-600 uppercase tracking-wider">
+                                    Eyeglasses
+                                </h3>
+                                {megaMenuData.eyeglasses.map((item) => (
+                                    <Link
+                                        key={item.label}
+                                        to={item.href}
+                                        className="flex items-center justify-between px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <span>{item.label}</span>
+                                        {item.badge && (
+                                            <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </Link>
+                                ))}
+                            </div>
+
+                            {/* Sunglasses Section */}
+                            <div className="mb-4 border-t border-amber-100 pt-4">
+                                <h3 className="px-3 py-2 text-xs font-semibold text-amber-600 uppercase tracking-wider">
+                                    Sunglasses
+                                </h3>
+                                {megaMenuData.sunglasses.map((item) => (
+                                    <Link
+                                        key={item.label}
+                                        to={item.href}
+                                        className="flex items-center justify-between px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <span>{item.label}</span>
+                                        {item.badge && (
+                                            <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </Link>
+                                ))}
+                            </div>
+
+                            {/* Other Links */}
+                            <div className="border-t border-amber-100 pt-4 space-y-1">
+                                <Link
+                                    to="/collections"
+                                    className="block px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
-                                    {link.name}
-                                </a>
-                            ))}
+                                    New Arrivals
+                                </Link>
+                                <Link
+                                    to="/orders"
+                                    className="block px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Track Order
+                                </Link>
+                                <Link
+                                    to="/contact"
+                                    className="block px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Contact Us
+                                </Link>
+                            </div>
 
                             {/* Mobile User Options */}
-                            <div className="border-t border-white/10 mt-4 pt-4">
+                            <div className="border-t border-amber-100 mt-4 pt-4">
                                 {isAuthenticated ? (
                                     <>
-                                        <div className="px-4 py-2 mb-2">
-                                            <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                                            <p className="text-xs text-white/60 truncate">{user?.email}</p>
+                                        <div className="px-3 py-2 mb-2">
+                                            <p className="text-sm font-medium text-black truncate">{user?.name}</p>
+                                            <p className="text-xs text-black/50 truncate">{user?.email}</p>
                                         </div>
                                         <button
                                             onClick={() => {
                                                 navigate('/profile')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                         >
                                             My Profile
                                         </button>
@@ -386,7 +631,7 @@ export const Navbar = () => {
                                                 navigate('/orders')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                         >
                                             My Orders
                                         </button>
@@ -395,7 +640,7 @@ export const Navbar = () => {
                                                 handleLogout()
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150 flex items-center gap-2"
+                                            className="w-full text-left px-3 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
                                         >
                                             <LogOut className="h-4 w-4" />
                                             Logout
@@ -408,18 +653,18 @@ export const Navbar = () => {
                                                 navigate('/login')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-white/85 hover:text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-3 py-3 text-base font-medium text-black/70 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                         >
-                                            Login
+                                            Sign In
                                         </button>
                                         <button
                                             onClick={() => {
                                                 navigate('/signup')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-4 py-3 text-base font-medium text-amber-400 hover:bg-white/10 rounded-lg transition-colors duration-150"
+                                            className="w-full text-left px-3 py-3 text-base font-medium text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                         >
-                                            Sign Up
+                                            Create Account
                                         </button>
                                     </>
                                 )}

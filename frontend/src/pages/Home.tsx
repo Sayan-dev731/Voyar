@@ -1,6 +1,7 @@
 import { Hero } from '@/components/Hero'
 import BentoGrid from '@/components/BentoGrid'
 import { ProductGrid } from '@/components/ProductGrid'
+import { MoodLook } from '@/components/MoodLook'
 import { VirtualTryOn } from '@/components/VirtualTryOn'
 import { Testimonials } from '@/components/Testimonials'
 import { Newsletter } from '@/components/Newsletter'
@@ -11,11 +12,25 @@ export const Home = () => {
 
     return (
         <div className="min-h-screen bg-white overflow-x-hidden">
+            {/* Hero with Bestsellers & Category Tabs */}
             <Hero />
-            <BentoGrid />
+
+            {/* Featured Products Carousel */}
             <ProductGrid />
-            <VirtualTryOn />
+
+            {/* Today's Mood Look - Lifestyle Categories */}
+            <MoodLook />
+
+            {/* Most Loved - Customer Testimonials */}
             <Testimonials />
+
+            {/* Why Choose Voyar - Features */}
+            <BentoGrid />
+
+            {/* Virtual Try-On Preview */}
+            <VirtualTryOn />
+
+            {/* Newsletter Subscription */}
             <Newsletter />
         </div>
     )
