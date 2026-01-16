@@ -100,6 +100,20 @@ interface TrackingDataResponse {
     message?: string
 }
 
+interface LensConfigOrder {
+    lensType: 'withPower' | 'zeroPower' | 'frameOnly'
+    powerType?: 'antiGlare' | 'blueBlock' | 'photochromic' | 'colour'
+    lensColor?: string
+    powerRange?: 'upto5' | 'upto10'
+    prescription?: {
+        rightEye: { sph: string; cyl: string; axis: string }
+        leftEye: { sph: string; cyl: string; axis: string }
+    }
+    prescriptionMethod?: 'upload' | 'manual' | 'emailLater'
+    prescriptionFile?: string
+    lensPrice: number
+}
+
 interface Order {
     _id: string
     customerName: string
@@ -111,6 +125,7 @@ interface Order {
         quantity: number
         price: number
         selectedColor?: string
+        lensConfig?: LensConfigOrder
         product?: {
             _id: string
             name: string
@@ -358,6 +373,22 @@ export const AdminDashboard = () => {
     const [trackingData, setTrackingData] = useState<TrackingDataResponse | null>(null)
     const [trackingLoading, setTrackingLoading] = useState(false)
 
+    // Lens settings state
+    const [showEditLensSettings, setShowEditLensSettings] = useState(false)
+    const [lensSettingsForm, setLensSettingsForm] = useState({
+        powerTypes: {
+            antiGlare: { enabled: true, price: 499, label: 'Anti Glare Lenses' },
+            blueBlock: { enabled: true, price: 699, label: 'Blue Block Lenses' },
+            photochromic: { enabled: true, price: 1299, label: 'Photochromic Lens' },
+            colour: { enabled: true, price: 899, label: 'Colour Lenses' }
+        },
+        powerRanges: {
+            upto5: { price: 0, label: 'UPTO +/- 5' },
+            upto10: { price: 899, label: 'UPTO +/- 10' }
+        }
+    })
+
+
     // Chart data state
     const [revenueChartData, setRevenueChartData] = useState([
         { date: 'Jan 02', thisWeek: 0, lastWeek: 0, day: 'Day 1' },
@@ -482,6 +513,10 @@ export const AdminDashboard = () => {
                 const settingsData = await settingsRes.json()
                 setSiteSettings(settingsData)
                 setSettingsForm(settingsData)
+                // Load lens settings if available
+                if (settingsData.lensSettings) {
+                    setLensSettingsForm(settingsData.lensSettings)
+                }
             }
         } catch (error) {
             console.error('Error fetching data:', error)
@@ -592,6 +627,32 @@ export const AdminDashboard = () => {
         } catch (error) {
             console.error('Error updating settings:', error)
             showToast('Error updating settings', 'error')
+        }
+    }
+
+    const handleSaveLensSettings = async () => {
+        const token = localStorage.getItem('adminToken')
+        try {
+            const res = await fetch(`${API_URL}/admin/settings`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ lensSettings: lensSettingsForm })
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setSiteSettings(data.settings)
+                setShowEditLensSettings(false)
+                showToast('Lens settings updated successfully!', 'success')
+            } else {
+                const error = await res.json()
+                showToast(error.message || 'Failed to update lens settings', 'error')
+            }
+        } catch (error) {
+            console.error('Error updating lens settings:', error)
+            showToast('Error updating lens settings', 'error')
         }
     }
 
@@ -2660,6 +2721,61 @@ export const AdminDashboard = () => {
                                                                 <span>Qty: <span className="font-medium text-[#0d0d0d]">{item.quantity}</span></span>
                                                                 <span>Price: <span className="font-medium text-[#c9a227]">₹{item.price.toFixed(2)}</span></span>
                                                             </div>
+                                                            {/* Lens Configuration Badge */}
+                                                            {item.lensConfig && (
+                                                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                                    <span
+                                                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                                                                        style={{
+                                                                            background: 'rgba(59,130,246,0.1)',
+                                                                            color: '#3b82f6',
+                                                                            fontWeight: 500
+                                                                        }}
+                                                                    >
+                                                                        <Eye className="h-3 w-3" />
+                                                                        {item.lensConfig.lensType === 'withPower' ? 'With Power' :
+                                                                            item.lensConfig.lensType === 'zeroPower' ? 'Zero Power' : 'Frame Only'}
+                                                                    </span>
+                                                                    {item.lensConfig.powerType && (
+                                                                        <span
+                                                                            className="px-2 py-0.5 rounded-full text-xs"
+                                                                            style={{
+                                                                                background: 'rgba(147,51,234,0.1)',
+                                                                                color: '#9333ea',
+                                                                                fontWeight: 500
+                                                                            }}
+                                                                        >
+                                                                            {item.lensConfig.powerType === 'antiGlare' ? 'Anti Glare' :
+                                                                                item.lensConfig.powerType === 'blueBlock' ? 'Blue Block' :
+                                                                                    item.lensConfig.powerType === 'photochromic' ? 'Photochromic' : 'Colour'}
+                                                                        </span>
+                                                                    )}
+                                                                    {item.lensConfig.powerRange && (
+                                                                        <span
+                                                                            className="px-2 py-0.5 rounded-full text-xs"
+                                                                            style={{
+                                                                                background: 'rgba(234,88,12,0.1)',
+                                                                                color: '#ea580c',
+                                                                                fontWeight: 500
+                                                                            }}
+                                                                        >
+                                                                            {item.lensConfig.powerRange === 'upto5' ? '±5' : '±10'}
+                                                                        </span>
+                                                                    )}
+                                                                    {item.lensConfig.lensPrice > 0 && (
+                                                                        <span
+                                                                            className="px-2 py-0.5 rounded-full text-xs"
+                                                                            style={{
+                                                                                background: 'rgba(22,163,74,0.1)',
+                                                                                color: '#16a34a',
+                                                                                fontWeight: 600
+                                                                            }}
+                                                                        >
+                                                                            +₹{item.lensConfig.lensPrice}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                             <div
                                                                 className="text-sm font-medium text-[#0d0d0d] mt-1"
                                                                 style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -3841,6 +3957,280 @@ export const AdminDashboard = () => {
                                         <Truck className="h-12 w-12 mx-auto mb-3 opacity-30" />
                                         <p>No pickup address configured yet.</p>
                                         <p className="text-sm mt-1">Click "Add" to configure your Shiprocket pickup address.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Lens Pricing Settings */}
+                            <div
+                                className="bg-white rounded-2xl p-6 lg:col-span-2"
+                                style={{
+                                    border: '1px solid rgba(0,0,0,0.06)',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                                }}
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <Eye className="h-5 w-5 text-[#3b82f6]" />
+                                        <h3
+                                            className="text-lg font-medium text-[#0d0d0d]"
+                                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                        >
+                                            Lens Pricing Settings
+                                        </h3>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowEditLensSettings(!showEditLensSettings)}
+                                        className="px-4 py-2 rounded-xl border border-[rgba(0,0,0,0.12)] text-[#525252] hover:text-[#0d0d0d] hover:border-[#0d0d0d] transition-all text-sm"
+                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                    >
+                                        {showEditLensSettings ? 'Cancel' : 'Edit Pricing'}
+                                    </button>
+                                </div>
+
+                                {showEditLensSettings ? (
+                                    <div className="space-y-6">
+                                        {/* Power Types Pricing */}
+                                        <div>
+                                            <h4 className="text-sm font-medium text-[#525252] mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Lens Power Types
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Anti Glare */}
+                                                <div className="p-4 rounded-xl" style={{ background: '#faf9f7' }}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-[#0d0d0d]">Anti Glare</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    antiGlare: { ...lensSettingsForm.powerTypes.antiGlare, enabled: !lensSettingsForm.powerTypes.antiGlare.enabled }
+                                                                }
+                                                            })}
+                                                            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                                                            style={{ background: lensSettingsForm.powerTypes.antiGlare.enabled ? '#3b82f6' : '#d1d5db' }}
+                                                        >
+                                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${lensSettingsForm.powerTypes.antiGlare.enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-[#8a8a8a]">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={lensSettingsForm.powerTypes.antiGlare.price}
+                                                            onChange={(e) => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    antiGlare: { ...lensSettingsForm.powerTypes.antiGlare, price: Number(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="flex-1 px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-lg focus:outline-none focus:border-[#3b82f6] text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Blue Block */}
+                                                <div className="p-4 rounded-xl" style={{ background: '#faf9f7' }}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-[#0d0d0d]">Blue Block</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    blueBlock: { ...lensSettingsForm.powerTypes.blueBlock, enabled: !lensSettingsForm.powerTypes.blueBlock.enabled }
+                                                                }
+                                                            })}
+                                                            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                                                            style={{ background: lensSettingsForm.powerTypes.blueBlock.enabled ? '#3b82f6' : '#d1d5db' }}
+                                                        >
+                                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${lensSettingsForm.powerTypes.blueBlock.enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-[#8a8a8a]">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={lensSettingsForm.powerTypes.blueBlock.price}
+                                                            onChange={(e) => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    blueBlock: { ...lensSettingsForm.powerTypes.blueBlock, price: Number(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="flex-1 px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-lg focus:outline-none focus:border-[#3b82f6] text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Photochromic */}
+                                                <div className="p-4 rounded-xl" style={{ background: '#faf9f7' }}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-[#0d0d0d]">Photochromic</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    photochromic: { ...lensSettingsForm.powerTypes.photochromic, enabled: !lensSettingsForm.powerTypes.photochromic.enabled }
+                                                                }
+                                                            })}
+                                                            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                                                            style={{ background: lensSettingsForm.powerTypes.photochromic.enabled ? '#3b82f6' : '#d1d5db' }}
+                                                        >
+                                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${lensSettingsForm.powerTypes.photochromic.enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-[#8a8a8a]">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={lensSettingsForm.powerTypes.photochromic.price}
+                                                            onChange={(e) => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    photochromic: { ...lensSettingsForm.powerTypes.photochromic, price: Number(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="flex-1 px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-lg focus:outline-none focus:border-[#3b82f6] text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Colour */}
+                                                <div className="p-4 rounded-xl" style={{ background: '#faf9f7' }}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-[#0d0d0d]">Colour Lenses</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    colour: { ...lensSettingsForm.powerTypes.colour, enabled: !lensSettingsForm.powerTypes.colour.enabled }
+                                                                }
+                                                            })}
+                                                            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                                                            style={{ background: lensSettingsForm.powerTypes.colour.enabled ? '#3b82f6' : '#d1d5db' }}
+                                                        >
+                                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${lensSettingsForm.powerTypes.colour.enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-[#8a8a8a]">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={lensSettingsForm.powerTypes.colour.price}
+                                                            onChange={(e) => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerTypes: {
+                                                                    ...lensSettingsForm.powerTypes,
+                                                                    colour: { ...lensSettingsForm.powerTypes.colour, price: Number(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="flex-1 px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-lg focus:outline-none focus:border-[#3b82f6] text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Power Ranges Pricing */}
+                                        <div>
+                                            <h4 className="text-sm font-medium text-[#525252] mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                Power Range Additional Charges
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 rounded-xl" style={{ background: '#faf9f7' }}>
+                                                    <span className="font-medium text-[#0d0d0d] block mb-2">Upto ±5</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-[#8a8a8a]">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={lensSettingsForm.powerRanges.upto5.price}
+                                                            onChange={(e) => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerRanges: {
+                                                                    ...lensSettingsForm.powerRanges,
+                                                                    upto5: { ...lensSettingsForm.powerRanges.upto5, price: Number(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="flex-1 px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-lg focus:outline-none focus:border-[#3b82f6] text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="p-4 rounded-xl" style={{ background: '#faf9f7' }}>
+                                                    <span className="font-medium text-[#0d0d0d] block mb-2">Upto ±10</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-[#8a8a8a]">₹</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={lensSettingsForm.powerRanges.upto10.price}
+                                                            onChange={(e) => setLensSettingsForm({
+                                                                ...lensSettingsForm,
+                                                                powerRanges: {
+                                                                    ...lensSettingsForm.powerRanges,
+                                                                    upto10: { ...lensSettingsForm.powerRanges.upto10, price: Number(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="flex-1 px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-lg focus:outline-none focus:border-[#3b82f6] text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={handleSaveLensSettings}
+                                            className="w-full px-5 py-3 rounded-xl text-white font-medium transition-all"
+                                            style={{
+                                                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)'
+                                            }}
+                                        >
+                                            Save Lens Settings
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Anti Glare</span>
+                                            <p className="font-medium text-[#0d0d0d]">₹{lensSettingsForm.powerTypes.antiGlare.price}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Blue Block</span>
+                                            <p className="font-medium text-[#0d0d0d]">₹{lensSettingsForm.powerTypes.blueBlock.price}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Photochromic</span>
+                                            <p className="font-medium text-[#0d0d0d]">₹{lensSettingsForm.powerTypes.photochromic.price}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: '#faf9f7' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Colour Lenses</span>
+                                            <p className="font-medium text-[#0d0d0d]">₹{lensSettingsForm.powerTypes.colour.price}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.06)' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Power ±5 Extra</span>
+                                            <p className="font-medium text-[#3b82f6]">₹{lensSettingsForm.powerRanges.upto5.price}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.06)' }}>
+                                            <span className="text-[#8a8a8a] text-xs">Power ±10 Extra</span>
+                                            <p className="font-medium text-[#3b82f6]">₹{lensSettingsForm.powerRanges.upto10.price}</p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -5145,6 +5535,125 @@ export const AdminDashboard = () => {
                                                                     <li key={idx} className="list-disc">{feature}</li>
                                                                 ))}
                                                             </ul>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Lens Configuration Details */}
+                                                    {item.lensConfig && (
+                                                        <div
+                                                            className="mt-3 p-3 rounded-lg"
+                                                            style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}
+                                                        >
+                                                            <h5 className="text-xs mb-2 uppercase flex items-center gap-1" style={{ fontWeight: 600, color: '#3b82f6', letterSpacing: '0.05em' }}>
+                                                                <Eye className="h-3 w-3" />
+                                                                Lens Configuration
+                                                            </h5>
+                                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                                <div>
+                                                                    <span className="text-[#8a8a8a]">Lens Type: </span>
+                                                                    <span className="font-medium text-[#0d0d0d]">
+                                                                        {item.lensConfig.lensType === 'withPower' ? 'With Power' :
+                                                                            item.lensConfig.lensType === 'zeroPower' ? 'Zero Power' : 'Frame Only'}
+                                                                    </span>
+                                                                </div>
+                                                                {item.lensConfig.powerType && (
+                                                                    <div>
+                                                                        <span className="text-[#8a8a8a]">Power Type: </span>
+                                                                        <span className="font-medium text-[#0d0d0d]">
+                                                                            {item.lensConfig.powerType === 'antiGlare' ? 'Anti Glare' :
+                                                                                item.lensConfig.powerType === 'blueBlock' ? 'Blue Block' :
+                                                                                    item.lensConfig.powerType === 'photochromic' ? 'Photochromic' : 'Colour'}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {item.lensConfig.lensColor && (
+                                                                    <div>
+                                                                        <span className="text-[#8a8a8a]">Lens Color: </span>
+                                                                        <span className="font-medium text-[#0d0d0d]">{item.lensConfig.lensColor}</span>
+                                                                    </div>
+                                                                )}
+                                                                {item.lensConfig.powerRange && (
+                                                                    <div>
+                                                                        <span className="text-[#8a8a8a]">Power Range: </span>
+                                                                        <span className="font-medium text-[#0d0d0d]">
+                                                                            {item.lensConfig.powerRange === 'upto5' ? 'Upto +/- 5' : 'Upto +/- 10'}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {item.lensConfig.prescriptionMethod && (
+                                                                    <div>
+                                                                        <span className="text-[#8a8a8a]">Prescription: </span>
+                                                                        <span className="font-medium text-[#0d0d0d]">
+                                                                            {item.lensConfig.prescriptionMethod === 'manual' ? 'Manual Entry' :
+                                                                                item.lensConfig.prescriptionMethod === 'upload' ? 'Uploaded' : 'Email Later'}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {item.lensConfig.lensPrice > 0 && (
+                                                                    <div>
+                                                                        <span className="text-[#8a8a8a]">Lens Price: </span>
+                                                                        <span className="font-medium text-[#16a34a]">₹{item.lensConfig.lensPrice}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Prescription Details */}
+                                                            {item.lensConfig.prescription && item.lensConfig.prescriptionMethod === 'manual' && (
+                                                                <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(59,130,246,0.2)' }}>
+                                                                    <h6 className="text-xs mb-2" style={{ fontWeight: 600, color: '#3b82f6' }}>Prescription Details</h6>
+                                                                    <div className="grid grid-cols-2 gap-4">
+                                                                        <div className="p-2 rounded" style={{ background: 'rgba(59,130,246,0.05)' }}>
+                                                                            <p className="text-xs font-medium text-[#3b82f6] mb-1">Right Eye (OD)</p>
+                                                                            <div className="grid grid-cols-3 gap-1 text-xs">
+                                                                                <div>
+                                                                                    <span className="text-[#8a8a8a]">SPH: </span>
+                                                                                    <span className="font-medium">{item.lensConfig.prescription.rightEye.sph || '-'}</span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <span className="text-[#8a8a8a]">CYL: </span>
+                                                                                    <span className="font-medium">{item.lensConfig.prescription.rightEye.cyl || '-'}</span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <span className="text-[#8a8a8a]">AXIS: </span>
+                                                                                    <span className="font-medium">{item.lensConfig.prescription.rightEye.axis || '-'}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="p-2 rounded" style={{ background: 'rgba(59,130,246,0.05)' }}>
+                                                                            <p className="text-xs font-medium text-[#3b82f6] mb-1">Left Eye (OS)</p>
+                                                                            <div className="grid grid-cols-3 gap-1 text-xs">
+                                                                                <div>
+                                                                                    <span className="text-[#8a8a8a]">SPH: </span>
+                                                                                    <span className="font-medium">{item.lensConfig.prescription.leftEye.sph || '-'}</span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <span className="text-[#8a8a8a]">CYL: </span>
+                                                                                    <span className="font-medium">{item.lensConfig.prescription.leftEye.cyl || '-'}</span>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <span className="text-[#8a8a8a]">AXIS: </span>
+                                                                                    <span className="font-medium">{item.lensConfig.prescription.leftEye.axis || '-'}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Prescription File Link */}
+                                                            {item.lensConfig.prescriptionFile && item.lensConfig.prescriptionMethod === 'upload' && (
+                                                                <div className="mt-2">
+                                                                    <a
+                                                                        href={item.lensConfig.prescriptionFile}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-xs text-[#3b82f6] hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        <FileText className="h-3 w-3" />
+                                                                        View Uploaded Prescription
+                                                                    </a>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>

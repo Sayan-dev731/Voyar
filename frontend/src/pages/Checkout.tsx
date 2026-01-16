@@ -330,8 +330,18 @@ export default function Checkout() {
                     productName: item.name,
                     productImage: item.image,
                     quantity: item.quantity,
-                    price: item.price,
-                    selectedColor: item.selectedColor
+                    price: (item.selectedColorPrice || item.price) + (item.lensConfig?.lensPrice || 0),
+                    selectedColor: item.selectedColor,
+                    lensConfig: item.lensConfig ? {
+                        lensType: item.lensConfig.lensType,
+                        powerType: item.lensConfig.powerType,
+                        lensColor: item.lensConfig.lensColor,
+                        powerRange: item.lensConfig.powerRange,
+                        prescription: item.lensConfig.prescription,
+                        prescriptionMethod: item.lensConfig.prescriptionMethod,
+                        prescriptionFile: item.lensConfig.prescriptionFile,
+                        lensPrice: item.lensConfig.lensPrice
+                    } : undefined
                 })),
                 totalAmount: totalAmount,
                 shippingAddress: {
@@ -481,8 +491,18 @@ export default function Checkout() {
                     productName: item.name,
                     productImage: item.image,
                     quantity: item.quantity,
-                    price: item.price,
-                    selectedColor: item.selectedColor
+                    price: (item.selectedColorPrice || item.price) + (item.lensConfig?.lensPrice || 0),
+                    selectedColor: item.selectedColor,
+                    lensConfig: item.lensConfig ? {
+                        lensType: item.lensConfig.lensType,
+                        powerType: item.lensConfig.powerType,
+                        lensColor: item.lensConfig.lensColor,
+                        powerRange: item.lensConfig.powerRange,
+                        prescription: item.lensConfig.prescription,
+                        prescriptionMethod: item.lensConfig.prescriptionMethod,
+                        prescriptionFile: item.lensConfig.prescriptionFile,
+                        lensPrice: item.lensConfig.lensPrice
+                    } : undefined
                 })),
                 totalAmount: totalAmount,
                 shippingAddress: {

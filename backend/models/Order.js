@@ -33,7 +33,44 @@ const orderSchema = new mongoose.Schema({
             type: Number,
             required: true
         },
-        selectedColor: String
+        selectedColor: String,
+        // Lens configuration for glasses
+        lensConfig: {
+            lensType: {
+                type: String,
+                enum: ['withPower', 'zeroPower', 'frameOnly']
+            },
+            powerType: {
+                type: String,
+                enum: ['antiGlare', 'blueBlock', 'photochromic', 'colour']
+            },
+            lensColor: String,
+            powerRange: {
+                type: String,
+                enum: ['upto5', 'upto10']
+            },
+            prescription: {
+                rightEye: {
+                    sph: String,
+                    cyl: String,
+                    axis: String
+                },
+                leftEye: {
+                    sph: String,
+                    cyl: String,
+                    axis: String
+                }
+            },
+            prescriptionMethod: {
+                type: String,
+                enum: ['upload', 'manual', 'emailLater']
+            },
+            prescriptionFile: String,
+            lensPrice: {
+                type: Number,
+                default: 0
+            }
+        }
     }],
     totalAmount: {
         type: Number,

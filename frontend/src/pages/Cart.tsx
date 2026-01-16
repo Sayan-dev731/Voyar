@@ -46,19 +46,29 @@ export const Cart = () => {
     // Stock error messages
     const [stockErrors, setStockErrors] = useState<{ [key: string]: string }>({})
 
+    // Get unique item key for cart items (use cartItemId for lens items)
+    const getItemKey = (item: typeof items[0]) => item.cartItemId || item._id || item.id
+
     // Handle quantity update with stock validation
-    const handleUpdateQuantity = async (itemId: string | number, newQuantity: number) => {
-        const result = await updateQuantity(itemId, newQuantity)
+    const handleUpdateQuantity = async (item: typeof items[0], newQuantity: number) => {
+        const itemId = item._id || item.id!
+        const result = await updateQuantity(itemId, newQuantity, item.cartItemId)
+        const errorKey = getItemKey(item)
         if (!result.success && result.message) {
-            setStockErrors(prev => ({ ...prev, [String(itemId)]: result.message! }))
+            setStockErrors(prev => ({ ...prev, [String(errorKey)]: result.message! }))
             setTimeout(() => {
                 setStockErrors(prev => {
                     const newErrors = { ...prev }
-                    delete newErrors[String(itemId)]
+                    delete newErrors[String(errorKey)]
                     return newErrors
                 })
             }, 3000)
         }
+    }
+
+    // Handle remove from cart
+    const handleRemoveFromCart = (item: typeof items[0]) => {
+        removeFromCart(item._id || item.id!, item.cartItemId)
     }
 
     // Fetch site settings
@@ -132,7 +142,7 @@ export const Cart = () => {
                     {/* Cart Items */}
                     <div className="lg:col-span-2 space-y-4">
                         {items.map((item) => (
-                            <Card key={item._id || item.id} className="overflow-hidden border-amber-200/60 rounded-2xl">
+                            <Card key={getItemKey(item)} className="overflow-hidden border-amber-200/60 rounded-2xl">
                                 <CardContent className="p-4 sm:p-6">
                                     <div className="flex gap-4">
                                         {/* Image */}
@@ -164,11 +174,32 @@ export const Cart = () => {
                                                     {item.selectedColor && (
                                                         <p className="text-sm text-black/50">Color: {item.selectedColor}</p>
                                                     )}
+                                                    {/* Lens Configuration Display */}
+                                                    {item.lensConfig && (
+                                                        <div className="mt-2 p-2 bg-amber-50 rounded-lg border border-amber-100">
+                                                            <p className="text-xs font-medium text-amber-700 mb-1">Lens Configuration:</p>
+                                                            <div className="text-xs text-black/60 space-y-0.5">
+                                                                <p>• Type: {item.lensConfig.lensType === 'withPower' ? 'With Power' : item.lensConfig.lensType === 'zeroPower' ? 'Zero Power' : 'Frame Only'}</p>
+                                                                {item.lensConfig.powerType && (
+                                                                    <p>• Lens: {item.lensConfig.powerType === 'antiGlare' ? 'Anti Glare' : item.lensConfig.powerType === 'blueBlock' ? 'Blue Block' : item.lensConfig.powerType === 'photochromic' ? 'Photochromic' : 'Colour'}</p>
+                                                                )}
+                                                                {item.lensConfig.lensColor && (
+                                                                    <p>• Color: {item.lensConfig.lensColor}</p>
+                                                                )}
+                                                                {item.lensConfig.powerRange && (
+                                                                    <p>• Power: {item.lensConfig.powerRange === 'upto5' ? 'Upto +/- 5' : 'Upto +/- 10'}</p>
+                                                                )}
+                                                                {item.lensConfig.lensPrice > 0 && (
+                                                                    <p className="text-amber-600 font-medium">Lens: +₹{item.lensConfig.lensPrice}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => removeFromCart(item._id || item.id!)}
+                                                    onClick={() => handleRemoveFromCart(item)}
                                                     className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -182,7 +213,7 @@ export const Cart = () => {
                                                         <Button
                                                             variant="outline"
                                                             size="icon"
-                                                            onClick={() => handleUpdateQuantity(item._id || item.id!, item.quantity - 1)}
+                                                            onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
                                                             className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50"
                                                         >
                                                             <Minus className="h-3 w-3" />
@@ -193,7 +224,7 @@ export const Cart = () => {
                                                         <Button
                                                             variant="outline"
                                                             size="icon"
-                                                            onClick={() => handleUpdateQuantity(item._id || item.id!, item.quantity + 1)}
+                                                            onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
                                                             disabled={item.quantity >= getAvailableStock(item, item.selectedColor)}
                                                             className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
@@ -205,10 +236,10 @@ export const Cart = () => {
                                                         {getAvailableStock(item, item.selectedColor)} in stock
                                                     </span>
                                                     {/* Stock error message */}
-                                                    {stockErrors[String(item._id || item.id)] && (
+                                                    {stockErrors[String(getItemKey(item))] && (
                                                         <span className="text-xs text-red-500 flex items-center gap-1">
                                                             <AlertCircle className="h-3 w-3" />
-                                                            {stockErrors[String(item._id || item.id)]}
+                                                            {stockErrors[String(getItemKey(item))]}
                                                         </span>
                                                     )}
                                                 </div>
@@ -216,10 +247,10 @@ export const Cart = () => {
                                                 {/* Price */}
                                                 <div className="text-right">
                                                     <p className="text-lg font-[600] text-amber-600">
-                                                        ₹{((item.selectedColorPrice || item.price) * item.quantity).toFixed(2)}
+                                                        ₹{(((item.selectedColorPrice || item.price) + (item.lensConfig?.lensPrice || 0)) * item.quantity).toFixed(2)}
                                                     </p>
                                                     {item.quantity > 1 && (
-                                                        <p className="text-xs text-black/50">₹{item.selectedColorPrice || item.price} each</p>
+                                                        <p className="text-xs text-black/50">₹{(item.selectedColorPrice || item.price) + (item.lensConfig?.lensPrice || 0)} each</p>
                                                     )}
                                                 </div>
                                             </div>

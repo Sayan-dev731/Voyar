@@ -857,7 +857,21 @@ export const getPublicSiteSettings = async (req, res) => {
             platformCharges: settings.platformCharges || 0,
             deliveryCharges: settings.deliveryCharges || 0,
             siteName: settings.siteName,
-            codEnabled: settings.codEnabled !== false
+            codEnabled: settings.codEnabled !== false,
+            // Lens settings for lens selection wizard
+            lensSettings: settings.lensSettings || {
+                powerTypes: {
+                    antiGlare: { enabled: true, price: 499, label: 'Anti Glare Lenses' },
+                    blueBlock: { enabled: true, price: 699, label: 'Blue Block Lenses' },
+                    photochromic: { enabled: true, price: 1299, label: 'Photochromic Lens' },
+                    colour: { enabled: true, price: 899, label: 'Colour Lenses' }
+                },
+                powerRanges: {
+                    upto5: { price: 0, label: 'UPTO +/- 5' },
+                    upto10: { price: 899, label: 'UPTO +/- 10' }
+                },
+                lensColors: []
+            }
         });
     } catch (error) {
         console.error('Get public settings error:', error);
@@ -874,7 +888,7 @@ export const updateSiteSettings = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
-        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges, codEnabled, pickupAddress } = req.body;
+        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges, codEnabled, pickupAddress, lensSettings } = req.body;
 
         let settings = await SiteSettings.findOne();
         if (!settings) {
@@ -887,6 +901,22 @@ export const updateSiteSettings = async (req, res) => {
         if (platformCharges !== undefined) settings.platformCharges = platformCharges;
         if (deliveryCharges !== undefined) settings.deliveryCharges = deliveryCharges;
         if (codEnabled !== undefined) settings.codEnabled = codEnabled;
+
+        // Update lens settings if provided
+        if (lensSettings) {
+            if (!settings.lensSettings) {
+                settings.lensSettings = {};
+            }
+            if (lensSettings.powerTypes) {
+                settings.lensSettings.powerTypes = lensSettings.powerTypes;
+            }
+            if (lensSettings.powerRanges) {
+                settings.lensSettings.powerRanges = lensSettings.powerRanges;
+            }
+            if (lensSettings.lensColors !== undefined) {
+                settings.lensSettings.lensColors = lensSettings.lensColors;
+            }
+        }
 
         // Update pickup address if provided
         if (pickupAddress) {

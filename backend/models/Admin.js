@@ -84,6 +84,49 @@ const siteSettingsSchema = new mongoose.Schema({
     pickupAddressConfigured: {
         type: Boolean,
         default: false
+    },
+    // Lens Selection Settings
+    lensSettings: {
+        // Power types with pricing
+        powerTypes: {
+            antiGlare: {
+                enabled: { type: Boolean, default: true },
+                price: { type: Number, default: 499 },
+                label: { type: String, default: 'Anti Glare Lenses' }
+            },
+            blueBlock: {
+                enabled: { type: Boolean, default: true },
+                price: { type: Number, default: 699 },
+                label: { type: String, default: 'Blue Block Lenses' }
+            },
+            photochromic: {
+                enabled: { type: Boolean, default: true },
+                price: { type: Number, default: 1299 },
+                label: { type: String, default: 'Photochromic Lens' }
+            },
+            colour: {
+                enabled: { type: Boolean, default: true },
+                price: { type: Number, default: 899 },
+                label: { type: String, default: 'Colour Lenses' }
+            }
+        },
+        // Power ranges with pricing
+        powerRanges: {
+            upto5: {
+                price: { type: Number, default: 0 },
+                label: { type: String, default: 'UPTO +/- 5' }
+            },
+            upto10: {
+                price: { type: Number, default: 899 },
+                label: { type: String, default: 'UPTO +/- 10' }
+            }
+        },
+        // Lens colors for colour lenses
+        lensColors: [{
+            name: { type: String, required: true },
+            colorCode: { type: String, required: true },
+            price: { type: Number, default: 0 }
+        }]
     }
 }, { timestamps: true });
 

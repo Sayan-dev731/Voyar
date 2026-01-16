@@ -6,7 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { API_URL } from '@/config/api'
-import type { Product } from '@/types/product'
+import type { Product, LensConfiguration } from '@/types/product'
+import { LensSelector } from '@/components/LensSelector'
 
 type ColorOption = { name: string; value: string; price?: number; quantity?: number }
 
@@ -98,6 +99,7 @@ export const ProductDetail = () => {
     const [quantity, setQuantity] = useState(1)
     const [addedToCart, setAddedToCart] = useState(false)
     const [stockError, setStockError] = useState<string | null>(null)
+    const [showLensSelector, setShowLensSelector] = useState(false)
 
     // Review states
     const [reviews, setReviews] = useState<Review[]>([])
@@ -299,20 +301,35 @@ export const ProductDetail = () => {
         )
     }
 
-    const handleAddToCart = async () => {
+    // Check if product is a glasses category that needs lens selection
+    const isGlassesCategory = product?.category &&
+        ['Eyeglasses', 'Computer Glasses'].includes(product.category)
+
+    const handleAddToCart = async (lensConfig?: LensConfiguration) => {
         if (!product) return
+
+        // For glasses categories without lens config, open the lens selector
+        if (isGlassesCategory && !lensConfig && !showLensSelector) {
+            setShowLensSelector(true)
+            return
+        }
 
         setStockError(null)
         const colorPrice = selectedColor?.price || product.price
-        const result = await addToCart(product, quantity, selectedColor?.name, colorPrice)
+        const result = await addToCart(product, quantity, selectedColor?.name, colorPrice, lensConfig)
 
         if (result.success) {
             setAddedToCart(true)
+            setShowLensSelector(false)
             setTimeout(() => setAddedToCart(false), 2000)
         } else {
             setStockError(result.message || 'Unable to add to cart')
             setTimeout(() => setStockError(null), 3000)
         }
+    }
+
+    const handleLensComplete = (lensConfig: LensConfiguration) => {
+        handleAddToCart(lensConfig)
     }
 
     // Calculate available stock based on selected color
@@ -484,7 +501,7 @@ export const ProductDetail = () => {
                         {/* Add to Cart Button */}
                         <div className="flex gap-3">
                             <Button
-                                onClick={handleAddToCart}
+                                onClick={() => handleAddToCart()}
                                 disabled={isOutOfStock || maxQuantity === 0}
                                 className={`flex-1 h-12 text-base font-medium shadow-lg ${isOutOfStock || maxQuantity === 0
                                     ? 'bg-gray-400 text-white cursor-not-allowed'
@@ -794,6 +811,17 @@ export const ProductDetail = () => {
                     )}
                 </div>
             </div>
+
+            {/* Lens Selector Modal */}
+            {product && (
+                <LensSelector
+                    isOpen={showLensSelector}
+                    onClose={() => setShowLensSelector(false)}
+                    onComplete={handleLensComplete}
+                    productName={product.name}
+                    productImage={convertGoogleDriveLink(product.image)}
+                />
+            )}
         </div>
     )
 }

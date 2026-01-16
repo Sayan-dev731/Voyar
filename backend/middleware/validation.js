@@ -445,6 +445,75 @@ export const validateOrder = [
     body('items.*.price')
         .isFloat({ min: 0 }).withMessage('Price must be a positive number'),
 
+    // Lens configuration validation for order items
+    body('items.*.lensConfig')
+        .optional()
+        .isObject().withMessage('Lens configuration must be an object'),
+
+    body('items.*.lensConfig.lensType')
+        .optional()
+        .isIn(['withPower', 'zeroPower', 'frameOnly']).withMessage('Invalid lens type'),
+
+    body('items.*.lensConfig.powerType')
+        .optional()
+        .isIn(['antiGlare', 'blueBlock', 'photochromic', 'colour']).withMessage('Invalid power type'),
+
+    body('items.*.lensConfig.lensColor')
+        .optional()
+        .trim()
+        .isLength({ max: 50 }).withMessage('Lens color must be under 50 characters'),
+
+    body('items.*.lensConfig.powerRange')
+        .optional()
+        .isIn(['upto5', 'upto10']).withMessage('Invalid power range'),
+
+    body('items.*.lensConfig.prescriptionMethod')
+        .optional()
+        .isIn(['upload', 'manual', 'emailLater']).withMessage('Invalid prescription method'),
+
+    body('items.*.lensConfig.prescriptionFile')
+        .optional()
+        .trim()
+        .isLength({ max: 500 }).withMessage('Prescription file URL too long'),
+
+    body('items.*.lensConfig.lensPrice')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Lens price must be a positive number'),
+
+    body('items.*.lensConfig.prescription')
+        .optional()
+        .isObject().withMessage('Prescription must be an object'),
+
+    body('items.*.lensConfig.prescription.rightEye.sph')
+        .optional()
+        .trim()
+        .isLength({ max: 10 }).withMessage('SPH value too long'),
+
+    body('items.*.lensConfig.prescription.rightEye.cyl')
+        .optional()
+        .trim()
+        .isLength({ max: 10 }).withMessage('CYL value too long'),
+
+    body('items.*.lensConfig.prescription.rightEye.axis')
+        .optional()
+        .trim()
+        .isLength({ max: 5 }).withMessage('Axis value too long'),
+
+    body('items.*.lensConfig.prescription.leftEye.sph')
+        .optional()
+        .trim()
+        .isLength({ max: 10 }).withMessage('SPH value too long'),
+
+    body('items.*.lensConfig.prescription.leftEye.cyl')
+        .optional()
+        .trim()
+        .isLength({ max: 10 }).withMessage('CYL value too long'),
+
+    body('items.*.lensConfig.prescription.leftEye.axis')
+        .optional()
+        .trim()
+        .isLength({ max: 5 }).withMessage('Axis value too long'),
+
     body('customerName')
         .trim()
         .notEmpty().withMessage('Customer name is required')
@@ -719,6 +788,107 @@ export const validateSiteSettings = [
 
     body('pickupAddress.long')
         .optional({ nullable: true, checkFalsy: true }),
+
+    // Lens Settings validation
+    body('lensSettings')
+        .optional()
+        .isObject().withMessage('Lens settings must be an object'),
+
+    body('lensSettings.powerTypes')
+        .optional()
+        .isObject().withMessage('Power types must be an object'),
+
+    body('lensSettings.powerTypes.antiGlare.enabled')
+        .optional()
+        .isBoolean().withMessage('Anti glare enabled must be boolean'),
+
+    body('lensSettings.powerTypes.antiGlare.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Anti glare price must be a positive number'),
+
+    body('lensSettings.powerTypes.antiGlare.label')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 100 }).withMessage('Anti glare label must be 1-100 characters'),
+
+    body('lensSettings.powerTypes.blueBlock.enabled')
+        .optional()
+        .isBoolean().withMessage('Blue block enabled must be boolean'),
+
+    body('lensSettings.powerTypes.blueBlock.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Blue block price must be a positive number'),
+
+    body('lensSettings.powerTypes.blueBlock.label')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 100 }).withMessage('Blue block label must be 1-100 characters'),
+
+    body('lensSettings.powerTypes.photochromic.enabled')
+        .optional()
+        .isBoolean().withMessage('Photochromic enabled must be boolean'),
+
+    body('lensSettings.powerTypes.photochromic.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Photochromic price must be a positive number'),
+
+    body('lensSettings.powerTypes.photochromic.label')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 100 }).withMessage('Photochromic label must be 1-100 characters'),
+
+    body('lensSettings.powerTypes.colour.enabled')
+        .optional()
+        .isBoolean().withMessage('Colour enabled must be boolean'),
+
+    body('lensSettings.powerTypes.colour.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Colour price must be a positive number'),
+
+    body('lensSettings.powerTypes.colour.label')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 100 }).withMessage('Colour label must be 1-100 characters'),
+
+    body('lensSettings.powerRanges')
+        .optional()
+        .isObject().withMessage('Power ranges must be an object'),
+
+    body('lensSettings.powerRanges.upto5.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Power range upto5 price must be a positive number'),
+
+    body('lensSettings.powerRanges.upto5.label')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 100 }).withMessage('Power range upto5 label must be 1-100 characters'),
+
+    body('lensSettings.powerRanges.upto10.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Power range upto10 price must be a positive number'),
+
+    body('lensSettings.powerRanges.upto10.label')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 100 }).withMessage('Power range upto10 label must be 1-100 characters'),
+
+    body('lensSettings.lensColors')
+        .optional()
+        .isArray().withMessage('Lens colors must be an array'),
+
+    body('lensSettings.lensColors.*.name')
+        .optional()
+        .trim()
+        .isLength({ min: 1, max: 50 }).withMessage('Lens color name must be 1-50 characters'),
+
+    body('lensSettings.lensColors.*.colorCode')
+        .optional()
+        .trim()
+        .matches(/^#[0-9A-Fa-f]{6}$/).withMessage('Lens color code must be valid hex color'),
+
+    body('lensSettings.lensColors.*.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Lens color price must be a positive number'),
 
     handleValidationErrors
 ];
