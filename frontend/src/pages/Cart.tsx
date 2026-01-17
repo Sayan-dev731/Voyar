@@ -94,12 +94,12 @@ export const Cart = () => {
 
     if (items.length === 0) {
         return (
-            <div className="min-h-screen pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white">
+            <div className="min-h-screen pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center py-20">
-                        <ShoppingBag className="h-24 w-24 text-amber-200 mx-auto mb-6" />
-                        <h2 className="text-3xl font-[600] text-black mb-4">Your Cart is Empty</h2>
-                        <p className="text-black/60 mb-8">Looks like you haven't added anything to your cart yet.</p>
+                        <ShoppingBag className="h-24 w-24 text-amber-200 dark:text-amber-700 mx-auto mb-6" />
+                        <h2 className="text-3xl font-[600] text-black dark:text-white mb-4">Your Cart is Empty</h2>
+                        <p className="text-black/60 dark:text-white/60 mb-8">Looks like you haven't added anything to your cart yet.</p>
                         <Button
                             onClick={() => navigate('/')}
                             className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700"
@@ -113,7 +113,7 @@ export const Cart = () => {
     }
 
     return (
-        <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white">
+        <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
@@ -126,7 +126,7 @@ export const Cart = () => {
                         Continue Shopping
                     </Button>
                     <div className="flex items-center justify-between">
-                        <h1 className="text-4xl sm:text-5xl font-[600] text-black">Shopping Cart</h1>
+                        <h1 className="text-4xl sm:text-5xl font-[600] text-black dark:text-white">Shopping Cart</h1>
                         <Button
                             variant="ghost"
                             onClick={clearCart}
@@ -135,14 +135,14 @@ export const Cart = () => {
                             Clear Cart
                         </Button>
                     </div>
-                    <p className="text-black/60 mt-2">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
+                    <p className="text-black/60 dark:text-white/60 mt-2">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-8">
                     {/* Cart Items */}
                     <div className="lg:col-span-2 space-y-4">
                         {items.map((item) => (
-                            <Card key={getItemKey(item)} className="overflow-hidden border-amber-200/60 rounded-2xl">
+                            <Card key={getItemKey(item)} className="overflow-hidden border-amber-200/60 dark:border-amber-900/30 rounded-2xl bg-white dark:bg-gray-900 shadow-sm">
                                 <CardContent className="p-4 sm:p-6">
                                     <div className="flex gap-4">
                                         {/* Image */}
@@ -165,20 +165,20 @@ export const Cart = () => {
                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                 <div className="flex-1 min-w-0">
                                                     <h3
-                                                        className="text-lg font-[600] text-black mb-1 cursor-pointer hover:text-amber-600 transition-colors truncate"
+                                                        className="text-lg font-[600] text-black dark:text-white mb-1 cursor-pointer hover:text-amber-600 dark:hover:text-amber-400 transition-colors truncate"
                                                         onClick={() => navigate(`/product/${item._id || item.id}`)}
                                                     >
                                                         {item.name}
                                                     </h3>
-                                                    <p className="text-sm text-black/50">{item.category}</p>
+                                                    <p className="text-sm text-black/50 dark:text-white/50">{item.category}</p>
                                                     {item.selectedColor && (
-                                                        <p className="text-sm text-black/50">Color: {item.selectedColor}</p>
+                                                        <p className="text-sm text-black/50 dark:text-white/50">Color: {item.selectedColor}</p>
                                                     )}
                                                     {/* Lens Configuration Display */}
                                                     {item.lensConfig && (
-                                                        <div className="mt-2 p-2 bg-amber-50 rounded-lg border border-amber-100">
-                                                            <p className="text-xs font-medium text-amber-700 mb-1">Lens Configuration:</p>
-                                                            <div className="text-xs text-black/60 space-y-0.5">
+                                                        <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/30">
+                                                            <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">Lens Configuration:</p>
+                                                            <div className="text-xs text-black/60 dark:text-white/60 space-y-0.5">
                                                                 <p>• Type: {item.lensConfig.lensType === 'withPower' ? 'With Power' : item.lensConfig.lensType === 'zeroPower' ? 'Zero Power' : 'Frame Only'}</p>
                                                                 {item.lensConfig.powerType && (
                                                                     <p>• Lens: {item.lensConfig.powerType === 'antiGlare' ? 'Anti Glare' : item.lensConfig.powerType === 'blueBlock' ? 'Blue Block' : item.lensConfig.powerType === 'photochromic' ? 'Photochromic' : 'Colour'}</p>
@@ -190,7 +190,7 @@ export const Cart = () => {
                                                                     <p>• Power: {item.lensConfig.powerRange === 'upto5' ? 'Upto +/- 5' : 'Upto +/- 10'}</p>
                                                                 )}
                                                                 {item.lensConfig.lensPrice > 0 && (
-                                                                    <p className="text-amber-600 font-medium">Lens: +₹{item.lensConfig.lensPrice}</p>
+                                                                    <p className="text-amber-600 dark:text-amber-400 font-medium">Lens: +₹{item.lensConfig.lensPrice}</p>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -214,11 +214,11 @@ export const Cart = () => {
                                                             variant="outline"
                                                             size="icon"
                                                             onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
-                                                            className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50"
+                                                            className="h-8 w-8 border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30 bg-transparent text-black dark:text-white"
                                                         >
                                                             <Minus className="h-3 w-3" />
                                                         </Button>
-                                                        <span className="text-base font-medium text-black w-8 text-center">
+                                                        <span className="text-base font-medium text-black dark:text-white w-8 text-center">
                                                             {item.quantity}
                                                         </span>
                                                         <Button
@@ -226,13 +226,13 @@ export const Cart = () => {
                                                             size="icon"
                                                             onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
                                                             disabled={item.quantity >= getAvailableStock(item, item.selectedColor)}
-                                                            className="h-8 w-8 border-amber-200 hover:border-amber-400 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            className="h-8 w-8 border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30 bg-transparent text-black dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
                                                             <Plus className="h-3 w-3" />
                                                         </Button>
                                                     </div>
                                                     {/* Stock info */}
-                                                    <span className="text-xs text-black/40">
+                                                    <span className="text-xs text-black/40 dark:text-white/40">
                                                         {getAvailableStock(item, item.selectedColor)} in stock
                                                     </span>
                                                     {/* Stock error message */}
@@ -246,11 +246,11 @@ export const Cart = () => {
 
                                                 {/* Price */}
                                                 <div className="text-right">
-                                                    <p className="text-lg font-[600] text-amber-600">
+                                                    <p className="text-lg font-[600] text-amber-600 dark:text-amber-400">
                                                         ₹{(((item.selectedColorPrice || item.price) + (item.lensConfig?.lensPrice || 0)) * item.quantity).toFixed(2)}
                                                     </p>
                                                     {item.quantity > 1 && (
-                                                        <p className="text-xs text-black/50">₹{(item.selectedColorPrice || item.price) + (item.lensConfig?.lensPrice || 0)} each</p>
+                                                        <p className="text-xs text-black/50 dark:text-white/50">₹{(item.selectedColorPrice || item.price) + (item.lensConfig?.lensPrice || 0)} each</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -263,28 +263,28 @@ export const Cart = () => {
 
                     {/* Order Summary */}
                     <div className="lg:col-span-1">
-                        <Card className="border-amber-200/60 rounded-2xl lg:sticky lg:top-24">
+                        <Card className="border-amber-200/60 dark:border-amber-900/30 rounded-2xl lg:sticky lg:top-24 bg-white dark:bg-gray-900 shadow-sm">
                             <CardContent className="p-6">
-                                <h2 className="text-2xl font-[600] text-black mb-6">Order Summary</h2>
+                                <h2 className="text-2xl font-[600] text-black dark:text-white mb-6">Order Summary</h2>
 
                                 <div className="space-y-4 mb-6">
-                                    <div className="flex justify-between text-black/70">
+                                    <div className="flex justify-between text-black/70 dark:text-white/70">
                                         <span>Subtotal</span>
-                                        <span className="font-medium">₹{totalPrice.toFixed(2)}</span>
+                                        <span className="font-medium text-black dark:text-white">₹{totalPrice.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between text-black/70">
+                                    <div className="flex justify-between text-black/70 dark:text-white/70">
                                         <span>Platform Charges</span>
-                                        <span className="font-medium">₹{siteSettings.platformCharges.toFixed(2)}</span>
+                                        <span className="font-medium text-black dark:text-white">₹{siteSettings.platformCharges.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between text-black/70">
+                                    <div className="flex justify-between text-black/70 dark:text-white/70">
                                         <span>Delivery Charges</span>
-                                        <span className="font-medium">{siteSettings.deliveryCharges > 0 ? `₹${siteSettings.deliveryCharges.toFixed(2)}` : <span className="text-green-600">Free</span>}</span>
+                                        <span className="font-medium text-black dark:text-white">{siteSettings.deliveryCharges > 0 ? `₹${siteSettings.deliveryCharges.toFixed(2)}` : <span className="text-green-600 dark:text-green-400">Free</span>}</span>
                                     </div>
 
-                                    <div className="border-t border-amber-200 pt-4">
+                                    <div className="border-t border-amber-200 dark:border-amber-800 pt-4">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-lg font-[600] text-black">Total</span>
-                                            <span className="text-2xl font-[600] text-amber-600">
+                                            <span className="text-lg font-[600] text-black dark:text-white">Total</span>
+                                            <span className="text-2xl font-[600] text-amber-600 dark:text-amber-400">
                                                 ₹{grandTotal.toFixed(2)}
                                             </span>
                                         </div>
@@ -307,17 +307,17 @@ export const Cart = () => {
                                 </Button>
 
                                 {/* Promo Code */}
-                                <div className="mt-6 pt-6 border-t border-amber-200">
-                                    <p className="text-sm font-medium text-black mb-2">Promo Code</p>
+                                <div className="mt-6 pt-6 border-t border-amber-200 dark:border-amber-800">
+                                    <p className="text-sm font-medium text-black dark:text-white mb-2">Promo Code</p>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
                                             placeholder="Enter code"
-                                            className="flex-1 px-3 py-2 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 text-sm"
+                                            className="flex-1 px-3 py-2 border border-amber-200 dark:border-amber-800 bg-white dark:bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400 text-sm text-black dark:text-white dark:placeholder-white/40"
                                         />
                                         <Button
                                             variant="outline"
-                                            className="border-amber-200 hover:border-amber-400 hover:bg-amber-50"
+                                            className="border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30 text-black dark:text-white"
                                         >
                                             Apply
                                         </Button>
@@ -325,16 +325,16 @@ export const Cart = () => {
                                 </div>
 
                                 {/* Benefits */}
-                                <div className="mt-6 pt-6 border-t border-amber-200 space-y-2">
-                                    <p className="text-xs text-black/50 flex items-center gap-2">
+                                <div className="mt-6 pt-6 border-t border-amber-200 dark:border-amber-800 space-y-2">
+                                    <p className="text-xs text-black/50 dark:text-white/50 flex items-center gap-2">
                                         <span className="w-1 h-1 bg-amber-500 rounded-full"></span>
                                         Free shipping on all orders
                                     </p>
-                                    <p className="text-xs text-black/50 flex items-center gap-2">
+                                    <p className="text-xs text-black/50 dark:text-white/50 flex items-center gap-2">
                                         <span className="w-1 h-1 bg-amber-500 rounded-full"></span>
                                         30-day return policy
                                     </p>
-                                    <p className="text-xs text-black/50 flex items-center gap-2">
+                                    <p className="text-xs text-black/50 dark:text-white/50 flex items-center gap-2">
                                         <span className="w-1 h-1 bg-amber-500 rounded-full"></span>
                                         1-year warranty included
                                     </p>

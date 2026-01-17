@@ -116,28 +116,28 @@ const getStatusIcon = (status: string) => {
 const getStatusColor = (status: string) => {
     switch (status) {
         case 'delivered':
-            return 'bg-green-100 text-green-700 border-green-200';
+            return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800';
         case 'shipped':
-            return 'bg-blue-100 text-blue-700 border-blue-200';
+            return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800';
         case 'processing':
-            return 'bg-amber-100 text-amber-700 border-amber-200';
+            return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
         case 'cancelled':
-            return 'bg-red-100 text-red-700 border-red-200';
+            return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
         default:
-            return 'bg-gray-100 text-gray-700 border-gray-200';
+            return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
     }
 };
 
 const getPaymentStatusColor = (status: string) => {
     switch (status) {
         case 'paid':
-            return 'bg-green-100 text-green-700';
+            return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
         case 'failed':
-            return 'bg-red-100 text-red-700';
+            return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
         case 'refunded':
-            return 'bg-blue-100 text-blue-700';
+            return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
         default:
-            return 'bg-yellow-100 text-yellow-700';
+            return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
     }
 };
 
@@ -145,13 +145,13 @@ const getPaymentStatusColor = (status: string) => {
 const getRefundStatusBadge = (refundStatus?: string) => {
     switch (refundStatus) {
         case 'processing':
-            return { color: 'bg-amber-100 text-amber-700 border-amber-200', text: 'Refund Processing' };
+            return { color: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', text: 'Refund Processing' };
         case 'completed':
-            return { color: 'bg-green-100 text-green-700 border-green-200', text: 'Refund Completed' };
+            return { color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800', text: 'Refund Completed' };
         case 'failed':
-            return { color: 'bg-red-100 text-red-700 border-red-200', text: 'Refund Failed' };
+            return { color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800', text: 'Refund Failed' };
         case 'pending':
-            return { color: 'bg-blue-100 text-blue-700 border-blue-200', text: 'Refund Pending' };
+            return { color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800', text: 'Refund Pending' };
         default:
             return null;
     }
@@ -424,33 +424,33 @@ export default function Orders() {
     }
 
     return (
-        <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white">
+        <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
             <div className="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
                     <Button
                         variant="ghost"
                         onClick={() => navigate('/profile')}
-                        className="mb-4 text-black/60 hover:text-amber-600 hover:bg-amber-50"
+                        className="mb-4 text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Profile
                     </Button>
-                    <h1 className="text-4xl sm:text-5xl font-[600] text-black">My Orders</h1>
-                    <p className="text-black/60 mt-2">Track and manage your orders</p>
+                    <h1 className="text-4xl sm:text-5xl font-[600] text-black dark:text-white">My Orders</h1>
+                    <p className="text-black/60 dark:text-white/60 mt-2">Track and manage your orders</p>
                 </div>
 
                 {loading ? (
                     <div className="text-center py-20">
-                        <div className="w-12 h-12 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="text-black/60">Loading your orders...</p>
+                        <div className="w-12 h-12 border-4 border-amber-200 dark:border-amber-900/50 border-t-amber-600 dark:border-t-amber-500 rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-black/60 dark:text-white/60">Loading your orders...</p>
                     </div>
                 ) : orders.length === 0 ? (
-                    <Card className="border-amber-200/60 rounded-2xl">
+                    <Card className="border-amber-200/60 dark:border-amber-900/30 rounded-2xl bg-white dark:bg-gray-900">
                         <CardContent className="p-12 text-center">
-                            <ShoppingBag className="h-16 w-16 text-amber-200 mx-auto mb-4" />
-                            <h2 className="text-2xl font-[600] text-black mb-2">No Orders Yet</h2>
-                            <p className="text-black/60 mb-6">
+                            <ShoppingBag className="h-16 w-16 text-amber-200 dark:text-amber-900/50 mx-auto mb-4" />
+                            <h2 className="text-2xl font-[600] text-black dark:text-white mb-2">No Orders Yet</h2>
+                            <p className="text-black/60 dark:text-white/60 mb-6">
                                 Looks like you haven't placed any orders yet.
                             </p>
                             <Button
@@ -466,18 +466,18 @@ export default function Orders() {
                         {orders.map((order) => (
                             <Card
                                 key={order._id}
-                                className="border-amber-200/60 rounded-2xl overflow-hidden"
+                                className="border-amber-200/60 dark:border-amber-900/30 rounded-2xl overflow-hidden bg-white dark:bg-gray-900"
                             >
                                 {/* Order Header - Always Visible */}
                                 <div
-                                    className="p-4 sm:p-6 cursor-pointer hover:bg-amber-50/50 transition-colors"
+                                    className="p-4 sm:p-6 cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors"
                                     onClick={() => toggleOrderExpand(order._id)}
                                 >
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                 {getStatusIcon(order.status)}
-                                                <span className="font-[600] text-black">
+                                                <span className="font-[600] text-black dark:text-white">
                                                     Order #{order._id.slice(-8).toUpperCase()}
                                                 </span>
                                                 <span
@@ -503,12 +503,12 @@ export default function Orders() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-black/60">
+                                            <p className="text-sm text-black/60 dark:text-white/60">
                                                 Placed on {formatDate(order.createdAt)}
                                             </p>
-                                            <p className="text-sm text-black/60 mt-1">
+                                            <p className="text-sm text-black/60 dark:text-white/60 mt-1">
                                                 {order.items.length} item{order.items.length > 1 ? 's' : ''} •{' '}
-                                                <span className="font-medium text-amber-600">
+                                                <span className="font-medium text-amber-600 dark:text-amber-400">
                                                     ₹{order.totalAmount.toFixed(2)}
                                                 </span>
                                             </p>
@@ -539,9 +539,9 @@ export default function Orders() {
                                             </div>
                                             <div className="ml-2">
                                                 {expandedOrder === order._id ? (
-                                                    <ChevronUp className="h-5 w-5 text-black/40" />
+                                                    <ChevronUp className="h-5 w-5 text-black/40 dark:text-white/40" />
                                                 ) : (
-                                                    <ChevronDown className="h-5 w-5 text-black/40" />
+                                                    <ChevronDown className="h-5 w-5 text-black/40 dark:text-white/40" />
                                                 )}
                                             </div>
                                         </div>
@@ -550,15 +550,15 @@ export default function Orders() {
 
                                 {/* Expanded Order Details */}
                                 {expandedOrder === order._id && (
-                                    <div className="border-t border-amber-200/60 bg-amber-50/30">
+                                    <div className="border-t border-amber-200/60 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/10">
                                         {/* Order Items */}
-                                        <div className="p-4 sm:p-6 border-b border-amber-200/60">
-                                            <h3 className="font-[600] text-black mb-4">Order Items</h3>
+                                        <div className="p-4 sm:p-6 border-b border-amber-200/60 dark:border-amber-900/30">
+                                            <h3 className="font-[600] text-black dark:text-white mb-4">Order Items</h3>
                                             <div className="space-y-4">
                                                 {order.items.map((item, idx) => (
                                                     <div
                                                         key={idx}
-                                                        className="flex gap-4 p-3 bg-white rounded-xl border border-amber-100"
+                                                        className="flex gap-4 p-3 bg-white dark:bg-gray-800 rounded-xl border border-amber-100 dark:border-amber-900/30"
                                                     >
                                                         <div className="w-20 h-20 rounded-lg overflow-hidden bg-amber-50 flex-shrink-0">
                                                             <img
@@ -568,18 +568,18 @@ export default function Orders() {
                                                             />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <h4 className="font-medium text-black truncate">
+                                                            <h4 className="font-medium text-black dark:text-white truncate">
                                                                 {item.productName}
                                                             </h4>
                                                             {item.selectedColor && (
-                                                                <p className="text-sm text-black/60">
+                                                                <p className="text-sm text-black/60 dark:text-white/60">
                                                                     Color: {item.selectedColor}
                                                                 </p>
                                                             )}
-                                                            <p className="text-sm text-black/60">
+                                                            <p className="text-sm text-black/60 dark:text-white/60">
                                                                 Qty: {item.quantity}
                                                             </p>
-                                                            <p className="font-medium text-amber-600 mt-1">
+                                                            <p className="font-medium text-amber-600 dark:text-amber-400 mt-1">
                                                                 ₹{(item.price * item.quantity).toFixed(2)}
                                                             </p>
                                                         </div>
@@ -593,24 +593,24 @@ export default function Orders() {
                                             {/* Shipping Address */}
                                             <div>
                                                 <div className="flex items-center gap-2 mb-3">
-                                                    <MapPin className="h-4 w-4 text-amber-600" />
-                                                    <h3 className="font-[600] text-black">Shipping Address</h3>
+                                                    <MapPin className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                                    <h3 className="font-[600] text-black dark:text-white">Shipping Address</h3>
                                                 </div>
-                                                <div className="bg-white p-4 rounded-xl border border-amber-100">
-                                                    <p className="font-medium text-black">
+                                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                                                    <p className="font-medium text-black dark:text-white">
                                                         {order.shippingAddress.name}
                                                     </p>
-                                                    <p className="text-sm text-black/60 mt-1">
+                                                    <p className="text-sm text-black/60 dark:text-white/60 mt-1">
                                                         {order.shippingAddress.phone}
                                                     </p>
-                                                    <p className="text-sm text-black/60 mt-2">
+                                                    <p className="text-sm text-black/60 dark:text-white/60 mt-2">
                                                         {order.shippingAddress.street}
                                                     </p>
-                                                    <p className="text-sm text-black/60">
+                                                    <p className="text-sm text-black/60 dark:text-white/60">
                                                         {order.shippingAddress.city}, {order.shippingAddress.state}{' '}
                                                         - {order.shippingAddress.zipCode}
                                                     </p>
-                                                    <p className="text-sm text-black/60">
+                                                    <p className="text-sm text-black/60 dark:text-white/60">
                                                         {order.shippingAddress.country}
                                                     </p>
                                                 </div>
@@ -619,18 +619,18 @@ export default function Orders() {
                                             {/* Payment Info */}
                                             <div>
                                                 <div className="flex items-center gap-2 mb-3">
-                                                    <CreditCard className="h-4 w-4 text-amber-600" />
-                                                    <h3 className="font-[600] text-black">Payment Details</h3>
+                                                    <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                                    <h3 className="font-[600] text-black dark:text-white">Payment Details</h3>
                                                 </div>
-                                                <div className="bg-white p-4 rounded-xl border border-amber-100 space-y-2">
+                                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 space-y-2">
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm text-black/60">Method</span>
-                                                        <span className="text-sm font-medium text-black capitalize">
+                                                        <span className="text-sm text-black/60 dark:text-white/60">Method</span>
+                                                        <span className="text-sm font-medium text-black dark:text-white capitalize">
                                                             {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod}
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm text-black/60">Status</span>
+                                                        <span className="text-sm text-black/60 dark:text-white/60">Status</span>
                                                         <span
                                                             className={`text-sm font-medium capitalize ${order.paymentStatus === 'paid'
                                                                 ? 'text-green-600'
@@ -644,18 +644,18 @@ export default function Orders() {
                                                     </div>
                                                     {order.paymentId && (
                                                         <div className="flex justify-between">
-                                                            <span className="text-sm text-black/60">
+                                                            <span className="text-sm text-black/60 dark:text-white/60">
                                                                 Transaction ID
                                                             </span>
-                                                            <span className="text-sm font-mono text-black/70">
+                                                            <span className="text-sm font-mono text-black/70 dark:text-white/70">
                                                                 {order.paymentId.slice(0, 15)}...
                                                             </span>
                                                         </div>
                                                     )}
-                                                    <div className="border-t border-amber-100 pt-2 mt-2">
+                                                    <div className="border-t border-amber-100 dark:border-amber-900/30 pt-2 mt-2">
                                                         <div className="flex justify-between">
-                                                            <span className="font-medium text-black">Total</span>
-                                                            <span className="font-[600] text-amber-600">
+                                                            <span className="font-medium text-black dark:text-white">Total</span>
+                                                            <span className="font-[600] text-amber-600 dark:text-amber-400">
                                                                 ₹{order.totalAmount.toFixed(2)}
                                                             </span>
                                                         </div>
@@ -663,14 +663,14 @@ export default function Orders() {
 
                                                     {/* Refund Information */}
                                                     {order.refundStatus && order.refundStatus !== 'not_applicable' && (
-                                                        <div className="border-t border-amber-100 pt-3 mt-3">
+                                                        <div className="border-t border-amber-100 dark:border-amber-900/30 pt-3 mt-3">
                                                             <div className="flex items-center justify-between mb-2">
-                                                                <h4 className="text-sm font-semibold text-black">Refund Information</h4>
+                                                                <h4 className="text-sm font-semibold text-black dark:text-white">Refund Information</h4>
                                                                 {order.refundStatus === 'processing' && (
                                                                     <button
                                                                         onClick={() => refreshRefundStatus(order._id)}
                                                                         disabled={refreshingRefund === order._id}
-                                                                        className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 disabled:opacity-50"
+                                                                        className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 disabled:opacity-50"
                                                                         title="Refresh refund status"
                                                                     >
                                                                         <RefreshCw
@@ -682,7 +682,7 @@ export default function Orders() {
                                                             </div>
                                                             <div className="space-y-2">
                                                                 <div className="flex justify-between">
-                                                                    <span className="text-sm text-black/60">Refund Status</span>
+                                                                    <span className="text-sm text-black/60 dark:text-white/60">Refund Status</span>
                                                                     <span className={`text-sm font-medium capitalize ${order.refundStatus === 'completed' ? 'text-green-600' :
                                                                         order.refundStatus === 'processing' ? 'text-amber-600' :
                                                                             order.refundStatus === 'failed' ? 'text-red-600' :
@@ -693,27 +693,27 @@ export default function Orders() {
                                                                 </div>
                                                                 {order.refundAmount && (
                                                                     <div className="flex justify-between">
-                                                                        <span className="text-sm text-black/60">Refund Amount</span>
-                                                                        <span className="text-sm font-medium text-green-600">₹{order.refundAmount.toFixed(2)}</span>
+                                                                        <span className="text-sm text-black/60 dark:text-white/60">Refund Amount</span>
+                                                                        <span className="text-sm font-medium text-green-600 dark:text-green-400">₹{order.refundAmount.toFixed(2)}</span>
                                                                     </div>
                                                                 )}
                                                                 {order.refundId && (
                                                                     <div className="flex justify-between">
-                                                                        <span className="text-sm text-black/60">Refund ID</span>
-                                                                        <span className="text-sm font-mono text-black/70">{order.refundId.slice(0, 15)}...</span>
+                                                                        <span className="text-sm text-black/60 dark:text-white/60">Refund ID</span>
+                                                                        <span className="text-sm font-mono text-black/70 dark:text-white/70">{order.refundId.slice(0, 15)}...</span>
                                                                     </div>
                                                                 )}
                                                                 {order.refundStatus === 'processing' && (
-                                                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
-                                                                        <p className="text-xs text-amber-800">
+                                                                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-3 mt-2">
+                                                                        <p className="text-xs text-amber-800 dark:text-amber-300">
                                                                             <Clock className="h-3 w-3 inline mr-1" />
                                                                             Your refund is being processed. It will be credited to your original payment method within 5-7 working days.
                                                                         </p>
                                                                     </div>
                                                                 )}
                                                                 {order.refundStatus === 'completed' && (
-                                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
-                                                                        <p className="text-xs text-green-800">
+                                                                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50 rounded-lg p-3 mt-2">
+                                                                        <p className="text-xs text-green-800 dark:text-green-300">
                                                                             <CheckCircle className="h-3 w-3 inline mr-1" />
                                                                             Refund has been successfully credited to your account. It will be reflected back to your original payment method within 5-7 working days.
                                                                         </p>
@@ -727,8 +727,8 @@ export default function Orders() {
                                         </div>
 
                                         {/* Order Timeline */}
-                                        <div className="p-4 sm:p-6 border-t border-amber-200/60">
-                                            <h3 className="font-[600] text-black mb-4">Order Timeline</h3>
+                                        <div className="p-4 sm:p-6 border-t border-amber-200/60 dark:border-amber-900/30">
+                                            <h3 className="font-[600] text-black dark:text-white mb-4">Order Timeline</h3>
                                             <div className="flex items-center gap-2 overflow-x-auto pb-2">
                                                 {['pending', 'processing', 'shipped', 'delivered'].map(
                                                     (status, idx) => {
@@ -753,8 +753,8 @@ export default function Orders() {
                                                                     <div
                                                                         className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted
                                                                             ? 'bg-amber-600 text-white'
-                                                                            : 'bg-gray-200 text-gray-400'
-                                                                            } ${isCurrent ? 'ring-4 ring-amber-200' : ''}`}
+                                                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                                                                            } ${isCurrent ? 'ring-4 ring-amber-200 dark:ring-amber-900/30' : ''}`}
                                                                     >
                                                                         {isCompleted ? (
                                                                             <CheckCircle className="h-4 w-4" />
@@ -764,8 +764,8 @@ export default function Orders() {
                                                                     </div>
                                                                     <span
                                                                         className={`text-xs mt-1 capitalize whitespace-nowrap ${isCompleted
-                                                                            ? 'text-amber-600 font-medium'
-                                                                            : 'text-gray-400'
+                                                                            ? 'text-amber-600 dark:text-amber-400 font-medium'
+                                                                            : 'text-gray-400 dark:text-gray-500'
                                                                             }`}
                                                                     >
                                                                         {status}
@@ -775,7 +775,7 @@ export default function Orders() {
                                                                     <div
                                                                         className={`w-12 h-1 mx-1 rounded ${isCompleted && idx < currentIdx
                                                                             ? 'bg-amber-600'
-                                                                            : 'bg-gray-200'
+                                                                            : 'bg-gray-200 dark:bg-gray-700'
                                                                             }`}
                                                                     />
                                                                 )}

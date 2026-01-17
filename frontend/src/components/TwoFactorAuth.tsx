@@ -166,24 +166,24 @@ export default function TwoFactorAuth({ userId, email, onSuccess, onCancel }: Tw
     const maskedEmail = email.replace(/(.{2})(.*)(@.*)/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in slide-in-from-bottom-4 duration-300 border border-gray-100 dark:border-gray-800">
                 <button
                     onClick={onCancel}
-                    className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                 >
-                    <X className="h-5 w-5 text-gray-500" />
+                    <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 </button>
 
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Shield className="h-8 w-8 text-amber-600" />
+                    <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Shield className="h-8 w-8 text-amber-600 dark:text-amber-500" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                         Two-Factor Authentication
                     </h2>
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
                         We've sent a verification code to
                     </p>
                     <p className="text-amber-600 font-medium mt-1 flex items-center justify-center gap-2">
@@ -194,7 +194,7 @@ export default function TwoFactorAuth({ userId, email, onSuccess, onCancel }: Tw
 
                 {/* OTP Input */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">
                         Enter 6-digit code
                     </label>
                     <div className="flex gap-2 justify-center" onPaste={handlePaste}>
@@ -208,13 +208,13 @@ export default function TwoFactorAuth({ userId, email, onSuccess, onCancel }: Tw
                                 value={digit}
                                 onChange={e => handleChange(index, e.target.value)}
                                 onKeyDown={e => handleKeyDown(index, e)}
-                                className={`w-12 h-14 text-center text-2xl font-bold border-2 rounded-lg focus:outline-none focus:ring-2 transition-all relative ${validationSuccess
-                                    ? 'border-green-500 bg-green-50 animate-success-fill'
+                                className={`w-12 h-14 text-center text-2xl font-bold border-2 rounded-lg focus:outline-none focus:ring-2 transition-all relative dark:bg-gray-800 dark:text-white ${validationSuccess
+                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 animate-success-fill'
                                     : validationError
-                                        ? 'border-red-500 bg-red-50 animate-shake'
+                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20 animate-shake'
                                         : error
-                                            ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                                            : 'border-gray-300 focus:border-amber-500 focus:ring-amber-200'
+                                            ? 'border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900/50'
+                                            : 'border-gray-300 dark:border-gray-700 focus:border-amber-500 focus:ring-amber-200 dark:focus:ring-amber-900/50'
                                     }`}
                                 style={{
                                     animationDelay: validationSuccess ? `${index * 100}ms` : '0ms'
@@ -227,7 +227,7 @@ export default function TwoFactorAuth({ userId, email, onSuccess, onCancel }: Tw
 
                 {/* Error Message */}
                 {error && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center">
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 text-sm text-center">
                         {error}
                     </div>
                 )}
@@ -236,7 +236,7 @@ export default function TwoFactorAuth({ userId, email, onSuccess, onCancel }: Tw
                 <button
                     onClick={() => handleVerify(otp.join(''))}
                     disabled={loading || otp.some(digit => digit === '')}
-                    className="w-full py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mb-4"
+                    className="w-full py-3 bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mb-4"
                 >
                     {loading ? (
                         <>
@@ -249,12 +249,12 @@ export default function TwoFactorAuth({ userId, email, onSuccess, onCancel }: Tw
                 </button>
 
                 {/* Resend Code */}
-                <div className="text-center text-sm text-gray-600">
+                <div className="text-center text-sm text-gray-600 dark:text-gray-400">
                     {canResend ? (
                         <button
                             onClick={handleResend}
                             disabled={resending}
-                            className="text-amber-600 hover:text-amber-700 font-medium disabled:opacity-50"
+                            className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium disabled:opacity-50"
                         >
                             {resending ? 'Sending...' : 'Resend Code'}
                         </button>
@@ -266,8 +266,8 @@ export default function TwoFactorAuth({ userId, email, onSuccess, onCancel }: Tw
                 </div>
 
                 {/* Security Notice */}
-                <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-800">
+                <div className="mt-6 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-lg">
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
                         <strong>Security Notice:</strong> Never share this code with anyone. This code expires in 10 minutes.
                     </p>
                 </div>

@@ -129,7 +129,7 @@ export const Hero = () => {
     }
 
     return (
-        <section className="relative bg-white pt-4 sm:pt-6 overflow-hidden">
+        <section className="relative bg-white dark:bg-gray-950 pt-4 sm:pt-6 overflow-hidden transition-colors duration-300">
             <motion.div
                 className="relative w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8"
                 variants={containerVariants}
@@ -142,7 +142,7 @@ export const Hero = () => {
                         <Link
                             key={idx}
                             to="/collections"
-                            className="group relative overflow-hidden rounded-2xl bg-amber-50 border border-amber-100 shadow-sm hover:shadow-lg transition-all duration-300"
+                            className="group relative overflow-hidden rounded-2xl bg-amber-50 dark:bg-gray-900 border border-amber-100 dark:border-amber-900/30 shadow-sm hover:shadow-lg transition-all duration-300"
                         >
                             <img
                                 src={img.src}
@@ -159,10 +159,10 @@ export const Hero = () => {
                 <motion.div variants={itemVariants} className="mb-10">
                     <div className="flex items-center justify-between mb-5">
                         <div className="flex items-center gap-3">
-                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black">
+                            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black dark:text-white">
                                 Our Bestsellers
                             </h2>
-                            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs font-medium">
                                 <Sparkles className="h-3 w-3" />
                                 Popular
                             </span>
@@ -170,21 +170,21 @@ export const Hero = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => scroll('left')}
-                                className="p-2 rounded-full bg-white border border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                                className="p-2 rounded-full bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 transition-colors"
                                 aria-label="Scroll left"
                             >
                                 <ChevronLeft className="h-5 w-5" />
                             </button>
                             <button
                                 onClick={() => scroll('right')}
-                                className="p-2 rounded-full bg-white border border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                                className="p-2 rounded-full bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 transition-colors"
                                 aria-label="Scroll right"
                             >
                                 <ChevronRight className="h-5 w-5" />
                             </button>
                             <Link
                                 to="/collections"
-                                className="hidden sm:flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors ml-2"
+                                className="hidden sm:flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors ml-2"
                             >
                                 View All
                                 <ArrowRight className="h-4 w-4" />
@@ -204,7 +204,7 @@ export const Hero = () => {
                                     key={i}
                                     className="flex-shrink-0 w-[180px] sm:w-[220px] lg:w-[260px]"
                                 >
-                                    <div className="bg-amber-50 rounded-xl border border-amber-100 overflow-hidden">
+                                    <div className="bg-amber-50 dark:bg-gray-900 rounded-xl border border-amber-100 dark:border-amber-900/30 overflow-hidden">
                                         <div className="aspect-square shimmer" />
                                         <div className="p-3 space-y-2">
                                             <div className="h-4 shimmer rounded w-3/4" />
@@ -219,8 +219,8 @@ export const Hero = () => {
                                     to={`/product/${product._id || product.id}`}
                                     className="flex-shrink-0 w-[180px] sm:w-[220px] lg:w-[260px] group"
                                 >
-                                    <div className="bg-white rounded-xl border border-amber-100 overflow-hidden hover:border-amber-300 hover:shadow-lg transition-all duration-300">
-                                        <div className="relative aspect-square bg-amber-50 overflow-hidden">
+                                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-amber-100 dark:border-amber-900/30 overflow-hidden hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-lg transition-all duration-300">
+                                        <div className="relative aspect-square bg-amber-50 dark:bg-gray-800 overflow-hidden">
                                             <span className="absolute top-2 left-2 z-10 px-2 py-1 text-xs font-semibold bg-amber-500 text-white rounded-md">
                                                 Bestseller
                                             </span>
@@ -234,21 +234,21 @@ export const Hero = () => {
                                             />
                                         </div>
                                         <div className="p-3 sm:p-4">
-                                            <p className="text-xs text-amber-600 font-medium mb-1">Voyar Eyewear</p>
-                                            <h3 className="text-sm font-semibold text-black line-clamp-2 mb-2 group-hover:text-amber-700 transition-colors">
+                                            <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">Voyar Eyewear</p>
+                                            <h3 className="text-sm font-semibold text-black dark:text-white line-clamp-2 mb-2 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
                                                 {product.name}
                                             </h3>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-base sm:text-lg font-bold text-black">
+                                                <span className="text-base sm:text-lg font-bold text-black dark:text-white">
                                                     ₹{product.price}
                                                 </span>
                                                 {product.originalPrice && (
-                                                    <span className="text-sm text-black/40 line-through">
+                                                    <span className="text-sm text-black/40 dark:text-white/40 line-through">
                                                         ₹{product.originalPrice}
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-black/50 mt-1">Inclusive of all taxes</p>
+                                            <p className="text-xs text-black/50 dark:text-white/50 mt-1">Inclusive of all taxes</p>
                                         </div>
                                     </div>
                                 </Link>
@@ -259,12 +259,12 @@ export const Hero = () => {
                 {/* Eyeglasses Section with Tabs */}
                 <motion.div variants={itemVariants} className="mb-10">
                     <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black">
+                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black dark:text-white">
                             Eyeglasses
                         </h2>
                         <Link
                             to="/collections?category=eyeglasses"
-                            className="flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                            className="flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
                         >
                             View All
                             <ArrowRight className="h-4 w-4" />
@@ -278,8 +278,8 @@ export const Hero = () => {
                                 key={tab.value}
                                 onClick={() => setEyeglassTab(tab.value)}
                                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${eyeglassTab === tab.value
-                                        ? 'bg-amber-500 text-white shadow-md'
-                                        : 'bg-amber-50 text-black/70 hover:bg-amber-100 border border-amber-200'
+                                    ? 'bg-amber-500 text-white shadow-md'
+                                    : 'bg-amber-50 dark:bg-gray-800 text-black/70 dark:text-white/70 hover:bg-amber-100 dark:hover:bg-gray-700 border border-amber-200 dark:border-amber-900/50'
                                     }`}
                             >
                                 {tab.label}
@@ -295,21 +295,21 @@ export const Hero = () => {
                     {/* Category Content */}
                     <Link
                         to={`/collections?category=eyeglasses&filter=${eyeglassTab}`}
-                        className="group block relative overflow-hidden rounded-2xl bg-amber-50 border border-amber-100 hover:border-amber-300 transition-all duration-300"
+                        className="group block relative overflow-hidden rounded-2xl bg-amber-50 dark:bg-gray-900 border border-amber-100 dark:border-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-300"
                     >
                         <div className="flex flex-col sm:flex-row">
                             <div className="flex-1 p-6 sm:p-8 flex flex-col justify-center">
-                                <p className="text-sm text-amber-600 font-semibold mb-2">Voyar Eyewear</p>
-                                <h3 className="text-2xl sm:text-3xl font-bold text-black mb-3">
+                                <p className="text-sm text-amber-600 dark:text-amber-400 font-semibold mb-2">Voyar Eyewear</p>
+                                <h3 className="text-2xl sm:text-3xl font-bold text-black dark:text-white mb-3">
                                     {eyeglassTab === 'men' && 'Eyeglasses for Men'}
                                     {eyeglassTab === 'women' && 'Eyeglasses for Women'}
                                     {eyeglassTab === 'sale' && 'Eyeglasses @999'}
                                     {eyeglassTab === 'sports' && 'Sports Eyeglasses'}
                                 </h3>
-                                <p className="text-black/60 mb-4">
+                                <p className="text-black/60 dark:text-white/60 mb-4">
                                     {eyeglassTab === 'sale' ? 'Limited Period Offer' : 'Starts at ₹799 • Get Extra ₹100 Off'}
                                 </p>
-                                <span className="inline-flex items-center gap-2 text-amber-600 font-medium group-hover:gap-3 transition-all">
+                                <span className="inline-flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium group-hover:gap-3 transition-all">
                                     Shop Now
                                     <ArrowRight className="h-5 w-5" />
                                 </span>
@@ -328,12 +328,12 @@ export const Hero = () => {
                 {/* Sunglasses Section with Tabs */}
                 <motion.div variants={itemVariants} className="mb-8">
                     <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black">
+                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black dark:text-white">
                             Sunglasses
                         </h2>
                         <Link
                             to="/collections?category=sunglasses"
-                            className="flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                            className="flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
                         >
                             View All
                             <ArrowRight className="h-4 w-4" />
@@ -347,8 +347,8 @@ export const Hero = () => {
                                 key={tab.value}
                                 onClick={() => setSunglassTab(tab.value)}
                                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${sunglassTab === tab.value
-                                        ? 'bg-amber-500 text-white shadow-md'
-                                        : 'bg-amber-50 text-black/70 hover:bg-amber-100 border border-amber-200'
+                                    ? 'bg-amber-500 text-white shadow-md'
+                                    : 'bg-amber-50 dark:bg-gray-800 text-black/70 dark:text-white/70 hover:bg-amber-100 dark:hover:bg-gray-700 border border-amber-200 dark:border-amber-900/50'
                                     }`}
                             >
                                 {tab.label}
@@ -364,21 +364,21 @@ export const Hero = () => {
                     {/* Category Content */}
                     <Link
                         to={`/collections?category=sunglasses&filter=${sunglassTab}`}
-                        className="group block relative overflow-hidden rounded-2xl bg-amber-50 border border-amber-100 hover:border-amber-300 transition-all duration-300"
+                        className="group block relative overflow-hidden rounded-2xl bg-amber-50 dark:bg-gray-900 border border-amber-100 dark:border-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-300"
                     >
                         <div className="flex flex-col sm:flex-row">
                             <div className="flex-1 p-6 sm:p-8 flex flex-col justify-center">
-                                <p className="text-sm text-amber-600 font-semibold mb-2">Voyar Eyewear</p>
-                                <h3 className="text-2xl sm:text-3xl font-bold text-black mb-3">
+                                <p className="text-sm text-amber-600 dark:text-amber-400 font-semibold mb-2">Voyar Eyewear</p>
+                                <h3 className="text-2xl sm:text-3xl font-bold text-black dark:text-white mb-3">
                                     {sunglassTab === 'men' && 'Sunglasses for Men'}
                                     {sunglassTab === 'women' && 'Sunglasses for Women'}
                                     {sunglassTab === 'sale' && 'Sunglasses @999'}
                                     {sunglassTab === 'sports' && 'Sports Sunglasses'}
                                 </h3>
-                                <p className="text-black/60 mb-4">
+                                <p className="text-black/60 dark:text-white/60 mb-4">
                                     {sunglassTab === 'sale' ? 'Limited Period Offer' : 'Starts at ₹799 • Get Extra ₹100 Off'}
                                 </p>
-                                <span className="inline-flex items-center gap-2 text-amber-600 font-medium group-hover:gap-3 transition-all">
+                                <span className="inline-flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium group-hover:gap-3 transition-all">
                                     Shop Now
                                     <ArrowRight className="h-5 w-5" />
                                 </span>

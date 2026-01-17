@@ -11,7 +11,7 @@ export const Home = () => {
     useSmoothScroll()
 
     return (
-        <div className="min-h-screen bg-white overflow-x-hidden">
+        <div className="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden transition-colors duration-300">
             {/* Hero with Bestsellers & Category Tabs */}
             <Hero />
 

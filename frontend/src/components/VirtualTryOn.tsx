@@ -24,7 +24,7 @@ export const VirtualTryOn = () => {
     }, [tryOnImages.length])
 
     return (
-        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white to-amber-50/30 overflow-hidden">
+        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white to-amber-50/30 dark:from-gray-900 dark:to-gray-950 overflow-hidden transition-colors duration-300">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
                     {/* Content */}
@@ -35,15 +35,15 @@ export const VirtualTryOn = () => {
                         transition={{ duration: 0.5 }}
                     >
                         {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-700 text-sm font-medium mb-6">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium mb-6">
                             <Clock className="h-4 w-4" />
                             Coming Soon
                         </div>
 
-                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-5">
+                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black dark:text-white mb-5">
                             Virtual <span className="text-gradient-amber">Try-On</span>
                         </h2>
-                        <p className="text-base sm:text-lg text-black/60 mb-8 leading-relaxed">
+                        <p className="text-base sm:text-lg text-black/60 dark:text-white/60 mb-8 leading-relaxed">
                             We're building a camera-powered try-on experience so you can preview frames instantly.
                             Stay tuned—this feature will be live soon.
                         </p>
@@ -57,10 +57,10 @@ export const VirtualTryOn = () => {
                             ].map((feature) => (
                                 <div
                                     key={feature.label}
-                                    className="text-center p-4 rounded-xl bg-white border border-amber-100 hover:border-amber-200 transition-colors"
+                                    className="text-center p-4 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/30 hover:border-amber-200 dark:hover:border-amber-700 transition-colors"
                                 >
                                     <feature.icon className="h-6 w-6 text-amber-500 mx-auto mb-2" />
-                                    <span className="text-xs font-medium text-black/70">{feature.label}</span>
+                                    <span className="text-xs font-medium text-black/70 dark:text-white/70">{feature.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -68,7 +68,7 @@ export const VirtualTryOn = () => {
                         <Button
                             size="lg"
                             disabled
-                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold px-8 py-6 rounded-xl shadow-lg opacity-60 cursor-not-allowed"
+                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold px-8 py-6 rounded-xl shadow-lg shadow-amber-200/50 dark:shadow-amber-900/50 opacity-60 cursor-not-allowed"
                         >
                             <Bell className="mr-2 h-5 w-5" />
                             Notify Me When Ready
@@ -83,7 +83,7 @@ export const VirtualTryOn = () => {
                         transition={{ duration: 0.5, delay: 0.2 }}
                         className="relative"
                     >
-                        <div className="aspect-square rounded-2xl lg:rounded-3xl overflow-hidden bg-amber-50 border-2 border-amber-200 shadow-xl">
+                        <div className="aspect-square rounded-2xl lg:rounded-3xl overflow-hidden bg-amber-50 dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-900/50 shadow-xl">
                             <div className="relative w-full h-full">
                                 {tryOnImages.map((src, idx) => (
                                     <img
@@ -99,13 +99,13 @@ export const VirtualTryOn = () => {
 
                             {/* Overlay Label */}
                             <div className="absolute bottom-4 left-4 right-4">
-                                <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 border border-amber-100 shadow-lg">
+                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-xl p-4 border border-amber-100 dark:border-amber-900/30 shadow-lg">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-semibold text-black">Virtual Try-On</p>
-                                            <p className="text-xs text-black/50">Camera preview • Frame fit • Instant swap</p>
+                                            <p className="text-sm font-semibold text-black dark:text-white">Virtual Try-On</p>
+                                            <p className="text-xs text-black/50 dark:text-white/50">Camera preview • Frame fit • Instant swap</p>
                                         </div>
-                                        <span className="px-3 py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                                        <span className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
                                             Soon
                                         </span>
                                     </div>
@@ -114,8 +114,8 @@ export const VirtualTryOn = () => {
                         </div>
 
                         {/* Decorative corners */}
-                        <div className="absolute -top-3 -right-3 w-16 h-16 border-t-2 border-r-2 border-amber-300 rounded-tr-2xl" />
-                        <div className="absolute -bottom-3 -left-3 w-16 h-16 border-b-2 border-l-2 border-amber-300 rounded-bl-2xl" />
+                        <div className="absolute -top-3 -right-3 w-16 h-16 border-t-2 border-r-2 border-amber-300 dark:border-amber-700 rounded-tr-2xl" />
+                        <div className="absolute -bottom-3 -left-3 w-16 h-16 border-b-2 border-l-2 border-amber-300 dark:border-amber-700 rounded-bl-2xl" />
                     </motion.div>
                 </div>
             </div>

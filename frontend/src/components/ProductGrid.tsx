@@ -64,7 +64,7 @@ export const ProductGrid = () => {
     }
 
     return (
-        <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <section className="py-12 sm:py-16 lg:py-20 bg-white dark:bg-gray-950 transition-colors duration-300">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Section Header */}
                 <motion.div
@@ -75,10 +75,10 @@ export const ProductGrid = () => {
                     className="flex items-center justify-between mb-8"
                 >
                     <div className="flex items-center gap-3">
-                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black">
+                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black dark:text-white">
                             Featured Products
                         </h2>
-                        <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                        <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs font-medium">
                             <Sparkles className="h-3 w-3" />
                             New
                         </span>
@@ -87,21 +87,21 @@ export const ProductGrid = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => scroll('left')}
-                            className="p-2 rounded-full bg-white border border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                            className="p-2 rounded-full bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 transition-colors"
                             aria-label="Scroll left"
                         >
                             <ChevronLeft className="h-5 w-5" />
                         </button>
                         <button
                             onClick={() => scroll('right')}
-                            className="p-2 rounded-full bg-white border border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                            className="p-2 rounded-full bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 transition-colors"
                             aria-label="Scroll right"
                         >
                             <ChevronRight className="h-5 w-5" />
                         </button>
                         <Link
                             to="/collections"
-                            className="hidden sm:flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors ml-2"
+                            className="hidden sm:flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors ml-2"
                         >
                             View All
                             <ArrowRight className="h-4 w-4" />
@@ -109,7 +109,7 @@ export const ProductGrid = () => {
                     </div>
                 </motion.div>
 
-                <p className="text-black/60 mb-8 -mt-4">
+                <p className="text-black/60 dark:text-white/60 mb-8 -mt-4">
                     Discover our products through video
                 </p>
 
@@ -125,7 +125,7 @@ export const ProductGrid = () => {
                                 key={i}
                                 className="flex-shrink-0 w-[200px] sm:w-[240px] lg:w-[280px]"
                             >
-                                <div className="bg-white rounded-2xl border border-amber-100 overflow-hidden">
+                                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-amber-100 dark:border-amber-900/30 overflow-hidden">
                                     <div className="aspect-square shimmer" />
                                     <div className="p-4 space-y-3">
                                         <div className="h-4 shimmer rounded w-3/4" />
@@ -145,11 +145,11 @@ export const ProductGrid = () => {
                                 className="flex-shrink-0 w-[200px] sm:w-[240px] lg:w-[280px]"
                             >
                                 <div
-                                    className="group bg-white rounded-2xl border border-amber-100 overflow-hidden hover:border-amber-300 hover:shadow-xl transition-all duration-300 cursor-pointer h-full"
+                                    className="group bg-white dark:bg-gray-900 rounded-2xl border border-amber-100 dark:border-amber-900/30 overflow-hidden hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-xl transition-all duration-300 cursor-pointer h-full"
                                     onClick={() => navigate(`/product/${product._id || product.id}`)}
                                 >
                                     {/* Product Image */}
-                                    <div className="relative aspect-square bg-amber-50 overflow-hidden">
+                                    <div className="relative aspect-square bg-amber-50 dark:bg-gray-800 overflow-hidden">
                                         {/* Bestseller Badge */}
                                         <span className="absolute top-3 left-3 z-10 px-2.5 py-1 text-xs font-semibold bg-amber-500 text-white rounded-md shadow-sm">
                                             Bestseller
@@ -175,31 +175,31 @@ export const ProductGrid = () => {
 
                                     {/* Product Info */}
                                     <div className="p-4">
-                                        <p className="text-xs text-amber-600 font-medium mb-1">
+                                        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">
                                             Voyar Eyewear
                                         </p>
-                                        <h3 className="text-sm sm:text-base font-semibold text-black line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-amber-700 transition-colors">
+                                        <h3 className="text-sm sm:text-base font-semibold text-black dark:text-white line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
                                             {product.name}
                                         </h3>
 
                                         {/* Price */}
                                         <div className="flex items-baseline gap-2 mb-1">
-                                            <span className="text-lg font-bold text-black">
+                                            <span className="text-lg font-bold text-black dark:text-white">
                                                 ₹{product.price}
                                             </span>
                                             {product.originalPrice && (
-                                                <span className="text-sm text-black/40 line-through">
+                                                <span className="text-sm text-black/40 dark:text-white/40 line-through">
                                                     ₹{product.originalPrice}
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-black/50">
+                                        <p className="text-xs text-black/50 dark:text-white/50">
                                             Inclusive of all taxes
                                         </p>
 
                                         {/* Category Tag */}
-                                        <div className="mt-3 pt-3 border-t border-amber-50">
-                                            <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
+                                        <div className="mt-3 pt-3 border-t border-amber-50 dark:border-amber-900/30">
+                                            <span className="inline-block px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
                                                 {product.category}
                                             </span>
                                         </div>

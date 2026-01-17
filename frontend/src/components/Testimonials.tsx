@@ -31,7 +31,7 @@ const StarRating = ({ rating }: { rating: number }) => (
         {[...Array(5)].map((_, i) => (
             <Star
                 key={i}
-                className={`h-4 w-4 ${i < rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`}
+                className={`h-4 w-4 ${i < rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 dark:text-gray-700 fill-gray-200 dark:fill-gray-700'}`}
             />
         ))}
     </div>
@@ -79,7 +79,7 @@ export const Testimonials = () => {
     }
 
     return (
-        <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <section className="py-12 sm:py-16 lg:py-20 bg-white dark:bg-gray-950 transition-colors duration-300">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Section Header */}
                 <motion.div
@@ -89,14 +89,14 @@ export const Testimonials = () => {
                     transition={{ duration: 0.5 }}
                     className="text-center mb-10"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-700 text-sm font-medium mb-4">
-                        <Heart className="h-4 w-4 fill-amber-600" />
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-sm font-medium mb-4">
+                        <Heart className="h-4 w-4 fill-amber-600 dark:fill-amber-400" />
                         Customers' Favorite
                     </div>
-                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-3">
+                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black dark:text-white mb-3">
                         Most <span className="text-gradient-amber">Loved</span>
                     </h2>
-                    <p className="text-black/60">
+                    <p className="text-black/60 dark:text-white/60">
                         Updated every 15 days based on customer reviews
                     </p>
                 </motion.div>
@@ -107,14 +107,14 @@ export const Testimonials = () => {
                         {/* Navigation Buttons */}
                         <button
                             onClick={handlePrev}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 lg:-translate-x-14 z-10 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-amber-100 flex items-center justify-center text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all duration-300"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 lg:-translate-x-14 z-10 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-200 transition-all duration-300"
                             aria-label="Previous testimonial"
                         >
                             <ChevronLeft className="h-5 w-5 lg:h-6 lg:w-6" />
                         </button>
                         <button
                             onClick={handleNext}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 lg:translate-x-14 z-10 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white shadow-lg border border-amber-100 flex items-center justify-center text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all duration-300"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 lg:translate-x-14 z-10 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-200 transition-all duration-300"
                             aria-label="Next testimonial"
                         >
                             <ChevronRight className="h-5 w-5 lg:h-6 lg:w-6" />
@@ -133,7 +133,7 @@ export const Testimonials = () => {
                                     transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                                     className="px-4"
                                 >
-                                    <div className="bg-amber-50 rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-10 border border-amber-100">
+                                    <div className="bg-amber-50 dark:bg-gray-900 rounded-2xl lg:rounded-3xl p-6 sm:p-8 lg:p-10 border border-amber-100 dark:border-amber-900/30">
                                         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                                             {/* Profile Image */}
                                             <div className="flex-shrink-0">
@@ -155,16 +155,16 @@ export const Testimonials = () => {
                                                 </div>
 
                                                 {/* Testimonial Text */}
-                                                <p className="text-base sm:text-lg text-black/80 leading-relaxed mb-4">
+                                                <p className="text-base sm:text-lg text-black/80 dark:text-white/80 leading-relaxed mb-4">
                                                     "{testimonials[currentIndex].text}"
                                                 </p>
 
                                                 {/* Name & Location */}
                                                 <div>
-                                                    <h4 className="font-semibold text-black text-lg">
+                                                    <h4 className="font-semibold text-black dark:text-white text-lg">
                                                         {testimonials[currentIndex].name}
                                                     </h4>
-                                                    <p className="text-sm text-black/50">
+                                                    <p className="text-sm text-black/50 dark:text-white/50">
                                                         {testimonials[currentIndex].location}
                                                     </p>
                                                 </div>
@@ -185,8 +185,8 @@ export const Testimonials = () => {
                                         setCurrentIndex(index)
                                     }}
                                     className={`h-2 rounded-full transition-all duration-300 ${index === currentIndex
-                                            ? 'bg-amber-500 w-8'
-                                            : 'bg-amber-200 hover:bg-amber-300 w-2'
+                                        ? 'bg-amber-500 w-8'
+                                        : 'bg-amber-200 dark:bg-amber-900/30 hover:bg-amber-300 dark:hover:bg-amber-800 w-2'
                                         }`}
                                     aria-label={`Go to testimonial ${index + 1}`}
                                 />

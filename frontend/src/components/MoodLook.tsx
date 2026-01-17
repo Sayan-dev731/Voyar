@@ -46,7 +46,7 @@ export const MoodLook = () => {
     }
 
     return (
-        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white to-amber-50/30">
+        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white to-amber-50/30 dark:from-gray-950 dark:to-gray-900 transition-colors duration-300">
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -57,20 +57,20 @@ export const MoodLook = () => {
                     {/* Section Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                         <div>
-                            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black mb-2">
+                            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black dark:text-white mb-2">
                                 Today's Mood <span className="text-gradient-amber">Look</span>
                             </h2>
-                            <p className="text-black/60">Discover every look, for every style</p>
+                            <p className="text-black/60 dark:text-white/60">Discover every look, for every style</p>
                         </div>
 
                         <div className="flex items-center gap-3">
                             {/* Gender Toggle */}
-                            <div className="flex bg-amber-100 rounded-full p-1">
+                            <div className="flex bg-amber-100 dark:bg-amber-900/40 rounded-full p-1">
                                 <button
                                     onClick={() => setActiveGender('men')}
                                     className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${activeGender === 'men'
-                                            ? 'bg-amber-500 text-white shadow-md'
-                                            : 'text-black/60 hover:text-black'
+                                        ? 'bg-amber-500 text-white shadow-md'
+                                        : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'
                                         }`}
                                 >
                                     Men
@@ -78,8 +78,8 @@ export const MoodLook = () => {
                                 <button
                                     onClick={() => setActiveGender('women')}
                                     className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${activeGender === 'women'
-                                            ? 'bg-amber-500 text-white shadow-md'
-                                            : 'text-black/60 hover:text-black'
+                                        ? 'bg-amber-500 text-white shadow-md'
+                                        : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'
                                         }`}
                                 >
                                     Women
@@ -90,14 +90,14 @@ export const MoodLook = () => {
                             <div className="hidden sm:flex items-center gap-2">
                                 <button
                                     onClick={() => scroll('left')}
-                                    className="p-2 rounded-full bg-white border border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                                    className="p-2 rounded-full bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 transition-colors"
                                     aria-label="Scroll left"
                                 >
                                     <ChevronLeft className="h-5 w-5" />
                                 </button>
                                 <button
                                     onClick={() => scroll('right')}
-                                    className="p-2 rounded-full bg-white border border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                                    className="p-2 rounded-full bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 transition-colors"
                                     aria-label="Scroll right"
                                 >
                                     <ChevronRight className="h-5 w-5" />
@@ -106,7 +106,7 @@ export const MoodLook = () => {
 
                             <Link
                                 to={`/collections?gender=${activeGender}`}
-                                className="hidden sm:flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                                className="hidden sm:flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
                             >
                                 Explore All
                                 <ArrowRight className="h-4 w-4" />
@@ -133,7 +133,7 @@ export const MoodLook = () => {
                                     className="flex-shrink-0 group"
                                 >
                                     <div className="w-[140px] sm:w-[160px] lg:w-[180px]">
-                                        <div className="relative aspect-square rounded-2xl overflow-hidden bg-amber-100 border-2 border-transparent group-hover:border-amber-400 transition-all duration-300 shadow-md group-hover:shadow-xl">
+                                        <div className="relative aspect-square rounded-2xl overflow-hidden bg-amber-100 dark:bg-gray-800 border-2 border-transparent group-hover:border-amber-400 transition-all duration-300 shadow-md group-hover:shadow-xl">
                                             <img
                                                 src={mood.image}
                                                 alt={mood.label}

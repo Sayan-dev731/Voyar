@@ -21,6 +21,11 @@ import {
     verify2FAOTP,
     resend2FAOTP,
     update2FASettings,
+    getWishlist,
+    addToWishlist,
+    removeFromWishlist,
+    syncWishlist,
+    clearWishlist,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -283,5 +288,48 @@ router.delete('/cart/:productId', protect, removeFromCart);
  * @access  Private
  */
 router.delete('/cart', protect, clearCart);
+
+// =============================================================================
+// PROTECTED ROUTES - WISHLIST
+// =============================================================================
+
+/**
+ * @route   GET /api/users/wishlist
+ * @desc    Get user wishlist
+ * @access  Private
+ */
+router.get('/wishlist', protect, getWishlist);
+
+/**
+ * @route   POST /api/users/wishlist/add
+ * @desc    Add item to wishlist
+ * @access  Private
+ */
+router.post('/wishlist/add',
+    protect,
+    allowedFields(['productId']),
+    addToWishlist
+);
+
+/**
+ * @route   POST /api/users/wishlist/sync
+ * @desc    Sync local wishlist with server
+ * @access  Private
+ */
+router.post('/wishlist/sync', protect, syncWishlist);
+
+/**
+ * @route   DELETE /api/users/wishlist/remove
+ * @desc    Remove item from wishlist
+ * @access  Private
+ */
+router.delete('/wishlist/remove', protect, removeFromWishlist);
+
+/**
+ * @route   DELETE /api/users/wishlist
+ * @desc    Clear entire wishlist
+ * @access  Private
+ */
+router.delete('/wishlist', protect, clearWishlist);
 
 export default router;

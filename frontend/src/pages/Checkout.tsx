@@ -563,20 +563,20 @@ export default function Checkout() {
     }
 
     return (
-        <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white">
+        <div className="min-h-screen pt-20 sm:pt-24 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
             <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
                     <Button
                         variant="ghost"
                         onClick={() => step === 'address' ? navigate('/cart') : setStep('address')}
-                        className="mb-4 text-black/60 hover:text-amber-600 hover:bg-amber-50"
+                        className="mb-4 text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30"
                         disabled={step === 'processing' || step === 'success'}
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         {step === 'address' ? 'Back to Cart' : 'Back to Address'}
                     </Button>
-                    <h1 className="text-4xl sm:text-5xl font-[600] text-black">Checkout</h1>
+                    <h1 className="text-4xl sm:text-5xl font-[600] text-black dark:text-white">Checkout</h1>
                 </div>
 
                 {/* Progress Steps */}
@@ -588,20 +588,20 @@ export default function Checkout() {
                         </div>
                         <span className="text-sm font-medium">Address</span>
                     </div>
-                    <div className="w-12 h-px bg-amber-200" />
-                    <div className={`flex items-center gap-2 ${step === 'payment' ? 'text-amber-600' :
-                        step === 'processing' || step === 'success' ? 'text-green-600' : 'text-black/40'
+                    <div className="w-12 h-px bg-amber-200 dark:bg-amber-800" />
+                    <div className={`flex items-center gap-2 ${step === 'payment' ? 'text-amber-600 dark:text-amber-500' :
+                        step === 'processing' || step === 'success' ? 'text-green-600 dark:text-green-500' : 'text-black/40 dark:text-white/40'
                         }`}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'payment' ? 'bg-amber-600 text-white' :
-                            step === 'processing' || step === 'success' ? 'bg-green-600 text-white' : 'bg-gray-200 text-black/40'
+                            step === 'processing' || step === 'success' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-800 text-black/40 dark:text-white/40'
                             }`}>
                             {step === 'success' ? <Check className="h-4 w-4" /> : '2'}
                         </div>
                         <span className="text-sm font-medium">Payment</span>
                     </div>
-                    <div className="w-12 h-px bg-amber-200" />
-                    <div className={`flex items-center gap-2 ${step === 'success' ? 'text-green-600' : 'text-black/40'}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'success' ? 'bg-green-600 text-white' : 'bg-gray-200 text-black/40'
+                    <div className="w-12 h-px bg-amber-200 dark:bg-amber-800" />
+                    <div className={`flex items-center gap-2 ${step === 'success' ? 'text-green-600 dark:text-green-500' : 'text-black/40 dark:text-white/40'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'success' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-800 text-black/40 dark:text-white/40'
                             }`}>
                             {step === 'success' ? <Check className="h-4 w-4" /> : '3'}
                         </div>
@@ -610,7 +610,7 @@ export default function Checkout() {
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700">
+                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-xl flex items-center gap-2 text-red-700 dark:text-red-400">
                         <AlertCircle className="h-5 w-5" />
                         {error}
                     </div>
@@ -622,11 +622,11 @@ export default function Checkout() {
                         {/* Address Step */}
                         {step === 'address' && (
                             <div className="space-y-6">
-                                <Card className="border-amber-200/60 rounded-2xl">
+                                <Card className="border-amber-200/60 dark:border-amber-900/30 rounded-2xl bg-white dark:bg-gray-900 shadow-sm">
                                     <CardContent className="p-6">
                                         <div className="flex items-center justify-between mb-6">
-                                            <h2 className="text-xl font-[600] text-black flex items-center gap-2">
-                                                <MapPin className="h-5 w-5 text-amber-600" />
+                                            <h2 className="text-xl font-[600] text-black dark:text-white flex items-center gap-2">
+                                                <MapPin className="h-5 w-5 text-amber-600 dark:text-amber-500" />
                                                 Delivery Address
                                             </h2>
                                             <Button
@@ -647,7 +647,7 @@ export default function Checkout() {
                                                 <div className="flex items-center justify-center py-8">
                                                     <div className="flex flex-col items-center gap-3">
                                                         <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-                                                        <p className="text-sm text-black/60">Loading your addresses...</p>
+                                                        <p className="text-sm text-black/60 dark:text-white/60">Loading your addresses...</p>
                                                     </div>
                                                 </div>
                                                 {/* Skeleton cards */}
@@ -669,8 +669,8 @@ export default function Checkout() {
                                             </div>
                                         ) : addresses.length === 0 ? (
                                             <div className="text-center py-8">
-                                                <MapPin className="h-12 w-12 text-amber-200 mx-auto mb-3" />
-                                                <p className="text-black/60 mb-4">No saved addresses</p>
+                                                <MapPin className="h-12 w-12 text-amber-200 dark:text-amber-800 mx-auto mb-3" />
+                                                <p className="text-black/60 dark:text-white/60 mb-4">No saved addresses</p>
                                                 <Button
                                                     onClick={() => setShowAddAddress(true)}
                                                     className="bg-amber-600 text-white hover:bg-amber-700"
@@ -685,31 +685,31 @@ export default function Checkout() {
                                                         key={addr._id}
                                                         onClick={() => setSelectedAddress(addr)}
                                                         className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedAddress?._id === addr._id
-                                                            ? 'border-amber-500 bg-amber-50'
-                                                            : 'border-amber-200/60 hover:border-amber-400'
+                                                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                            : 'border-amber-200/60 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600'
                                                             }`}
                                                     >
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-2 mb-1">
-                                                                    <span className="font-medium text-black">{addr.name}</span>
-                                                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full uppercase">
+                                                                    <span className="font-medium text-black dark:text-white">{addr.name}</span>
+                                                                    <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-xs rounded-full uppercase">
                                                                         {addr.type}
                                                                     </span>
                                                                     {addr.isDefault && (
-                                                                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                                                        <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
                                                                             Default
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <p className="text-sm text-black/60">{addr.phone}</p>
-                                                                <p className="text-sm text-black/60 mt-1">
+                                                                <p className="text-sm text-black/60 dark:text-white/60">{addr.phone}</p>
+                                                                <p className="text-sm text-black/60 dark:text-white/60 mt-1">
                                                                     {addr.street}, {addr.city}, {addr.state} - {addr.zipCode}
                                                                 </p>
-                                                                <p className="text-sm text-black/60">{addr.country}</p>
+                                                                <p className="text-sm text-black/60 dark:text-white/60">{addr.country}</p>
                                                             </div>
                                                             {selectedAddress?._id === addr._id && (
-                                                                <Check className="h-5 w-5 text-amber-600" />
+                                                                <Check className="h-5 w-5 text-amber-600 dark:text-amber-500" />
                                                             )}
                                                         </div>
                                                     </div>
@@ -732,10 +732,10 @@ export default function Checkout() {
                         {/* Payment Step */}
                         {step === 'payment' && (
                             <div className="space-y-6">
-                                <Card className="border-amber-200/60 rounded-2xl">
+                                <Card className="border-amber-200/60 dark:border-amber-900/30 rounded-2xl bg-white dark:bg-gray-900 shadow-sm">
                                     <CardContent className="p-6">
-                                        <h2 className="text-xl font-[600] text-black flex items-center gap-2 mb-6">
-                                            <CreditCard className="h-5 w-5 text-amber-600" />
+                                        <h2 className="text-xl font-[600] text-black dark:text-white flex items-center gap-2 mb-6">
+                                            <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-500" />
                                             Payment Method
                                         </h2>
 
@@ -744,8 +744,8 @@ export default function Checkout() {
                                             <button
                                                 onClick={() => setPaymentMode('razorpay')}
                                                 className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 relative ${paymentMode === 'razorpay'
-                                                    ? 'border-amber-500 bg-amber-50'
-                                                    : 'border-amber-200 hover:border-amber-400'
+                                                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                    : 'border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600'
                                                     }`}
                                             >
                                                 <img
@@ -756,10 +756,10 @@ export default function Checkout() {
                                                         (e.target as HTMLImageElement).style.display = 'none';
                                                     }}
                                                 />
-                                                <span className="font-medium text-black">Online Payment</span>
-                                                <span className="text-xs text-black/60">Cards, UPI, Netbanking</span>
+                                                <span className="font-medium text-black dark:text-white">Online Payment</span>
+                                                <span className="text-xs text-black/60 dark:text-white/60">Cards, UPI, Netbanking</span>
                                                 {paymentMode === 'razorpay' && (
-                                                    <CheckCircle2 className="h-5 w-5 text-amber-600 absolute top-2 right-2" />
+                                                    <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-500 absolute top-2 right-2" />
                                                 )}
                                             </button>
                                             {siteSettings.codEnabled && (
@@ -769,15 +769,15 @@ export default function Checkout() {
                                                         generateCaptcha();
                                                     }}
                                                     className={`p-4 border-2 rounded-xl transition-all flex flex-col items-center gap-2 relative ${paymentMode === 'cod'
-                                                        ? 'border-amber-500 bg-amber-50'
-                                                        : 'border-amber-200 hover:border-amber-400'
+                                                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                        : 'border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600'
                                                         }`}
                                                 >
-                                                    <Truck className="h-8 w-8 text-amber-600" />
-                                                    <span className="font-medium text-black">Cash on Delivery</span>
-                                                    <span className="text-xs text-black/60">Pay when delivered</span>
+                                                    <Truck className="h-8 w-8 text-amber-600 dark:text-amber-500" />
+                                                    <span className="font-medium text-black dark:text-white">Cash on Delivery</span>
+                                                    <span className="text-xs text-black/60 dark:text-white/60">Pay when delivered</span>
                                                     {paymentMode === 'cod' && (
-                                                        <CheckCircle2 className="h-5 w-5 text-amber-600 absolute top-2 right-2" />
+                                                        <CheckCircle2 className="h-5 w-5 text-amber-600 dark:text-amber-500 absolute top-2 right-2" />
                                                     )}
                                                 </button>
                                             )}
@@ -785,12 +785,12 @@ export default function Checkout() {
 
                                         {/* Razorpay Info */}
                                         {paymentMode === 'razorpay' && (
-                                            <div className="bg-blue-50 p-4 rounded-xl mb-6 border border-blue-200">
+                                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl mb-6 border border-blue-200 dark:border-blue-900/30">
                                                 <div className="flex items-start gap-3">
-                                                    <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                                                    <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                                                     <div>
-                                                        <p className="font-medium text-blue-900">Secure Payment via Razorpay</p>
-                                                        <p className="text-sm text-blue-700 mt-1">
+                                                        <p className="font-medium text-blue-900 dark:text-blue-200">Secure Payment via Razorpay</p>
+                                                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                                                             Pay securely using Credit/Debit Cards, UPI, Net Banking, Wallets & more.
                                                             Your payment information is encrypted and secure.
                                                         </p>

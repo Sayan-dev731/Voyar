@@ -23,7 +23,7 @@ export const Footer = () => {
     }
 
     return (
-        <footer className="bg-white border-t border-amber-100">
+        <footer className="bg-white dark:bg-gray-950 border-t border-amber-100 dark:border-amber-900/30 transition-colors duration-300">
             {/* Main Footer Content */}
             <motion.div
                 className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16"
@@ -42,7 +42,7 @@ export const Footer = () => {
                                 className="h-10 w-auto"
                             />
                         </Link>
-                        <p className="text-sm text-black/60 mb-5 leading-relaxed">
+                        <p className="text-sm text-black/60 dark:text-white/60 mb-5 leading-relaxed">
                             Get the perfect vision and style. Premium eyewear for modern living.
                         </p>
                         <div className="flex items-center gap-3">
@@ -50,7 +50,7 @@ export const Footer = () => {
                                 <a
                                     key={social.label}
                                     href={social.href}
-                                    className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 hover:bg-amber-100 hover:border-amber-300 transition-colors"
+                                    className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
                                     aria-label={social.label}
                                 >
                                     <social.icon className="h-5 w-5" />
@@ -61,7 +61,7 @@ export const Footer = () => {
 
                     {/* Policies */}
                     <motion.div variants={itemVariants}>
-                        <h4 className="text-sm font-semibold text-black uppercase tracking-wider mb-4">
+                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
                             Policies
                         </h4>
                         <ul className="space-y-3">
@@ -75,7 +75,7 @@ export const Footer = () => {
                                 <li key={link.label}>
                                     <Link
                                         to={link.href}
-                                        className="text-sm text-black/60 hover:text-amber-600 transition-colors"
+                                        className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                                     >
                                         {link.label}
                                     </Link>
@@ -86,14 +86,14 @@ export const Footer = () => {
 
                     {/* Return & Exchange */}
                     <motion.div variants={itemVariants}>
-                        <h4 className="text-sm font-semibold text-black uppercase tracking-wider mb-4">
+                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
                             Return & Exchange
                         </h4>
                         <ul className="space-y-3">
                             <li>
                                 <Link
                                     to="/returns"
-                                    className="text-sm text-black/60 hover:text-amber-600 transition-colors"
+                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                                 >
                                     Return Portal
                                 </Link>
@@ -101,7 +101,7 @@ export const Footer = () => {
                             <li>
                                 <Link
                                     to="/orders"
-                                    className="text-sm text-black/60 hover:text-amber-600 transition-colors"
+                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                                 >
                                     Track Your Order
                                 </Link>
@@ -109,7 +109,7 @@ export const Footer = () => {
                             <li>
                                 <Link
                                     to="/contact"
-                                    className="text-sm text-black/60 hover:text-amber-600 transition-colors"
+                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                                 >
                                     Contact Support
                                 </Link>
@@ -119,17 +119,17 @@ export const Footer = () => {
 
                     {/* Contact Us */}
                     <motion.div variants={itemVariants}>
-                        <h4 className="text-sm font-semibold text-black uppercase tracking-wider mb-4">
+                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
                             Contact Us
                         </h4>
-                        <p className="text-sm text-black/60 mb-4">
+                        <p className="text-sm text-black/60 dark:text-white/60 mb-4">
                             Questions? We're here for you Monday - Friday 10am-6pm IST.
                         </p>
                         <ul className="space-y-3">
                             <li>
                                 <a
                                     href="mailto:voyareyewear@gmail.com"
-                                    className="flex items-center gap-2 text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
+                                    className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium transition-colors"
                                 >
                                     <Mail className="h-4 w-4" />
                                     voyareyewear@gmail.com
@@ -138,17 +138,17 @@ export const Footer = () => {
                             <li>
                                 <a
                                     href="tel:+919667194067"
-                                    className="flex items-center gap-2 text-sm text-black/60 hover:text-amber-600 transition-colors"
+                                    className="flex items-center gap-2 text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                                 >
                                     <Phone className="h-4 w-4" />
                                     +91 9667194067
                                 </a>
                             </li>
-                            <li className="flex items-start gap-2 text-sm text-black/60">
+                            <li className="flex items-start gap-2 text-sm text-black/60 dark:text-white/60">
                                 <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
                                 Mon - Fri: 10am - 6pm IST
                             </li>
-                            <li className="flex items-start gap-2 text-sm text-black/60">
+                            <li className="flex items-start gap-2 text-sm text-black/60 dark:text-white/60">
                                 <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
                                 Patna City-800008, Bihar, India
                             </li>
@@ -158,22 +158,22 @@ export const Footer = () => {
             </motion.div>
 
             {/* Bottom Bar */}
-            <div className="border-t border-amber-100 bg-amber-50/50">
+            <div className="border-t border-amber-100 dark:border-amber-900/30 bg-amber-50/50 dark:bg-gray-900/50">
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <p className="text-xs text-black/50 flex items-center gap-1">
+                        <p className="text-xs text-black/50 dark:text-white/50 flex items-center gap-1">
                             © 2024 Voyar Eyewear. Made with
                             <Heart className="h-3 w-3 text-red-400 fill-red-400" />
                             in India
                         </p>
                         <div className="flex items-center gap-6">
-                            <span className="text-xs text-black/50">Secure Payments</span>
+                            <span className="text-xs text-black/50 dark:text-white/50">Secure Payments</span>
                             <div className="flex items-center gap-2">
                                 {/* Payment Icons Placeholder */}
-                                <div className="w-8 h-5 bg-amber-100 rounded flex items-center justify-center text-xs text-amber-600 font-medium">
+                                <div className="w-8 h-5 bg-amber-100 dark:bg-amber-900/50 rounded flex items-center justify-center text-xs text-amber-600 dark:text-amber-300 font-medium">
                                     UPI
                                 </div>
-                                <div className="w-8 h-5 bg-amber-100 rounded flex items-center justify-center text-xs text-amber-600 font-medium">
+                                <div className="w-8 h-5 bg-amber-100 dark:bg-amber-900/50 rounded flex items-center justify-center text-xs text-amber-600 dark:text-amber-300 font-medium">
                                     COD
                                 </div>
                             </div>
@@ -184,3 +184,4 @@ export const Footer = () => {
         </footer>
     )
 }
+

@@ -1118,3 +1118,141 @@ export const update2FASettings = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+// =============================================================================
+// WISHLIST FUNCTIONS
+// =============================================================================
+
+// @desc    Get user wishlist
+// @route   GET /api/users/wishlist
+// @access  Private
+export const getWishlist = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).populate('wishlist');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ wishlist: user.wishlist || [] });
+    } catch (error) {
+        console.error('Get wishlist error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Add item to wishlist
+// @route   POST /api/users/wishlist/add
+// @access  Private
+export const addToWishlist = async (req, res) => {
+    try {
+        const { productId } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if product already in wishlist
+        if (user.wishlist.includes(productId)) {
+            return res.status(400).json({ message: 'Product already in wishlist' });
+        }
+
+        user.wishlist.push(productId);
+        await user.save();
+
+        // Populate and return updated wishlist
+        await user.populate('wishlist');
+
+        res.json({
+            message: 'Added to wishlist',
+            wishlist: user.wishlist
+        });
+    } catch (error) {
+        console.error('Add to wishlist error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Remove item from wishlist
+// @route   DELETE /api/users/wishlist/remove
+// @access  Private
+export const removeFromWishlist = async (req, res) => {
+    try {
+        const { productId } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Remove product from wishlist
+        user.wishlist = user.wishlist.filter(id => id.toString() !== productId);
+        await user.save();
+
+        // Populate and return updated wishlist
+        await user.populate('wishlist');
+
+        res.json({
+            message: 'Removed from wishlist',
+            wishlist: user.wishlist
+        });
+    } catch (error) {
+        console.error('Remove from wishlist error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Sync local wishlist with server
+// @route   POST /api/users/wishlist/sync
+// @access  Private
+export const syncWishlist = async (req, res) => {
+    try {
+        const { productIds } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Add new product IDs that aren't already in wishlist
+        if (productIds && Array.isArray(productIds)) {
+            const existingIds = user.wishlist.map(id => id.toString());
+            const newIds = productIds.filter(id => !existingIds.includes(id));
+            user.wishlist = [...user.wishlist, ...newIds];
+            await user.save();
+        }
+
+        // Populate and return updated wishlist
+        await user.populate('wishlist');
+
+        res.json({
+            message: 'Wishlist synced',
+            wishlist: user.wishlist
+        });
+    } catch (error) {
+        console.error('Sync wishlist error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Clear wishlist
+// @route   DELETE /api/users/wishlist
+// @access  Private
+export const clearWishlist = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.wishlist = [];
+        await user.save();
+
+        res.json({ message: 'Wishlist cleared', wishlist: [] });
+    } catch (error) {
+        console.error('Clear wishlist error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
