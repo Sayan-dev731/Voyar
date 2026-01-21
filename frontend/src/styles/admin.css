@@ -1371,3 +1371,300 @@
 .admin-fade-in:nth-child(12) {
     animation-delay: 550ms;
 }
+
+/* ============================================
+   FORM INPUT TEXT VISIBILITY FIX
+   Global styles for admin modal forms
+   ============================================ */
+
+.admin-layout input[type="text"],
+.admin-layout input[type="number"],
+.admin-layout input[type="email"],
+.admin-layout input[type="password"],
+.admin-layout input[type="url"],
+.admin-layout textarea,
+.admin-layout select {
+    color: var(--admin-text-primary) !important;
+    -webkit-text-fill-color: var(--admin-text-primary) !important;
+}
+
+.admin-layout input::placeholder,
+.admin-layout textarea::placeholder {
+    color: var(--admin-text-tertiary) !important;
+    -webkit-text-fill-color: var(--admin-text-tertiary) !important;
+    opacity: 1;
+}
+
+.admin-layout input:focus,
+.admin-layout textarea:focus,
+.admin-layout select:focus {
+    color: var(--admin-text-primary) !important;
+    -webkit-text-fill-color: var(--admin-text-primary) !important;
+    background-color: var(--admin-surface) !important;
+}
+
+/* Fix for autofill styles */
+.admin-layout input:-webkit-autofill,
+.admin-layout input:-webkit-autofill:hover,
+.admin-layout input:-webkit-autofill:focus,
+.admin-layout textarea:-webkit-autofill,
+.admin-layout textarea:-webkit-autofill:hover,
+.admin-layout textarea:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--admin-text-primary) !important;
+    -webkit-box-shadow: 0 0 0 30px var(--admin-surface) inset !important;
+    box-shadow: 0 0 0 30px var(--admin-surface) inset !important;
+    caret-color: var(--admin-text-primary);
+}
+
+/* Error state for form fields */
+.admin-layout .input-error {
+    border-color: var(--admin-error) !important;
+    background-color: var(--admin-error-bg) !important;
+}
+
+.admin-layout .input-error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+
+/* ============================================
+   BULK ACTIONS BAR
+   ============================================ */
+
+.admin-bulk-actions {
+    position: sticky;
+    bottom: var(--admin-space-lg);
+    left: 0;
+    right: 0;
+    background: var(--admin-text-primary);
+    color: var(--admin-text-inverse);
+    padding: var(--admin-space-md) var(--admin-space-xl);
+    border-radius: var(--admin-radius-xl);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--admin-space-lg);
+    box-shadow: var(--admin-shadow-xl), 0 0 40px rgba(0, 0, 0, 0.2);
+    z-index: 50;
+    animation: slideUp 300ms ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.admin-bulk-actions-count {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.admin-bulk-actions-buttons {
+    display: flex;
+    gap: var(--admin-space-sm);
+}
+
+.admin-bulk-btn {
+    padding: var(--admin-space-sm) var(--admin-space-md);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--admin-radius-md);
+    background: transparent;
+    color: var(--admin-text-inverse);
+    cursor: pointer;
+    transition: all var(--admin-transition-fast);
+    display: flex;
+    align-items: center;
+    gap: var(--admin-space-xs);
+}
+
+.admin-bulk-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.admin-bulk-btn.danger {
+    border-color: rgba(220, 38, 38, 0.5);
+    color: #fca5a5;
+}
+
+.admin-bulk-btn.danger:hover {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: rgba(220, 38, 38, 0.7);
+}
+
+/* ============================================
+   QUICK STATS BADGES
+   ============================================ */
+
+.admin-quick-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--admin-space-xs);
+    padding: 4px 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: var(--admin-radius-full);
+    background: var(--admin-accent-light);
+    color: var(--admin-accent-dark);
+}
+
+.admin-quick-stat.success {
+    background: var(--admin-success-bg);
+    color: var(--admin-success);
+}
+
+.admin-quick-stat.warning {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning);
+}
+
+.admin-quick-stat.error {
+    background: var(--admin-error-bg);
+    color: var(--admin-error);
+}
+
+/* ============================================
+   ANALYTICS MINI CARDS
+   ============================================ */
+
+.admin-analytics-mini {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--admin-space-md);
+    margin-bottom: var(--admin-space-lg);
+}
+
+.admin-analytics-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-lg);
+    padding: var(--admin-space-md);
+    text-align: center;
+    transition: all var(--admin-transition-fast);
+}
+
+.admin-analytics-card:hover {
+    border-color: var(--admin-accent);
+    box-shadow: var(--admin-shadow-md);
+}
+
+.admin-analytics-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--admin-text-primary);
+    line-height: 1.2;
+}
+
+.admin-analytics-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-tertiary);
+    margin-top: 4px;
+}
+
+.admin-analytics-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.admin-analytics-trend.up {
+    color: var(--admin-success);
+}
+
+.admin-analytics-trend.down {
+    color: var(--admin-error);
+}
+
+/* ============================================
+   CHECKBOX STYLING
+   ============================================ */
+
+.admin-checkbox-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.admin-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--admin-border-strong);
+    border-radius: 4px;
+    background: var(--admin-surface);
+    cursor: pointer;
+    transition: all var(--admin-transition-fast);
+}
+
+.admin-checkbox:checked {
+    background: var(--admin-accent);
+    border-color: var(--admin-accent);
+}
+
+.admin-checkbox:checked::after {
+    content: '✓';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.admin-checkbox:hover {
+    border-color: var(--admin-accent);
+}
+
+/* ============================================
+   TOOLTIP STYLES
+   ============================================ */
+
+.admin-tooltip {
+    position: relative;
+}
+
+.admin-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    padding: 6px 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--admin-text-inverse);
+    background: var(--admin-text-primary);
+    border-radius: var(--admin-radius-sm);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--admin-transition-fast);
+    z-index: 100;
+}
+
+.admin-tooltip:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-8px);
+}

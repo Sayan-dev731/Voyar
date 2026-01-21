@@ -28,8 +28,6 @@ export const getProductById = async (req, res) => {
 // Create product (Admin only)
 export const createProduct = async (req, res) => {
     try {
-        console.log('Creating product:', req.body);
-
         const {
             name,
             category,
@@ -93,7 +91,6 @@ export const createProduct = async (req, res) => {
         });
 
         const savedProduct = await product.save();
-        console.log('Product created successfully:', savedProduct._id);
         res.status(201).json(savedProduct);
     } catch (error) {
         console.error('Error creating product:', error);
@@ -104,8 +101,6 @@ export const createProduct = async (req, res) => {
 // Update product (Admin only)
 export const updateProduct = async (req, res) => {
     try {
-        console.log('Updating product:', req.params.id, req.body);
-
         const {
             name,
             category,
@@ -172,7 +167,6 @@ export const updateProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        console.log('Product updated successfully:', product._id);
         res.json(product);
     } catch (error) {
         console.error('Error updating product:', error);
@@ -183,14 +177,11 @@ export const updateProduct = async (req, res) => {
 // Delete product (Admin only)
 export const deleteProduct = async (req, res) => {
     try {
-        console.log('Deleting product:', req.params.id);
-
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        console.log('Product deleted successfully:', req.params.id);
         res.json({ message: 'Product deleted successfully', deletedProduct: product });
     } catch (error) {
         console.error('Error deleting product:', error);

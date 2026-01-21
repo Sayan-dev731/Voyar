@@ -289,6 +289,7 @@ export const AdminDashboard = () => {
     const [newImageUrl, setNewImageUrl] = useState('')
     const [formError, setFormError] = useState('')
     const [formSuccess, setFormSuccess] = useState('')
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const [saving, setSaving] = useState(false)
     const [showChangePassword, setShowChangePassword] = useState(false)
     const [currentPassword, setCurrentPassword] = useState('')
@@ -297,6 +298,9 @@ export const AdminDashboard = () => {
     const [showUserModal, setShowUserModal] = useState(false)
     const [editingUser, setEditingUser] = useState(false)
     const [userForm, setUserForm] = useState({ name: '', email: '', phone: '' })
+
+    // Bulk selection state
+    const [selectedProducts, setSelectedProducts] = useState<string[]>([])
 
     // Site settings state
     const [siteSettings, setSiteSettings] = useState({
@@ -1039,6 +1043,110 @@ export const AdminDashboard = () => {
         link.click()
     }
 
+    // Bulk Product Actions
+    const handleSelectProduct = (productId: string) => {
+        setSelectedProducts(prev =>
+            prev.includes(productId)
+                ? prev.filter(id => id !== productId)
+                : [...prev, productId]
+        )
+    }
+
+    const handleSelectAllProducts = () => {
+        if (selectedProducts.length === filteredProducts.length) {
+            setSelectedProducts([])
+        } else {
+            setSelectedProducts(filteredProducts.map(p => String(p._id || p.id)))
+        }
+    }
+
+    const handleBulkDeleteProducts = async () => {
+        if (selectedProducts.length === 0) return
+        showConfirm(`Are you sure you want to delete ${selectedProducts.length} product(s)? This action cannot be undone.`, async () => {
+            const token = localStorage.getItem('adminToken')
+            let successCount = 0
+            let failCount = 0
+
+            for (const productId of selectedProducts) {
+                try {
+                    const response = await fetch(`${API_URL}/products/${productId}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                    if (response.ok) {
+                        successCount++
+                    } else {
+                        failCount++
+                    }
+                } catch {
+                    failCount++
+                }
+            }
+
+            if (successCount > 0) {
+                showToast(`${successCount} product(s) deleted successfully!`, 'success')
+                setSelectedProducts([])
+                fetchData()
+            }
+            if (failCount > 0) {
+                showToast(`Failed to delete ${failCount} product(s)`, 'error')
+            }
+        })
+    }
+
+    const handleExportProducts = () => {
+        const productsToExport = selectedProducts.length > 0
+            ? products.filter(p => selectedProducts.includes(String(p._id || p.id)))
+            : filteredProducts
+
+        const headers = ['Name', 'Category', 'Price', 'Stock', 'In Stock', 'Description', 'Colors']
+        const rows = productsToExport.map(product => [
+            `"${product.name}"`,
+            `"${product.category}"`,
+            product.price,
+            product.colors?.reduce((sum, c) => sum + (c.quantity || 0), 0) || product.stock || 0,
+            product.inStock !== false ? 'Yes' : 'No',
+            `"${(product.description || '').replace(/"/g, '""')}"`,
+            `"${product.colors?.map(c => `${c.name}(${c.quantity})`).join('; ') || ''}"`
+        ])
+
+        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `voyar-products-${new Date().toISOString().split('T')[0]}.csv`
+        link.click()
+        showToast(`Exported ${productsToExport.length} product(s)!`, 'success')
+    }
+
+    const handleBulkStockUpdate = async (inStock: boolean) => {
+        if (selectedProducts.length === 0) return
+        const token = localStorage.getItem('adminToken')
+        let successCount = 0
+
+        for (const productId of selectedProducts) {
+            try {
+                const response = await fetch(`${API_URL}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ inStock, stock: inStock ? 1 : 0 })
+                })
+                if (response.ok) successCount++
+            } catch {
+                // Continue with other products
+            }
+        }
+
+        if (successCount > 0) {
+            showToast(`Updated ${successCount} product(s) to ${inStock ? 'In Stock' : 'Out of Stock'}!`, 'success')
+            setSelectedProducts([])
+            fetchData()
+        }
+    }
+
     // User management functions
     const handleViewUser = (user: User) => {
         setSelectedUser(user)
@@ -1141,6 +1249,7 @@ export const AdminDashboard = () => {
         setFormError('')
         setFormSuccess('')
         setNewImageUrl('')
+        setFieldErrors({})
     }
 
     const openAddProductModal = () => {
@@ -1149,8 +1258,8 @@ export const AdminDashboard = () => {
     }
 
     const openEditProductModal = (product: Product) => {
-        console.log('Opening edit modal for product:', product._id || product.id, product.name)
         setEditingProduct(product)
+        setFieldErrors({})
         setProductForm({
             name: product.name || '',
             category: product.category || 'Sunglasses',
@@ -1256,22 +1365,38 @@ export const AdminDashboard = () => {
         e.preventDefault()
         setFormError('')
         setFormSuccess('')
+        setFieldErrors({})
 
-        // Validation
+        // Detailed validation with field tracking
+        const errors: Record<string, string> = {}
+
         if (!productForm.name.trim()) {
-            setFormError('Product name is required')
-            return
+            errors.name = 'Product name is required'
+        }
+        if (!productForm.category) {
+            errors.category = 'Category is required'
         }
         if (!productForm.price || isNaN(Number(productForm.price)) || Number(productForm.price) <= 0) {
-            setFormError('Valid price is required')
-            return
+            errors.price = 'Valid price is required (must be greater than 0)'
         }
         if (!productForm.image.trim()) {
-            setFormError('Main product image is required')
-            return
+            errors.image = 'Main product image URL is required'
         }
         if (!productForm.description.trim()) {
-            setFormError('Description is required')
+            errors.description = 'Description is required'
+        } else if (productForm.description.trim().length < 10) {
+            errors.description = 'Description must be at least 10 characters'
+        } else if (productForm.description.trim().length > 2000) {
+            errors.description = 'Description must not exceed 2000 characters'
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors)
+            setFormError(`Validation failed. Please check your input.`)
+            // Scroll to first error field
+            const firstErrorField = Object.keys(errors)[0]
+            const element = document.querySelector(`[data-field="${firstErrorField}"]`)
+            element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
             return
         }
 
@@ -1305,8 +1430,6 @@ export const AdminDashboard = () => {
                 ? `${API_URL}/products/${productId}`
                 : `${API_URL}/products`
 
-            console.log('Submitting product:', editingProduct ? 'UPDATE' : 'CREATE', url, productData)
-
             const response = await fetch(url, {
                 method: editingProduct ? 'PUT' : 'POST',
                 headers: {
@@ -1317,22 +1440,36 @@ export const AdminDashboard = () => {
             })
 
             const data = await response.json()
-            console.log('Response:', response.status, data)
 
             if (response.ok) {
                 setFormSuccess(editingProduct ? 'Product updated successfully!' : 'Product added successfully!')
                 showToast(editingProduct ? 'Product updated successfully!' : 'Product added successfully!', 'success')
-                await fetchData() // Wait for data to refresh
+                await fetchData()
                 setTimeout(() => {
                     closeProductModal()
                 }, 1500)
             } else {
-                setFormError(data.message || 'Failed to save product')
-                showToast(data.message || 'Failed to save product', 'error')
+                // Handle backend validation errors
+                if (data.errors && Array.isArray(data.errors)) {
+                    const backendErrors: Record<string, string> = {}
+                    data.errors.forEach((err: { field?: string; message: string }) => {
+                        if (err.field) {
+                            backendErrors[err.field] = err.message
+                        }
+                    })
+                    setFieldErrors(backendErrors)
+                    // Create a detailed error message
+                    const errorMessages = data.errors.map((err: { message: string }) => err.message).join('. ')
+                    setFormError(errorMessages)
+                    showToast(errorMessages, 'error')
+                } else {
+                    setFormError(data.message || 'Failed to save product')
+                    showToast(data.message || 'Failed to save product', 'error')
+                }
             }
-        } catch (error) {
-            console.error('Error saving product:', error)
-            setFormError('Network error. Please try again.')
+        } catch {
+            setFormError('Network error. Please check your connection and try again.')
+            showToast('Network error. Please try again.', 'error')
         } finally {
             setSaving(false)
         }
@@ -2137,18 +2274,49 @@ export const AdminDashboard = () => {
                             >
                                 Manage Products
                             </h2>
-                            <button
-                                onClick={openAddProductModal}
-                                className="flex items-center gap-2 px-5 py-3 rounded-xl text-white font-medium transition-all"
-                                style={{
-                                    background: 'linear-gradient(135deg, #c9a227 0%, #8b6f1b 100%)',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    boxShadow: '0 4px 16px rgba(201, 162, 39, 0.25)'
-                                }}
-                            >
-                                <Plus className="h-4 w-4" />
-                                Add Product
-                            </button>
+                            <div className="flex items-center gap-3">
+                                {/* Export Button */}
+                                <button
+                                    onClick={handleExportProducts}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[rgba(0,0,0,0.12)] text-[#525252] hover:text-[#0d0d0d] hover:border-[#0d0d0d] transition-all"
+                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Export CSV
+                                </button>
+                                <button
+                                    onClick={openAddProductModal}
+                                    className="flex items-center gap-2 px-5 py-3 rounded-xl text-white font-medium transition-all"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #c9a227 0%, #8b6f1b 100%)',
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        boxShadow: '0 4px 16px rgba(201, 162, 39, 0.25)'
+                                    }}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Add Product
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Quick Stats for Products */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div className="bg-white rounded-xl p-4 border border-[rgba(0,0,0,0.06)]">
+                                <p className="text-2xl font-semibold text-[#0d0d0d]" style={{ fontFamily: 'Instrument Serif' }}>{products.length}</p>
+                                <p className="text-xs text-[#8a8a8a] uppercase tracking-wider" style={{ fontFamily: 'DM Sans' }}>Total Products</p>
+                            </div>
+                            <div className="bg-white rounded-xl p-4 border border-[rgba(0,0,0,0.06)]">
+                                <p className="text-2xl font-semibold text-green-600" style={{ fontFamily: 'Instrument Serif' }}>{products.filter(p => p.inStock !== false).length}</p>
+                                <p className="text-xs text-[#8a8a8a] uppercase tracking-wider" style={{ fontFamily: 'DM Sans' }}>In Stock</p>
+                            </div>
+                            <div className="bg-white rounded-xl p-4 border border-[rgba(0,0,0,0.06)]">
+                                <p className="text-2xl font-semibold text-red-600" style={{ fontFamily: 'Instrument Serif' }}>{products.filter(p => p.inStock === false).length}</p>
+                                <p className="text-xs text-[#8a8a8a] uppercase tracking-wider" style={{ fontFamily: 'DM Sans' }}>Out of Stock</p>
+                            </div>
+                            <div className="bg-white rounded-xl p-4 border border-[rgba(0,0,0,0.06)]">
+                                <p className="text-2xl font-semibold text-[#c9a227]" style={{ fontFamily: 'Instrument Serif' }}>{[...new Set(products.map(p => p.category))].length}</p>
+                                <p className="text-xs text-[#8a8a8a] uppercase tracking-wider" style={{ fontFamily: 'DM Sans' }}>Categories</p>
+                            </div>
                         </div>
 
                         {/* Search and Filter Bar for Products */}
@@ -2160,6 +2328,19 @@ export const AdminDashboard = () => {
                             }}
                         >
                             <div className="flex flex-col lg:flex-row gap-4">
+                                {/* Select All Checkbox */}
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                                        onChange={handleSelectAllProducts}
+                                        className="w-4 h-4 accent-[#c9a227] rounded"
+                                    />
+                                    <span className="text-sm text-[#525252]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                        Select All
+                                    </span>
+                                </label>
+
                                 {/* Search Input */}
                                 <div className="flex-1 relative group">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8a8a8a] transition-colors group-focus-within:text-[#c9a227]" />
@@ -2168,8 +2349,8 @@ export const AdminDashboard = () => {
                                         placeholder="Search products by name, category, or description..."
                                         value={productSearch}
                                         onChange={(e) => setProductSearch(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all"
-                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                        className="w-full pl-11 pr-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all text-[#0d0d0d]"
+                                        style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                     />
                                 </div>
 
@@ -2179,8 +2360,8 @@ export const AdminDashboard = () => {
                                     <select
                                         value={productCategoryFilter}
                                         onChange={(e) => setProductCategoryFilter(e.target.value)}
-                                        className="px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] min-w-[150px] cursor-pointer"
-                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                        className="px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] min-w-[150px] cursor-pointer text-[#0d0d0d]"
+                                        style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                     >
                                         <option value="all">All Categories</option>
                                         {productCategories.map(category => (
@@ -2195,8 +2376,8 @@ export const AdminDashboard = () => {
                                     <select
                                         value={productStockFilter}
                                         onChange={(e) => setProductStockFilter(e.target.value)}
-                                        className="px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] min-w-[140px] cursor-pointer"
-                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                        className="px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] min-w-[140px] cursor-pointer text-[#0d0d0d]"
+                                        style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                     >
                                         <option value="all">All Stock</option>
                                         <option value="inStock">In Stock</option>
@@ -2228,6 +2409,7 @@ export const AdminDashboard = () => {
                             >
                                 Showing <span className="text-[#0d0d0d] font-medium">{filteredProducts.length}</span> of {products.length} products
                                 {productSearch && <span> matching "<span className="text-[#c9a227]">{productSearch}</span>"</span>}
+                                {selectedProducts.length > 0 && <span className="ml-2">• <span className="text-[#c9a227] font-medium">{selectedProducts.length} selected</span></span>}
                             </div>
                         </div>
 
@@ -2235,12 +2417,21 @@ export const AdminDashboard = () => {
                             {filteredProducts.map((product) => (
                                 <div
                                     key={product.id || product._id}
-                                    className="bg-white rounded-2xl overflow-hidden group hover:shadow-xl transition-all"
+                                    className={`bg-white rounded-2xl overflow-hidden group hover:shadow-xl transition-all relative ${selectedProducts.includes(String(product._id || product.id)) ? 'ring-2 ring-[#c9a227]' : ''}`}
                                     style={{
                                         border: '1px solid rgba(0,0,0,0.06)',
                                         boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                                     }}
                                 >
+                                    {/* Selection Checkbox */}
+                                    <div className="absolute top-4 left-4 z-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedProducts.includes(String(product._id || product.id))}
+                                            onChange={() => handleSelectProduct(String(product._id || product.id))}
+                                            className="w-5 h-5 accent-[#c9a227] rounded cursor-pointer"
+                                        />
+                                    </div>
                                     <div className="p-4">
                                         <div
                                             className="aspect-[4/3] rounded-xl overflow-hidden mb-4 relative"
@@ -2325,6 +2516,57 @@ export const AdminDashboard = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Bulk Actions Bar - Fixed at bottom */}
+                        {selectedProducts.length > 0 && (
+                            <div
+                                className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0d0d0d] text-white px-6 py-4 rounded-2xl flex items-center gap-6 z-50"
+                                style={{
+                                    boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    animation: 'slideUp 300ms ease-out'
+                                }}
+                            >
+                                <span className="text-sm">
+                                    <span className="font-semibold text-[#c9a227]">{selectedProducts.length}</span> product(s) selected
+                                </span>
+                                <div className="h-6 w-px bg-white/20" />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleBulkStockUpdate(true)}
+                                        className="px-3 py-1.5 text-sm rounded-lg border border-green-500/50 text-green-400 hover:bg-green-500/10 transition-all"
+                                    >
+                                        Mark In Stock
+                                    </button>
+                                    <button
+                                        onClick={() => handleBulkStockUpdate(false)}
+                                        className="px-3 py-1.5 text-sm rounded-lg border border-orange-500/50 text-orange-400 hover:bg-orange-500/10 transition-all"
+                                    >
+                                        Mark Out of Stock
+                                    </button>
+                                    <button
+                                        onClick={handleExportProducts}
+                                        className="px-3 py-1.5 text-sm rounded-lg border border-blue-500/50 text-blue-400 hover:bg-blue-500/10 transition-all flex items-center gap-1"
+                                    >
+                                        <Download className="h-3 w-3" />
+                                        Export
+                                    </button>
+                                    <button
+                                        onClick={handleBulkDeleteProducts}
+                                        className="px-3 py-1.5 text-sm rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-all flex items-center gap-1"
+                                    >
+                                        <Trash2 className="h-3 w-3" />
+                                        Delete
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedProducts([])}
+                                    className="p-1.5 rounded-lg hover:bg-white/10 transition-all"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        )}
 
                         {/* Empty state for products */}
                         {filteredProducts.length === 0 && (
@@ -4355,7 +4597,7 @@ export const AdminDashboard = () => {
                                             Basic Information
                                         </h3>
 
-                                        <div>
+                                        <div data-field="name">
                                             <label
                                                 className="block text-sm font-medium text-[#525252] mb-2"
                                                 style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -4365,15 +4607,19 @@ export const AdminDashboard = () => {
                                             <input
                                                 type="text"
                                                 value={productForm.name}
-                                                onChange={(e) => setProductForm(prev => ({ ...prev, name: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all"
-                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                onChange={(e) => {
+                                                    setProductForm(prev => ({ ...prev, name: e.target.value }))
+                                                    if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: '' }))
+                                                }}
+                                                className={`w-full px-4 py-3 bg-[#faf9f7] border rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all text-[#0d0d0d] ${fieldErrors.name ? 'border-red-500 bg-red-50' : 'border-[rgba(0,0,0,0.08)]'}`}
+                                                style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                 placeholder="Enter product name"
                                             />
+                                            {fieldErrors.name && <p className="text-red-500 text-xs mt-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{fieldErrors.name}</p>}
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div>
+                                            <div data-field="category">
                                                 <label
                                                     className="block text-sm font-medium text-[#525252] mb-2"
                                                     style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -4383,8 +4629,8 @@ export const AdminDashboard = () => {
                                                 <select
                                                     value={productForm.category}
                                                     onChange={(e) => setProductForm(prev => ({ ...prev, category: e.target.value }))}
-                                                    className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] cursor-pointer"
-                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                    className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] cursor-pointer text-[#0d0d0d]"
+                                                    style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                 >
                                                     <option value="Sunglasses">Sunglasses</option>
                                                     <option value="Eyeglasses">Eyeglasses</option>
@@ -4392,7 +4638,7 @@ export const AdminDashboard = () => {
                                                     <option value="Sports Glasses">Sports Glasses</option>
                                                 </select>
                                             </div>
-                                            <div>
+                                            <div data-field="price">
                                                 <label
                                                     className="block text-sm font-medium text-[#525252] mb-2"
                                                     style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -4403,11 +4649,15 @@ export const AdminDashboard = () => {
                                                     type="number"
                                                     step="0.01"
                                                     value={productForm.price}
-                                                    onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))}
-                                                    className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all"
-                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                    onChange={(e) => {
+                                                        setProductForm(prev => ({ ...prev, price: e.target.value }))
+                                                        if (fieldErrors.price) setFieldErrors(prev => ({ ...prev, price: '' }))
+                                                    }}
+                                                    className={`w-full px-4 py-3 bg-[#faf9f7] border rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all text-[#0d0d0d] ${fieldErrors.price ? 'border-red-500 bg-red-50' : 'border-[rgba(0,0,0,0.08)]'}`}
+                                                    style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                     placeholder="0.00"
                                                 />
+                                                {fieldErrors.price && <p className="text-red-500 text-xs mt-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{fieldErrors.price}</p>}
                                             </div>
                                         </div>
 
@@ -4440,28 +4690,41 @@ export const AdminDashboard = () => {
                                                         stock: e.target.value,
                                                         inStock: Number(e.target.value) > 0
                                                     }))}
-                                                    className="w-24 px-3 py-2 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227]"
-                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                    className="w-24 px-3 py-2 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-[#0d0d0d]"
+                                                    style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                     placeholder="0"
                                                 />
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <label
-                                                className="block text-sm font-medium text-[#525252] mb-2"
-                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
-                                            >
-                                                Short Description *
-                                            </label>
+                                        <div data-field="description">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label
+                                                    className="text-sm font-medium text-[#525252]"
+                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                >
+                                                    Description * (min 10 characters)
+                                                </label>
+                                                <span
+                                                    className={`text-xs ${productForm.description.length < 10 ? 'text-red-500' : productForm.description.length > 2000 ? 'text-red-500' : 'text-[#8a8a8a]'}`}
+                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                >
+                                                    {productForm.description.length}/2000
+                                                </span>
+                                            </div>
                                             <textarea
                                                 value={productForm.description}
-                                                onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))}
-                                                rows={2}
-                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all resize-none"
-                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
-                                                placeholder="Brief product description"
+                                                onChange={(e) => {
+                                                    setProductForm(prev => ({ ...prev, description: e.target.value }))
+                                                    if (fieldErrors.description) setFieldErrors(prev => ({ ...prev, description: '' }))
+                                                }}
+                                                rows={3}
+                                                maxLength={2000}
+                                                className={`w-full px-4 py-3 bg-[#faf9f7] border rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all resize-none text-[#0d0d0d] ${fieldErrors.description ? 'border-red-500 bg-red-50' : 'border-[rgba(0,0,0,0.08)]'}`}
+                                                style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
+                                                placeholder="Enter product description (minimum 10 characters required)"
                                             />
+                                            {fieldErrors.description && <p className="text-red-500 text-xs mt-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{fieldErrors.description}</p>}
                                         </div>
 
                                         <div>
@@ -4475,8 +4738,8 @@ export const AdminDashboard = () => {
                                                 value={productForm.detailedDescription}
                                                 onChange={(e) => setProductForm(prev => ({ ...prev, detailedDescription: e.target.value }))}
                                                 rows={3}
-                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all resize-none"
-                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                className="w-full px-4 py-3 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all resize-none text-[#0d0d0d]"
+                                                style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                 placeholder="Detailed product description"
                                             />
                                         </div>
@@ -4507,8 +4770,8 @@ export const AdminDashboard = () => {
                                                     type="text"
                                                     value={feature}
                                                     onChange={(e) => handleFeatureChange(index, e.target.value)}
-                                                    className="flex-1 px-4 py-2.5 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227]"
-                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                    className="flex-1 px-4 py-2.5 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-[#0d0d0d]"
+                                                    style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                     placeholder="Feature description"
                                                 />
                                                 {productForm.features.length > 1 && (
@@ -4554,8 +4817,8 @@ export const AdminDashboard = () => {
                                                         type="text"
                                                         value={color.name}
                                                         onChange={(e) => handleColorChange(index, 'name', e.target.value)}
-                                                        className="flex-1 px-4 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227]"
-                                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                        className="flex-1 px-4 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-[#0d0d0d]"
+                                                        style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                         placeholder="Color name"
                                                     />
                                                     <input
@@ -4588,8 +4851,8 @@ export const AdminDashboard = () => {
                                                             min="0"
                                                             value={color.price}
                                                             onChange={(e) => handleColorChange(index, 'price', e.target.value)}
-                                                            className="w-full px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-sm"
-                                                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                            className="w-full px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-sm text-[#0d0d0d]"
+                                                            style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                             placeholder="Price for this color"
                                                         />
                                                     </div>
@@ -4605,8 +4868,8 @@ export const AdminDashboard = () => {
                                                             min="0"
                                                             value={color.quantity}
                                                             onChange={(e) => handleColorChange(index, 'quantity', e.target.value)}
-                                                            className="w-full px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-sm"
-                                                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                            className="w-full px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-sm text-[#0d0d0d]"
+                                                            style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                             placeholder="Stock quantity"
                                                         />
                                                     </div>
@@ -4643,7 +4906,7 @@ export const AdminDashboard = () => {
                                             </p>
 
                                             {/* Main Image */}
-                                            <div className="mb-4">
+                                            <div className="mb-4" data-field="image">
                                                 <label
                                                     className="block text-sm font-medium text-[#525252] mb-2"
                                                     style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -4654,9 +4917,12 @@ export const AdminDashboard = () => {
                                                     <input
                                                         type="text"
                                                         value={productForm.image}
-                                                        onChange={(e) => setProductForm(prev => ({ ...prev, image: e.target.value }))}
-                                                        className="flex-1 px-4 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227]"
-                                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                        onChange={(e) => {
+                                                            setProductForm(prev => ({ ...prev, image: e.target.value }))
+                                                            if (fieldErrors.image) setFieldErrors(prev => ({ ...prev, image: '' }))
+                                                        }}
+                                                        className={`flex-1 px-4 py-2.5 bg-white border rounded-xl focus:outline-none focus:border-[#c9a227] text-[#0d0d0d] ${fieldErrors.image ? 'border-red-500 bg-red-50' : 'border-[rgba(0,0,0,0.08)]'}`}
+                                                        style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                         placeholder="Paste Google Drive or image URL"
                                                     />
                                                     <button
@@ -4667,6 +4933,7 @@ export const AdminDashboard = () => {
                                                         <Link className="h-4 w-4" />
                                                     </button>
                                                 </div>
+                                                {fieldErrors.image && <p className="text-red-500 text-xs mt-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{fieldErrors.image}</p>}
                                             </div>
 
                                             {/* Main Image Preview */}
@@ -4704,8 +4971,8 @@ export const AdminDashboard = () => {
                                                         type="text"
                                                         value={newImageUrl}
                                                         onChange={(e) => setNewImageUrl(e.target.value)}
-                                                        className="flex-1 px-4 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227]"
-                                                        style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                        className="flex-1 px-4 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-[#0d0d0d]"
+                                                        style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
                                                         placeholder="Paste image URL and click Add"
                                                         onKeyDown={(e) => {
                                                             if (e.key === 'Enter') {
