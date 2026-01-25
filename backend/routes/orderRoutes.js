@@ -7,7 +7,9 @@ import {
     updateOrderStatus,
     deleteOrder,
     getOrderStats,
-    generateBill
+    generateBill,
+    cancelOrder,
+    userDeleteOrder
 } from '../controllers/orderController.js';
 import { authMiddleware, protect } from '../middleware/auth.js';
 
@@ -18,6 +20,8 @@ router.post('/', createOrder);
 
 // User routes - must be before :id route
 router.get('/my-orders', protect, getUserOrders);
+router.put('/:id/cancel', protect, cancelOrder);  // User cancel order (before shipped)
+router.delete('/:id/user-delete', protect, userDeleteOrder);  // User soft-delete order (after delivered)
 
 // Public route to get single order
 router.get('/:id', getOrderById);

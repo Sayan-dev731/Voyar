@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/toast';
 import {
     User,
@@ -18,10 +18,14 @@ import {
     Home,
     Briefcase,
     Lock,
+    Heart,
+    ShoppingCart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/context/WishlistContext';
+import { useCart } from '@/context/CartContext';
 import { API_URL } from '@/config/api';
 
 interface Address {
@@ -65,13 +69,19 @@ interface Order {
     };
 }
 
-type TabType = 'profile' | 'addresses' | 'orders' | 'security';
+type TabType = 'profile' | 'addresses' | 'orders' | 'security' | 'wishlist';
 
 export default function Profile() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user, token, logout, updateUser, refreshProfile } = useAuth();
+    const { items: wishlistItems, removeFromWishlist } = useWishlist();
+    const { addToCart } = useCart();
     const { showConfirm } = useToast();
-    const [activeTab, setActiveTab] = useState<TabType>('profile');
+
+    // Get initial tab from URL params
+    const initialTab = (searchParams.get('tab') as TabType) || 'profile';
+    const [activeTab, setActiveTab] = useState<TabType>(initialTab);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -111,6 +121,10 @@ export default function Profile() {
         confirmPassword: '',
     });
 
+    // 2FA state
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+    const [isUpdating2FA, setIsUpdating2FA] = useState(false);
+
     useEffect(() => {
         if (!token) {
             navigate('/login');
@@ -132,6 +146,7 @@ export default function Profile() {
                         gender: data.user.gender || '',
                         dateOfBirth: data.user.dateOfBirth ? data.user.dateOfBirth.split('T')[0] : '',
                     });
+                    setTwoFactorEnabled(data.user.twoFactorEnabled || false);
                 }
             } catch (error) {
                 console.error('Failed to fetch profile:', error);
@@ -308,6 +323,39 @@ export default function Profile() {
         }
     };
 
+    const handleToggle2FA = async () => {
+        setIsUpdating2FA(true);
+        try {
+            const response = await fetch(`${API_URL}/users/2fa-settings`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    enabled: !twoFactorEnabled,
+                }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setTwoFactorEnabled(data.twoFactorEnabled);
+                setMessage({
+                    type: 'success',
+                    text: data.twoFactorEnabled
+                        ? 'Two-factor authentication enabled successfully!'
+                        : 'Two-factor authentication disabled successfully!',
+                });
+            } else {
+                setMessage({ type: 'error', text: data.message });
+            }
+        } catch (error) {
+            console.error('Toggle 2FA error:', error);
+            setMessage({ type: 'error', text: 'Failed to update two-factor authentication' });
+        } finally {
+            setIsUpdating2FA(false);
+        }
+    };
+
     const resetAddressForm = () => {
         setAddressForm({
             name: '',
@@ -346,6 +394,7 @@ export default function Profile() {
         { id: 'profile' as TabType, label: 'Profile Information', icon: User },
         { id: 'addresses' as TabType, label: 'Manage Addresses', icon: MapPin },
         { id: 'orders' as TabType, label: 'My Orders', icon: Package },
+        { id: 'wishlist' as TabType, label: 'Wishlist', icon: Heart },
         { id: 'security' as TabType, label: 'Security', icon: Shield },
     ];
 
@@ -354,17 +403,17 @@ export default function Profile() {
     }
 
     return (
-        <div className="min-h-screen pt-20 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white">
+        <div className="min-h-screen pt-20 pb-16 bg-gradient-to-b from-white via-amber-50/30 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 transition-colors duration-300">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-black mb-2">My Account</h1>
-                    <p className="text-black/60">Manage your profile, addresses, and orders</p>
+                    <h1 className="text-3xl font-bold text-black dark:text-white mb-2">My Account</h1>
+                    <p className="text-black/60 dark:text-white/60">Manage your profile, addresses, and orders</p>
                 </div>
 
                 {/* Message */}
                 {message.text && (
-                    <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                    <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-900/30' : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900/30'}`}>
                         {message.text}
                         <button onClick={() => setMessage({ type: '', text: '' })} className="float-right">
                             <X className="h-4 w-4" />
@@ -375,7 +424,7 @@ export default function Profile() {
                 <div className="grid lg:grid-cols-4 gap-8">
                     {/* Sidebar */}
                     <div className="lg:col-span-1">
-                        <Card className="border-amber-200/60 rounded-2xl overflow-hidden">
+                        <Card className="border-amber-200/60 dark:border-amber-900/30 rounded-2xl overflow-hidden bg-white dark:bg-gray-900">
                             {/* User Info Header */}
                             <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6 text-white">
                                 <div className="flex items-center gap-4">
@@ -414,8 +463,8 @@ export default function Profile() {
                                                     }
                                                 }}
                                                 className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${activeTab === tab.id
-                                                    ? 'bg-amber-100 text-amber-700'
-                                                    : 'text-black/60 hover:bg-amber-50 hover:text-amber-600'
+                                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                                                    : 'text-black/60 dark:text-white/60 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 dark:hover:text-amber-400'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
@@ -428,10 +477,10 @@ export default function Profile() {
                                     })}
                                 </nav>
 
-                                <div className="border-t border-amber-100 mt-4 pt-4">
+                                <div className="border-t border-amber-100 dark:border-amber-900/30 mt-4 pt-4">
                                     <button
                                         onClick={handleLogout}
-                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                     >
                                         <LogOut className="h-5 w-5" />
                                         <span className="font-medium text-sm">Logout</span>
@@ -443,18 +492,18 @@ export default function Profile() {
 
                     {/* Main Content */}
                     <div className="lg:col-span-3">
-                        <Card className="border-amber-200/60 rounded-2xl">
+                        <Card className="border-amber-200/60 dark:border-amber-900/30 rounded-2xl bg-white dark:bg-gray-900">
                             <CardContent className="p-6">
                                 {/* Profile Tab */}
                                 {activeTab === 'profile' && (
                                     <div>
                                         <div className="flex items-center justify-between mb-6">
-                                            <h2 className="text-xl font-semibold text-black">Personal Information</h2>
+                                            <h2 className="text-xl font-semibold text-black dark:text-white">Personal Information</h2>
                                             {!isEditingProfile ? (
                                                 <Button
                                                     variant="outline"
                                                     onClick={() => setIsEditingProfile(true)}
-                                                    className="border-amber-200 hover:border-amber-400 hover:bg-amber-50"
+                                                    className="border-amber-200 dark:border-amber-900/50 hover:border-amber-400 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 text-black dark:text-white"
                                                 >
                                                     <Edit2 className="h-4 w-4 mr-2" />
                                                     Edit
@@ -464,7 +513,7 @@ export default function Profile() {
                                                     <Button
                                                         variant="outline"
                                                         onClick={() => setIsEditingProfile(false)}
-                                                        className="border-gray-200"
+                                                        className="border-gray-200 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                                                     >
                                                         <X className="h-4 w-4 mr-2" />
                                                         Cancel
@@ -483,51 +532,51 @@ export default function Profile() {
 
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-sm font-medium text-black/60 mb-2">Full Name</label>
+                                                <label className="block text-sm font-medium text-black/60 dark:text-white/60 mb-2">Full Name</label>
                                                 {isEditingProfile ? (
                                                     <input
                                                         type="text"
                                                         value={profileForm.name}
                                                         onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                                                        className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="w-full px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                 ) : (
-                                                    <p className="text-black font-medium">{user.name}</p>
+                                                    <p className="text-black dark:text-white font-medium">{user.name}</p>
                                                 )}
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-black/60 mb-2">Email Address</label>
+                                                <label className="block text-sm font-medium text-black/60 dark:text-white/60 mb-2">Email Address</label>
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-black font-medium">{user.email}</p>
+                                                    <p className="text-black dark:text-white font-medium">{user.email}</p>
                                                     {user.isVerified && (
-                                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Verified</span>
+                                                        <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">Verified</span>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-black/60 mb-2">Mobile Number</label>
+                                                <label className="block text-sm font-medium text-black/60 dark:text-white/60 mb-2">Mobile Number</label>
                                                 {isEditingProfile ? (
                                                     <input
                                                         type="tel"
                                                         value={profileForm.phone}
                                                         onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                                                        className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="w-full px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                         placeholder="+91 XXXXX XXXXX"
                                                     />
                                                 ) : (
-                                                    <p className="text-black font-medium">{user.phone || 'Not added'}</p>
+                                                    <p className="text-black dark:text-white font-medium">{user.phone || 'Not added'}</p>
                                                 )}
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-black/60 mb-2">Gender</label>
+                                                <label className="block text-sm font-medium text-black/60 dark:text-white/60 mb-2">Gender</label>
                                                 {isEditingProfile ? (
                                                     <select
                                                         value={profileForm.gender}
                                                         onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
-                                                        className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="w-full px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     >
                                                         <option value="">Select Gender</option>
                                                         <option value="male">Male</option>
@@ -535,29 +584,29 @@ export default function Profile() {
                                                         <option value="other">Other</option>
                                                     </select>
                                                 ) : (
-                                                    <p className="text-black font-medium capitalize">{user.gender || 'Not specified'}</p>
+                                                    <p className="text-black dark:text-white font-medium capitalize">{user.gender || 'Not specified'}</p>
                                                 )}
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-black/60 mb-2">Date of Birth</label>
+                                                <label className="block text-sm font-medium text-black/60 dark:text-white/60 mb-2">Date of Birth</label>
                                                 {isEditingProfile ? (
                                                     <input
                                                         type="date"
                                                         value={profileForm.dateOfBirth}
                                                         onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
-                                                        className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="w-full px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                 ) : (
-                                                    <p className="text-black font-medium">
+                                                    <p className="text-black dark:text-white font-medium">
                                                         {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Not specified'}
                                                     </p>
                                                 )}
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-black/60 mb-2">Member Since</label>
-                                                <p className="text-black font-medium">
+                                                <label className="block text-sm font-medium text-black/60 dark:text-white/60 mb-2">Member Since</label>
+                                                <p className="text-black dark:text-white font-medium">
                                                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}
                                                 </p>
                                             </div>
@@ -569,7 +618,7 @@ export default function Profile() {
                                 {activeTab === 'addresses' && (
                                     <div>
                                         <div className="flex items-center justify-between mb-6">
-                                            <h2 className="text-xl font-semibold text-black">Manage Addresses</h2>
+                                            <h2 className="text-xl font-semibold text-black dark:text-white">Manage Addresses</h2>
                                             {!isAddingAddress && !editingAddressId && (
                                                 <Button
                                                     onClick={() => setIsAddingAddress(true)}
@@ -583,8 +632,8 @@ export default function Profile() {
 
                                         {/* Add/Edit Address Form */}
                                         {(isAddingAddress || editingAddressId) && (
-                                            <div className="mb-6 p-6 bg-amber-50/50 rounded-xl border border-amber-200">
-                                                <h3 className="font-semibold text-black mb-4">
+                                            <div className="mb-6 p-6 bg-amber-50/50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-900/50">
+                                                <h3 className="font-semibold text-black dark:text-white mb-4">
                                                     {isAddingAddress ? 'Add New Address' : 'Edit Address'}
                                                 </h3>
                                                 <div className="grid md:grid-cols-2 gap-4">
@@ -593,47 +642,47 @@ export default function Profile() {
                                                         placeholder="Full Name"
                                                         value={addressForm.name}
                                                         onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
-                                                        className="px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                     <input
                                                         type="tel"
                                                         placeholder="Phone Number"
                                                         value={addressForm.phone}
                                                         onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                                                        className="px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                     <input
                                                         type="text"
                                                         placeholder="Street Address"
                                                         value={addressForm.street}
                                                         onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-                                                        className="md:col-span-2 px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="md:col-span-2 px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                     <input
                                                         type="text"
                                                         placeholder="City"
                                                         value={addressForm.city}
                                                         onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                                                        className="px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                     <input
                                                         type="text"
                                                         placeholder="State"
                                                         value={addressForm.state}
                                                         onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                                                        className="px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                     <input
                                                         type="text"
                                                         placeholder="PIN Code"
                                                         value={addressForm.zipCode}
                                                         onChange={(e) => setAddressForm({ ...addressForm, zipCode: e.target.value })}
-                                                        className="px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     />
                                                     <select
                                                         value={addressForm.type}
                                                         onChange={(e) => setAddressForm({ ...addressForm, type: e.target.value as 'home' | 'work' | 'other' })}
-                                                        className="px-4 py-3 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        className="px-4 py-3 border border-amber-200 dark:border-amber-900/50 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                                                     >
                                                         <option value="home">Home</option>
                                                         <option value="work">Work</option>
@@ -647,7 +696,7 @@ export default function Profile() {
                                                             onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
                                                             className="w-4 h-4 text-amber-600 rounded"
                                                         />
-                                                        <label htmlFor="isDefault" className="text-sm text-black/70">Set as default address</label>
+                                                        <label htmlFor="isDefault" className="text-sm text-black/70 dark:text-white/70">Set as default address</label>
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-3 mt-4">
@@ -658,7 +707,7 @@ export default function Profile() {
                                                             setEditingAddressId(null);
                                                             resetAddressForm();
                                                         }}
-                                                        className="border-gray-200"
+                                                        className="border-gray-200 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                                                     >
                                                         Cancel
                                                     </Button>
@@ -678,40 +727,40 @@ export default function Profile() {
                                             {addresses.length === 0 ? (
                                                 <div className="text-center py-12">
                                                     <MapPin className="h-12 w-12 text-amber-200 mx-auto mb-4" />
-                                                    <p className="text-black/60">No addresses saved yet</p>
+                                                    <p className="text-black/60 dark:text-white/60">No addresses saved yet</p>
                                                 </div>
                                             ) : (
                                                 addresses.map((address) => (
                                                     <div
                                                         key={address._id}
-                                                        className={`p-4 rounded-xl border ${address.isDefault ? 'border-amber-400 bg-amber-50/30' : 'border-gray-200'}`}
+                                                        className={`p-4 rounded-xl border ${address.isDefault ? 'border-amber-400 bg-amber-50/30 dark:bg-amber-900/20' : 'border-gray-200 dark:border-gray-800'}`}
                                                     >
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-2 mb-2">
                                                                     {address.type === 'home' && <Home className="h-4 w-4 text-amber-600" />}
                                                                     {address.type === 'work' && <Briefcase className="h-4 w-4 text-amber-600" />}
-                                                                    <span className="font-medium text-black capitalize">{address.type}</span>
+                                                                    <span className="font-medium text-black dark:text-white capitalize">{address.type}</span>
                                                                     {address.isDefault && (
-                                                                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Default</span>
+                                                                        <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">Default</span>
                                                                     )}
                                                                 </div>
-                                                                <p className="font-semibold text-black">{address.name}</p>
-                                                                <p className="text-black/60 text-sm mt-1">
+                                                                <p className="font-semibold text-black dark:text-white">{address.name}</p>
+                                                                <p className="text-black/60 dark:text-white/60 text-sm mt-1">
                                                                     {address.street}, {address.city}, {address.state} - {address.zipCode}
                                                                 </p>
-                                                                <p className="text-black/60 text-sm mt-1">Phone: {address.phone}</p>
+                                                                <p className="text-black/60 dark:text-white/60 text-sm mt-1">Phone: {address.phone}</p>
                                                             </div>
                                                             <div className="flex gap-2">
                                                                 <button
                                                                     onClick={() => startEditAddress(address)}
-                                                                    className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg"
+                                                                    className="p-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
                                                                 >
                                                                     <Edit2 className="h-4 w-4" />
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleDeleteAddress(address._id)}
-                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                                                                 >
                                                                     <Trash2 className="h-4 w-4" />
                                                                 </button>
@@ -727,11 +776,11 @@ export default function Profile() {
                                 {/* Orders Tab */}
                                 {activeTab === 'orders' && (
                                     <div>
-                                        <h2 className="text-xl font-semibold text-black mb-6">My Orders</h2>
+                                        <h2 className="text-xl font-semibold text-black dark:text-white mb-6">My Orders</h2>
                                         {orders.length === 0 ? (
                                             <div className="text-center py-12">
                                                 <Package className="h-12 w-12 text-amber-200 mx-auto mb-4" />
-                                                <p className="text-black/60 mb-4">No orders yet</p>
+                                                <p className="text-black/60 dark:text-white/60 mb-4">No orders yet</p>
                                                 <Button
                                                     onClick={() => navigate('/collections')}
                                                     className="bg-amber-600 hover:bg-amber-700 text-white"
@@ -742,11 +791,11 @@ export default function Profile() {
                                         ) : (
                                             <div className="space-y-4">
                                                 {orders.map((order) => (
-                                                    <div key={order._id} className="p-4 rounded-xl border border-gray-200">
+                                                    <div key={order._id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800">
                                                         <div className="flex items-center justify-between mb-4">
                                                             <div>
-                                                                <p className="text-sm text-black/60">Order #{order._id.slice(-8).toUpperCase()}</p>
-                                                                <p className="text-xs text-black/40">
+                                                                <p className="text-sm text-black/60 dark:text-white/60">Order #{order._id.slice(-8).toUpperCase()}</p>
+                                                                <p className="text-xs text-black/40 dark:text-white/40">
                                                                     {new Date(order.createdAt).toLocaleDateString('en-IN', {
                                                                         day: 'numeric',
                                                                         month: 'long',
@@ -756,8 +805,8 @@ export default function Profile() {
                                                             </div>
                                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
                                                                 order.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
-                                                                    order.status === 'processing' ? 'bg-amber-100 text-amber-700' :
-                                                                        'bg-gray-100 text-gray-700'
+                                                                    order.status === 'processing' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
+                                                                        'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                                                 }`}>
                                                                 {order.status}
                                                             </span>
@@ -773,10 +822,112 @@ export default function Profile() {
                                     </div>
                                 )}
 
+                                {/* Wishlist Tab */}
+                                {activeTab === 'wishlist' && (
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-black dark:text-white mb-6">My Wishlist</h2>
+                                        {wishlistItems.length === 0 ? (
+                                            <div className="text-center py-12">
+                                                <Heart className="h-12 w-12 text-amber-200 dark:text-amber-700 mx-auto mb-4" />
+                                                <p className="text-black/60 dark:text-white/60 mb-4">Your wishlist is empty</p>
+                                                <Button
+                                                    onClick={() => navigate('/collections')}
+                                                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                >
+                                                    Browse Products
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {wishlistItems.map((item) => {
+                                                    const productStock = item.colors && item.colors.length > 0
+                                                        ? item.colors.reduce((total, color) => total + (color.quantity || 0), 0)
+                                                        : item.stock || 0;
+                                                    const isOutOfStock = productStock === 0;
+
+                                                    return (
+                                                        <div
+                                                            key={item._id || item.id}
+                                                            className={`group relative bg-white dark:bg-gray-900 rounded-xl border overflow-hidden transition-all duration-300 ${isOutOfStock
+                                                                    ? 'border-gray-200 dark:border-gray-700 opacity-75'
+                                                                    : 'border-amber-100 dark:border-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-lg'
+                                                                }`}
+                                                        >
+                                                            {/* Remove button */}
+                                                            <button
+                                                                onClick={() => removeFromWishlist(item._id || item.id!)}
+                                                                className="absolute top-2 right-2 z-10 p-2 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                                                            >
+                                                                <X className="h-4 w-4 text-red-500" />
+                                                            </button>
+
+                                                            {/* Image */}
+                                                            <div
+                                                                className="aspect-square bg-amber-50 dark:bg-gray-800 overflow-hidden cursor-pointer"
+                                                                onClick={() => navigate(`/product/${item._id || item.id}`)}
+                                                            >
+                                                                {isOutOfStock && (
+                                                                    <div className="absolute top-2 left-2 z-10 px-2 py-1 bg-gray-500 text-white text-xs font-medium rounded">
+                                                                        Out of Stock
+                                                                    </div>
+                                                                )}
+                                                                <img
+                                                                    src={item.image}
+                                                                    alt={item.name}
+                                                                    className={`w-full h-full object-cover transition-transform duration-300 ${isOutOfStock ? 'grayscale' : 'group-hover:scale-105'}`}
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200?text=No+Image';
+                                                                    }}
+                                                                />
+                                                            </div>
+
+                                                            {/* Content */}
+                                                            <div className="p-4">
+                                                                <h3
+                                                                    className={`font-medium mb-1 truncate cursor-pointer transition-colors ${isOutOfStock
+                                                                            ? 'text-gray-400 dark:text-gray-500'
+                                                                            : 'text-black dark:text-white hover:text-amber-600 dark:hover:text-amber-400'
+                                                                        }`}
+                                                                    onClick={() => navigate(`/product/${item._id || item.id}`)}
+                                                                >
+                                                                    {item.name}
+                                                                </h3>
+                                                                <p className={`text-lg font-bold mb-3 ${isOutOfStock ? 'text-gray-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                                                    ₹{item.price}
+                                                                </p>
+
+                                                                {isOutOfStock ? (
+                                                                    <p className="text-sm text-red-500 dark:text-red-400 text-center py-2">
+                                                                        Currently unavailable
+                                                                    </p>
+                                                                ) : (
+                                                                    <Button
+                                                                        onClick={async () => {
+                                                                            const result = await addToCart(item);
+                                                                            if (result.success) {
+                                                                                // Optional: remove from wishlist after adding to cart
+                                                                            }
+                                                                        }}
+                                                                        className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                                                                        size="sm"
+                                                                    >
+                                                                        <ShoppingCart className="h-4 w-4 mr-2" />
+                                                                        Add to Cart
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Security Tab */}
                                 {activeTab === 'security' && (
                                     <div>
-                                        <h2 className="text-xl font-semibold text-black mb-6">Security Settings</h2>
+                                        <h2 className="text-xl font-semibold text-black dark:text-white mb-6">Security Settings</h2>
 
                                         <div className="space-y-6">
                                             {/* Change Password */}
@@ -860,6 +1011,43 @@ export default function Profile() {
                                                         <span className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full">Not Verified</span>
                                                     )}
                                                 </div>
+                                            </div>
+
+                                            {/* Two-Factor Authentication */}
+                                            <div className="p-6 rounded-xl border border-gray-200">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Shield className="h-5 w-5 text-amber-600" />
+                                                        <div>
+                                                            <h3 className="font-semibold text-black">Two-Factor Authentication</h3>
+                                                            <p className="text-sm text-black/60">
+                                                                Add an extra layer of security to your account
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleToggle2FA}
+                                                        disabled={isUpdating2FA}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${twoFactorEnabled ? 'bg-amber-600' : 'bg-gray-200'
+                                                            } ${isUpdating2FA ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <span
+                                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'
+                                                                }`}
+                                                        />
+                                                    </button>
+                                                </div>
+                                                {twoFactorEnabled && (
+                                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                                        <div className="flex items-start gap-2 text-sm text-black/60">
+                                                            <Shield className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                                            <p>
+                                                                Two-factor authentication is <span className="font-semibold text-green-700">enabled</span>.
+                                                                You'll receive a 6-digit OTP via email when logging in.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

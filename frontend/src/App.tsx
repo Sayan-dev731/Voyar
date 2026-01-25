@@ -21,13 +21,15 @@ import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
+import { WishlistProvider } from './context/WishlistContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './components/ui/toast'
 import { Outlet } from 'react-router-dom'
 import './App.css'
 
 function PublicLayout() {
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden transition-colors duration-300">
       <Navbar />
       <main>
         <Outlet />
@@ -39,43 +41,47 @@ function PublicLayout() {
 
 function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <ToastProvider>
-          <Router>
-            <Routes>
-              {/* Admin Routes - No Navbar/Footer */}
-              <Route path="/admin" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
-              <Route path="/admin/reset-password" element={<AdminResetPassword />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <ToastProvider>
+              <Router>
+                <Routes>
+                  {/* Admin Routes - No Navbar/Footer */}
+                  <Route path="/admin" element={<AdminLogin />} />
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+                  <Route path="/admin/reset-password" element={<AdminResetPassword />} />
 
-              {/* Auth Routes - No Navbar/Footer */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+                  {/* Auth Routes - No Navbar/Footer */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
 
-              {/* Public Routes - With Navbar/Footer */}
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/collections" element={<Collections />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/contact" element={<Contact />} />
-              </Route>
+                  {/* Public Routes - With Navbar/Footer */}
+                  <Route element={<PublicLayout />}>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/product/:id" element={<ProductDetail />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/collections" element={<Collections />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/contact" element={<Contact />} />
+                  </Route>
 
-              {/* 404 Not Found */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Router>
-        </ToastProvider>
-      </CartProvider>
-    </AuthProvider>
+                  {/* 404 Not Found */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Router>
+            </ToastProvider>
+          </WishlistProvider>
+        </CartProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

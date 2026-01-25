@@ -1,115 +1,187 @@
-import {  Instagram, Mail, MapPin } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
+import { Facebook, Instagram, Youtube, Mail, Phone, MapPin, Heart, Clock } from 'lucide-react'
+
+const socialLinks = [
+    { icon: Facebook, href: '#', label: 'Facebook' },
+    { icon: Instagram, href: '#', label: 'Instagram' },
+    { icon: Youtube, href: '#', label: 'YouTube' },
+]
 
 export const Footer = () => {
-    return (
-        <footer className="bg-gradient-to-b from-white to-amber-50/20 border-t border-amber-200/40 text-black/60">
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 mb-12">
-                    {/* Company Info */}
-                    <div>
-                        <h3 className="text-2xl sm:text-3xl font-[600] text-black mb-4 tracking-tight">
-                            Voyar
-                        </h3>
-                        <p className="mb-6 text-sm leading-relaxed">
-                            Premium eyewear for modern living. Quality you can see, comfort you can feel.
-                        </p>
-                        <div className="flex space-x-3">
-                            {/* <a
-                                href="#"
-                                className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
-                            >
-                                <Facebook className="h-4 w-4 text-amber-600" />
-                            </a> */}
-                            {/* <a
-                                href="#"
-                                className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
-                            >
-                                <Twitter className="h-4 w-4 text-amber-600" />
-                            </a> */}
-                            <a
-                                href="https://www.instagram.com/yourusername" // Replace 'yourusername' with your actual Instagram username
-                                className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
-                            >
-                                <Instagram className="h-4 w-4 text-amber-600" />
-                            </a>
-                            {/* <a
-                                href="#"
-                                className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
-                            >
-                                <Youtube className="h-4 w-4 text-amber-600" />
-                            </a> */}
-                        </div>
-                    </div>
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+        },
+    }
 
-                    {/* Quick Links */}
-                    {/* <div>
-                        <h4 className="text-black font-[600] mb-4 text-base">Quick Links</h4>
-                        <ul className="space-y-2.5 text-sm">
-                            {['About Us', 'Our Stores', 'Careers', 'Press', 'Blog'].map((link) => (
-                                <li key={link}>
-                                    <a href="#" className="hover:text-amber-600 transition-colors">
-                                        {link}
-                                    </a>
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    }
+
+    return (
+        <footer className="bg-white dark:bg-gray-950 border-t border-amber-100 dark:border-amber-900/30 transition-colors duration-300">
+            {/* Main Footer Content */}
+            <motion.div
+                className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16"
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-100px" }}
+            >
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+                    {/* Brand & Social */}
+                    <motion.div variants={itemVariants} className="col-span-2 md:col-span-1">
+                        <Link to="/" className="inline-block mb-4">
+                            <img
+                                src="/images/logo.jpeg"
+                                alt="Voyar"
+                                className="h-10 w-auto"
+                            />
+                        </Link>
+                        <p className="text-sm text-black/60 dark:text-white/60 mb-5 leading-relaxed">
+                            Get the perfect vision and style. Premium eyewear for modern living.
+                        </p>
+                        <div className="flex items-center gap-3">
+                            {socialLinks.map((social) => (
+                                <a
+                                    key={social.label}
+                                    href={social.href}
+                                    className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                                    aria-label={social.label}
+                                >
+                                    <social.icon className="h-5 w-5" />
+                                </a>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Policies */}
+                    <motion.div variants={itemVariants}>
+                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
+                            Policies
+                        </h4>
+                        <ul className="space-y-3">
+                            {[
+                                { label: 'Privacy Policy', href: '/privacy' },
+                                { label: 'Terms & Conditions', href: '/terms' },
+                                { label: 'Delivery & Shipping', href: '/shipping' },
+                                { label: 'Refund Policy', href: '/refund' },
+                                { label: 'Frame Guide', href: '/frame-guide' },
+                            ].map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        to={link.href}
+                                        className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                                    >
+                                        {link.label}
+                                    </Link>
                                 </li>
                             ))}
                         </ul>
-                    </div> */}
+                    </motion.div>
 
-                    {/* Customer Service */}
-                    <div>
-                        <h4 className="text-black font-[600] mb-4 text-base">Customer Service</h4>
-                        <ul className="space-y-2.5 text-sm">
-                            {['24x7 Support', 'FAQs'].map(
-                                (link) => (
-                                    <li key={link}>
-                                        <a href="#" className="hover:text-amber-600 transition-colors">
-                                            {link}
-                                        </a>
-                                    </li>
-                                )
-                            )}
+                    {/* Return & Exchange */}
+                    <motion.div variants={itemVariants}>
+                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
+                            Return & Exchange
+                        </h4>
+                        <ul className="space-y-3">
+                            <li>
+                                <Link
+                                    to="/returns"
+                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                                >
+                                    Return Portal
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    to="/orders"
+                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                                >
+                                    Track Your Order
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    to="/contact"
+                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                                >
+                                    Contact Support
+                                </Link>
+                            </li>
                         </ul>
-                    </div>
+                    </motion.div>
 
-                    {/* Contact Info */}
-                    <div>
-                        <h4 className="text-black font-[600] mb-4 text-base">Contact Us</h4>
-                        
-                        <ul className="space-y-3 text-sm">
-                            {/* <li className="flex items-start">
-                                <Phone className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                                <span>1800-123-4567</span>
-                            </li> */}
-                            <li className="flex items-start">
-                                <Mail className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                                <a href="mailto:voyareyewear@gmail.com" className="text-amber-600 font-[600] hover:text-amber-700 transition-colors ">
+                    {/* Contact Us */}
+                    <motion.div variants={itemVariants}>
+                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
+                            Contact Us
+                        </h4>
+                        <p className="text-sm text-black/60 dark:text-white/60 mb-4">
+                            Questions? We're here for you Monday - Friday 10am-6pm IST.
+                        </p>
+                        <ul className="space-y-3">
+                            <li>
+                                <a
+                                    href="mailto:voyareyewear@gmail.com"
+                                    className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium transition-colors"
+                                >
+                                    <Mail className="h-4 w-4" />
                                     voyareyewear@gmail.com
                                 </a>
                             </li>
-                            <li className="flex items-start">
-                                <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                                <span>Bhilai-490023, Chhattisgarh, India</span>
+                            <li>
+                                <a
+                                    href="tel:+919667194067"
+                                    className="flex items-center gap-2 text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                                >
+                                    <Phone className="h-4 w-4" />
+                                    +91 9667194067
+                                </a>
+                            </li>
+                            <li className="flex items-start gap-2 text-sm text-black/60 dark:text-white/60">
+                                <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                Mon - Fri: 10am - 6pm IST
+                            </li>
+                            <li className="flex items-start gap-2 text-sm text-black/60 dark:text-white/60">
+                                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                                Patna City-800008, Bihar, India
                             </li>
                         </ul>
-                    </div>
+                    </motion.div>
                 </div>
+            </motion.div>
 
-                {/* Bottom Bar */}
-                <div className="border-t border-amber-200/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-xs text-black/50">© 2025 Voyar. All rights reserved.</p>
-                    <div className="flex flex-wrap justify-center gap-6">
-                        <a href="#" className="text-xs text-black/50 hover:text-amber-600 transition-colors">
-                            Privacy Policy
-                        </a>
-                        <a href="#" className="text-xs text-black/50 hover:text-amber-600 transition-colors">
-                            Terms of Service
-                        </a>
-                        <a href="#" className="text-xs text-black/50 hover:text-amber-600 transition-colors">
-                            Cookie Policy
-                        </a>
+            {/* Bottom Bar */}
+            <div className="border-t border-amber-100 dark:border-amber-900/30 bg-amber-50/50 dark:bg-gray-900/50">
+                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <p className="text-xs text-black/50 dark:text-white/50 flex items-center gap-1">
+                            © 2024 Voyar Eyewear. Made with
+                            <Heart className="h-3 w-3 text-red-400 fill-red-400" />
+                            in India
+                        </p>
+                        <div className="flex items-center gap-6">
+                            <span className="text-xs text-black/50 dark:text-white/50">Secure Payments</span>
+                            <div className="flex items-center gap-2">
+                                {/* Payment Icons Placeholder */}
+                                <div className="w-8 h-5 bg-amber-100 dark:bg-amber-900/50 rounded flex items-center justify-center text-xs text-amber-600 dark:text-amber-300 font-medium">
+                                    UPI
+                                </div>
+                                <div className="w-8 h-5 bg-amber-100 dark:bg-amber-900/50 rounded flex items-center justify-center text-xs text-amber-600 dark:text-amber-300 font-medium">
+                                    COD
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </footer>
     )
 }
+

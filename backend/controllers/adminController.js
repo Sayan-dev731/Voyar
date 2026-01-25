@@ -6,8 +6,11 @@ import User from '../models/User.js';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import { sendAdminPasswordResetEmail } from '../config/email.js';
+import { validatePasswordStrength, getClientIp, getSafeUserAgent } from '../config/security.js';
 
+// =============================================================================
 // Admin login with enhanced security
+// =============================================================================
 export const adminLogin = async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -133,28 +136,87 @@ export const verifyToken = async (req, res) => {
     }
 };
 
-// Change admin password
+// =============================================================================
+// Change admin password with security validation
+// =============================================================================
 export const changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
 
-        if (!newPassword || newPassword.length < 8) {
-            return res.status(400).json({ message: 'Password must be at least 8 characters' });
+        // Validate password strength using security config
+        const passwordValidation = validatePasswordStrength(newPassword);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({
+                message: 'Password does not meet security requirements',
+                errors: passwordValidation.errors,
+                hint: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
+            });
         }
 
-        const admin = await Admin.findById(req.admin.id);
+        const admin = await Admin.findById(req.admin.id).select('+passwordHistory +password');
+
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
 
         const isMatch = await bcrypt.compare(currentPassword, admin.password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Current password is incorrect' });
         }
 
+        // Check if new password is same as current
+        if (currentPassword === newPassword) {
+            return res.status(400).json({
+                message: 'New password must be different from current password'
+            });
+        }
+
+        // Check password history (prevent reuse of last 5 passwords)
+        if (admin.passwordHistory && admin.passwordHistory.length > 0) {
+            for (const oldPassword of admin.passwordHistory) {
+                const wasUsed = await bcrypt.compare(newPassword, oldPassword.hash);
+                if (wasUsed) {
+                    return res.status(400).json({
+                        message: 'This password was used recently. Please choose a different password.',
+                        hint: 'For security, you cannot reuse your last 5 passwords'
+                    });
+                }
+            }
+        }
+
+        // Also check against current password
+        const matchesCurrent = await bcrypt.compare(newPassword, admin.password);
+        if (matchesCurrent) {
+            return res.status(400).json({
+                message: 'New password must be different from current password'
+            });
+        }
+
+        // Store current password in history before updating
+        if (!admin.passwordHistory) {
+            admin.passwordHistory = [];
+        }
+        admin.passwordHistory.push({
+            hash: admin.password,
+            changedAt: new Date()
+        });
+
+        // Keep only last 5 passwords
+        if (admin.passwordHistory.length > 5) {
+            admin.passwordHistory = admin.passwordHistory.slice(-5);
+        }
+
         const hashedPassword = await bcrypt.hash(newPassword, 12);
         admin.password = hashedPassword;
+        admin.passwordChangedAt = new Date();
         await admin.save();
 
-        res.json({ message: 'Password changed successfully' });
+        res.json({
+            message: 'Password changed successfully',
+            passwordChangedAt: admin.passwordChangedAt
+        });
     } catch (error) {
+        console.error('Change password error:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -678,9 +740,12 @@ export const adminForgotPassword = async (req, res) => {
     }
 };
 
+// =============================================================================
 // @desc    Admin reset password
 // @route   POST /api/admin/reset-password/:token
 // @access  Public
+// @security Password history check, Strength validation
+// =============================================================================
 export const adminResetPassword = async (req, res) => {
     try {
         const { token } = req.params;
@@ -690,18 +755,59 @@ export const adminResetPassword = async (req, res) => {
             return res.status(400).json({ message: 'Please provide a new password' });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(password);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({
+                message: 'Password does not meet security requirements',
+                errors: passwordValidation.errors,
+                hint: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
+            });
         }
 
         // Find admin with valid reset token
         const admin = await Admin.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() }
-        });
+        }).select('+passwordHistory +password');
 
         if (!admin) {
             return res.status(400).json({ message: 'Invalid or expired reset token' });
+        }
+
+        // Check password history (prevent reuse)
+        if (admin.passwordHistory && admin.passwordHistory.length > 0) {
+            for (const oldPassword of admin.passwordHistory) {
+                const wasUsed = await bcrypt.compare(password, oldPassword.hash);
+                if (wasUsed) {
+                    return res.status(400).json({
+                        message: 'This password was used recently. Please choose a different password.',
+                        hint: 'For security, you cannot reuse your last 5 passwords'
+                    });
+                }
+            }
+        }
+
+        // Check against current password
+        const matchesCurrent = await bcrypt.compare(password, admin.password);
+        if (matchesCurrent) {
+            return res.status(400).json({
+                message: 'New password must be different from current password'
+            });
+        }
+
+        // Store current password in history before updating
+        if (!admin.passwordHistory) {
+            admin.passwordHistory = [];
+        }
+        admin.passwordHistory.push({
+            hash: admin.password,
+            changedAt: new Date()
+        });
+
+        // Keep only last 5 passwords
+        if (admin.passwordHistory.length > 5) {
+            admin.passwordHistory = admin.passwordHistory.slice(-5);
         }
 
         // Hash new password and save
@@ -711,6 +817,7 @@ export const adminResetPassword = async (req, res) => {
         admin.resetPasswordExpires = undefined;
         admin.failedLoginAttempts = 0;
         admin.lockUntil = undefined;
+        admin.passwordChangedAt = new Date();
         await admin.save();
 
         res.json({ message: 'Password reset successfully. You can now login with your new password.' });
@@ -749,7 +856,22 @@ export const getPublicSiteSettings = async (req, res) => {
         res.json({
             platformCharges: settings.platformCharges || 0,
             deliveryCharges: settings.deliveryCharges || 0,
-            siteName: settings.siteName
+            siteName: settings.siteName,
+            codEnabled: settings.codEnabled !== false,
+            // Lens settings for lens selection wizard
+            lensSettings: settings.lensSettings || {
+                powerTypes: {
+                    antiGlare: { enabled: true, price: 499, label: 'Anti Glare Lenses' },
+                    blueBlock: { enabled: true, price: 699, label: 'Blue Block Lenses' },
+                    photochromic: { enabled: true, price: 1299, label: 'Photochromic Lens' },
+                    colour: { enabled: true, price: 899, label: 'Colour Lenses' }
+                },
+                powerRanges: {
+                    upto5: { price: 0, label: 'UPTO +/- 5' },
+                    upto10: { price: 899, label: 'UPTO +/- 10' }
+                },
+                lensColors: []
+            }
         });
     } catch (error) {
         console.error('Get public settings error:', error);
@@ -766,7 +888,7 @@ export const updateSiteSettings = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Super admin only.' });
         }
 
-        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges } = req.body;
+        const { recoveryEmail, siteName, supportEmail, platformCharges, deliveryCharges, codEnabled, pickupAddress, lensSettings } = req.body;
 
         let settings = await SiteSettings.findOne();
         if (!settings) {
@@ -778,6 +900,51 @@ export const updateSiteSettings = async (req, res) => {
         if (supportEmail) settings.supportEmail = supportEmail;
         if (platformCharges !== undefined) settings.platformCharges = platformCharges;
         if (deliveryCharges !== undefined) settings.deliveryCharges = deliveryCharges;
+        if (codEnabled !== undefined) settings.codEnabled = codEnabled;
+
+        // Update lens settings if provided
+        if (lensSettings) {
+            if (!settings.lensSettings) {
+                settings.lensSettings = {};
+            }
+            if (lensSettings.powerTypes) {
+                settings.lensSettings.powerTypes = lensSettings.powerTypes;
+            }
+            if (lensSettings.powerRanges) {
+                settings.lensSettings.powerRanges = lensSettings.powerRanges;
+            }
+            if (lensSettings.lensColors !== undefined) {
+                settings.lensSettings.lensColors = lensSettings.lensColors;
+            }
+        }
+
+        // Update pickup address if provided
+        if (pickupAddress) {
+            settings.pickupAddress = {
+                pickupLocationName: pickupAddress.pickupLocationName || settings.pickupAddress?.pickupLocationName || 'Primary',
+                name: pickupAddress.name || settings.pickupAddress?.name || '',
+                email: pickupAddress.email || settings.pickupAddress?.email || '',
+                phone: pickupAddress.phone || settings.pickupAddress?.phone || '',
+                address: pickupAddress.address || settings.pickupAddress?.address || '',
+                address2: pickupAddress.address2 || settings.pickupAddress?.address2 || '',
+                city: pickupAddress.city || settings.pickupAddress?.city || '',
+                state: pickupAddress.state || settings.pickupAddress?.state || '',
+                country: pickupAddress.country || settings.pickupAddress?.country || 'India',
+                pincode: pickupAddress.pincode || settings.pickupAddress?.pincode || '',
+                lat: pickupAddress.lat || settings.pickupAddress?.lat || '',
+                long: pickupAddress.long || settings.pickupAddress?.long || ''
+            };
+
+            // Mark as configured if essential fields are filled
+            settings.pickupAddressConfigured = !!(
+                pickupAddress.name &&
+                pickupAddress.phone &&
+                pickupAddress.address &&
+                pickupAddress.city &&
+                pickupAddress.state &&
+                pickupAddress.pincode
+            );
+        }
 
         await settings.save();
 

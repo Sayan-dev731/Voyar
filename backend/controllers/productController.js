@@ -28,8 +28,6 @@ export const getProductById = async (req, res) => {
 // Create product (Admin only)
 export const createProduct = async (req, res) => {
     try {
-        console.log('Creating product:', req.body);
-
         const {
             name,
             category,
@@ -41,6 +39,7 @@ export const createProduct = async (req, res) => {
             features,
             specifications,
             colors,
+            stock,
             inStock,
             rating,
             reviews
@@ -63,6 +62,17 @@ export const createProduct = async (req, res) => {
             return res.status(400).json({ message: 'Description is required' });
         }
 
+        // Calculate stock - either from main stock field or sum of color variant quantities
+        let productStock = Number(stock) || 0;
+        let productInStock = inStock !== false;
+
+        if (colors && colors.length > 0) {
+            // If product has color variants, calculate total stock from them
+            const totalColorStock = colors.reduce((sum, c) => sum + (Number(c.quantity) || 0), 0);
+            productStock = totalColorStock;
+            productInStock = totalColorStock > 0;
+        }
+
         const product = new Product({
             name: name.trim(),
             category,
@@ -74,13 +84,13 @@ export const createProduct = async (req, res) => {
             features: features || [],
             specifications: specifications || {},
             colors: colors || [],
-            inStock: inStock !== false,
+            stock: productStock,
+            inStock: productInStock,
             rating: Number(rating) || 0,
             reviews: Number(reviews) || 0
         });
 
         const savedProduct = await product.save();
-        console.log('Product created successfully:', savedProduct._id);
         res.status(201).json(savedProduct);
     } catch (error) {
         console.error('Error creating product:', error);
@@ -91,8 +101,6 @@ export const createProduct = async (req, res) => {
 // Update product (Admin only)
 export const updateProduct = async (req, res) => {
     try {
-        console.log('Updating product:', req.params.id, req.body);
-
         const {
             name,
             category,
@@ -104,6 +112,7 @@ export const updateProduct = async (req, res) => {
             features,
             specifications,
             colors,
+            stock,
             inStock,
             rating,
             reviews
@@ -133,8 +142,18 @@ export const updateProduct = async (req, res) => {
         if (detailedDescription !== undefined) updateData.detailedDescription = detailedDescription?.trim() || '';
         if (features !== undefined) updateData.features = features;
         if (specifications !== undefined) updateData.specifications = specifications;
-        if (colors !== undefined) updateData.colors = colors;
-        if (inStock !== undefined) updateData.inStock = inStock;
+        if (colors !== undefined) {
+            updateData.colors = colors;
+            // Calculate stock from color variants
+            const totalColorStock = colors.reduce((sum, c) => sum + (Number(c.quantity) || 0), 0);
+            updateData.stock = totalColorStock;
+            updateData.inStock = totalColorStock > 0;
+        } else if (stock !== undefined) {
+            updateData.stock = Number(stock) || 0;
+            updateData.inStock = Number(stock) > 0;
+        } else if (inStock !== undefined) {
+            updateData.inStock = inStock;
+        }
         if (rating !== undefined) updateData.rating = Number(rating) || 0;
         if (reviews !== undefined) updateData.reviews = Number(reviews) || 0;
 
@@ -148,7 +167,6 @@ export const updateProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        console.log('Product updated successfully:', product._id);
         res.json(product);
     } catch (error) {
         console.error('Error updating product:', error);
@@ -159,14 +177,11 @@ export const updateProduct = async (req, res) => {
 // Delete product (Admin only)
 export const deleteProduct = async (req, res) => {
     try {
-        console.log('Deleting product:', req.params.id);
-
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        console.log('Product deleted successfully:', req.params.id);
         res.json({ message: 'Product deleted successfully', deletedProduct: product });
     } catch (error) {
         console.error('Error deleting product:', error);

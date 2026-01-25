@@ -56,22 +56,22 @@ export default function VerifyEmail() {
     }, [searchParams, navigate]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-amber-50/30 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md p-8 shadow-xl text-center">
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-amber-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center p-4 transition-colors duration-300">
+            <Card className="w-full max-w-md p-8 shadow-xl text-center bg-white dark:bg-gray-900 dark:border-amber-900/30">
                 {status === 'loading' && (
                     <>
-                        <Loader2 className="h-16 w-16 animate-spin text-amber-600 mx-auto mb-4" />
-                        <h1 className="text-2xl font-bold text-black mb-2">Verifying Email</h1>
-                        <p className="text-black/60">Please wait while we verify your email address...</p>
+                        <Loader2 className="h-16 w-16 animate-spin text-amber-600 dark:text-amber-500 mx-auto mb-4" />
+                        <h1 className="text-2xl font-bold text-black dark:text-white mb-2">Verifying Email</h1>
+                        <p className="text-black/60 dark:text-white/60">Please wait while we verify your email address...</p>
                     </>
                 )}
 
                 {status === 'success' && (
                     <>
-                        <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-                        <h1 className="text-2xl font-bold text-black mb-2">Email Verified!</h1>
-                        <p className="text-black/60 mb-6">{message}</p>
-                        <p className="text-sm text-black/60 mb-4">Redirecting to login page in 3 seconds...</p>
+                        <CheckCircle className="h-16 w-16 text-green-600 dark:text-green-500 mx-auto mb-4" />
+                        <h1 className="text-2xl font-bold text-black dark:text-white mb-2">Email Verified!</h1>
+                        <p className="text-black/60 dark:text-white/60 mb-6">{message}</p>
+                        <p className="text-sm text-black/60 dark:text-white/60 mb-4">Redirecting to login page in 3 seconds...</p>
                         <Button
                             className="w-full bg-amber-600 hover:bg-amber-700 text-white"
                             onClick={() => navigate('/login')}
@@ -83,9 +83,9 @@ export default function VerifyEmail() {
 
                 {status === 'error' && (
                     <>
-                        <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-                        <h1 className="text-2xl font-bold text-black mb-2">Verification Failed</h1>
-                        <p className="text-black/60 mb-6">{message}</p>
+                        <XCircle className="h-16 w-16 text-red-600 dark:text-red-500 mx-auto mb-4" />
+                        <h1 className="text-2xl font-bold text-black dark:text-white mb-2">Verification Failed</h1>
+                        <p className="text-black/60 dark:text-white/60 mb-6">{message}</p>
                         <div className="space-y-3">
                             <Button
                                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
@@ -95,7 +95,7 @@ export default function VerifyEmail() {
                             </Button>
                             <Link
                                 to="/signup"
-                                className="block text-sm text-amber-600 hover:text-amber-700 font-medium"
+                                className="block text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium"
                             >
                                 Create a new account
                             </Link>

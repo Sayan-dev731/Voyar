@@ -18,6 +18,10 @@ const colorVariantSchema = new mongoose.Schema({
         type: Number,
         default: 0,
         min: 0
+    },
+    inStock: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -65,6 +69,11 @@ const productSchema = new mongoose.Schema({
         uvProtection: String
     },
     colors: [colorVariantSchema],
+    stock: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     inStock: {
         type: Boolean,
         default: true

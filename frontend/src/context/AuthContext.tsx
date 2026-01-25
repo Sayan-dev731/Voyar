@@ -50,6 +50,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return safeLocalStorage.getItem('userToken');
     });
 
+    const logout = useCallback(() => {
+        setToken(null);
+        setUser(null);
+        safeLocalStorage.removeItem('userToken');
+        safeLocalStorage.removeItem('user');
+        safeLocalStorage.removeItem('cart'); // Clear cart on logout
+        safeLocalStorage.removeItem('loginTime');
+        safeLocalStorage.removeItem('lastActivity');
+    }, []);
+
+    // Check for token expiry on mount and set up activity tracking
+    useEffect(() => {
+        const checkTokenExpiry = () => {
+            const loginTime = safeLocalStorage.getItem('loginTime');
+            if (loginTime && token) {
+                const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+                if (hoursSinceLogin >= 24) {
+                    logout();
+                }
+            }
+        };
+
+        // Check immediately
+        checkTokenExpiry();
+
+        // Check every 5 minutes
+        const interval = setInterval(checkTokenExpiry, 5 * 60 * 1000);
+
+        // Activity tracking - update last activity time on user interaction
+        const updateActivity = () => {
+            if (token) {
+                safeLocalStorage.setItem('lastActivity', Date.now().toString());
+            }
+        };
+
+        // Track various user activities
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+        events.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
+
+        return () => {
+            clearInterval(interval);
+            events.forEach(event => window.removeEventListener(event, updateActivity));
+        };
+    }, [token, logout]);
+
     useEffect(() => {
         // Sync token and user to localStorage whenever they change
         if (token && user) {
@@ -97,16 +142,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const login = (newToken: string, newUser: User) => {
         setToken(newToken);
         setUser(newUser);
+        const now = Date.now().toString();
         safeLocalStorage.setItem('userToken', newToken);
         safeLocalStorage.setItem('user', JSON.stringify(newUser));
-    };
-
-    const logout = () => {
-        setToken(null);
-        setUser(null);
-        safeLocalStorage.removeItem('userToken');
-        safeLocalStorage.removeItem('user');
-        safeLocalStorage.removeItem('cart'); // Clear cart on logout
+        safeLocalStorage.setItem('loginTime', now);
+        safeLocalStorage.setItem('lastActivity', now);
     };
 
     const updateUser = (updatedUser: User) => {

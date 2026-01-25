@@ -35,7 +35,7 @@ const NotFound = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex items-center justify-center px-4 py-20 overflow-hidden relative">
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4 py-20 overflow-hidden relative transition-colors duration-300">
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden">
                 <motion.div
@@ -48,7 +48,7 @@ const NotFound = () => {
                         repeat: Infinity,
                         ease: "linear"
                     }}
-                    className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-amber-200/30 to-orange-200/30 rounded-full blur-3xl"
+                    className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-amber-200/30 to-orange-200/30 dark:from-amber-900/10 dark:to-orange-900/10 rounded-full blur-3xl"
                 />
                 <motion.div
                     animate={{
@@ -60,7 +60,7 @@ const NotFound = () => {
                         repeat: Infinity,
                         ease: "linear"
                     }}
-                    className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-pink-200/30 to-purple-200/30 rounded-full blur-3xl"
+                    className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-br from-pink-200/30 to-purple-200/30 dark:from-pink-900/10 dark:to-purple-900/10 rounded-full blur-3xl"
                 />
             </div>
 
@@ -130,13 +130,13 @@ const NotFound = () => {
                     transition={{ delay: 0.3, duration: 0.5 }}
                     className="mb-12"
                 >
-                    <h2 className="text-4xl md:text-6xl font-[700] text-black mb-6">
+                    <h2 className="text-4xl md:text-6xl font-[700] text-black dark:text-white mb-6">
                         Oops! Page Not Found
                     </h2>
-                    <p className="text-xl md:text-2xl text-black/60 mb-4 max-w-2xl mx-auto">
+                    <p className="text-xl md:text-2xl text-black/60 dark:text-white/60 mb-4 max-w-2xl mx-auto">
                         Looks like this page took off its glasses and got lost!
                     </p>
-                    <p className="text-lg text-black/50 max-w-xl mx-auto">
+                    <p className="text-lg text-black/50 dark:text-white/50 max-w-xl mx-auto">
                         Don't worry, we'll help you find your way back to something spectacular.
                     </p>
                 </motion.div>
@@ -159,7 +159,7 @@ const NotFound = () => {
                     <Button
                         onClick={() => navigate(-1)}
                         variant="outline"
-                        className="border-2 border-amber-300 hover:border-amber-500 hover:bg-amber-50 px-8 py-6 rounded-2xl text-lg font-[600] transition-all"
+                        className="border-2 border-amber-300 dark:border-amber-700 hover:border-amber-500 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 text-black dark:text-white px-8 py-6 rounded-2xl text-lg font-[600] transition-all"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
                         Go Back
@@ -175,42 +175,42 @@ const NotFound = () => {
                 >
                     <motion.div
                         whileHover={{ scale: 1.05, y: -5 }}
-                        className="bg-white/80 backdrop-blur-sm border-2 border-amber-200 rounded-2xl p-6 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 cursor-pointer shadow-lg hover:shadow-xl transition-all"
                         onClick={() => navigate('/collections')}
                     >
                         <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <Eye className="w-7 h-7 text-white" />
                         </div>
-                        <h3 className="text-lg font-[700] text-black mb-2">Browse Collections</h3>
-                        <p className="text-sm text-black/60">
+                        <h3 className="text-lg font-[700] text-black dark:text-white mb-2">Browse Collections</h3>
+                        <p className="text-sm text-black/60 dark:text-white/60">
                             Explore our stunning eyewear collection
                         </p>
                     </motion.div>
 
                     <motion.div
                         whileHover={{ scale: 1.05, y: -5 }}
-                        className="bg-white/80 backdrop-blur-sm border-2 border-blue-200 rounded-2xl p-6 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-2 border-blue-200 dark:border-blue-900/50 rounded-2xl p-6 cursor-pointer shadow-lg hover:shadow-xl transition-all"
                         onClick={() => navigate('/collections')}
                     >
                         <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <Search className="w-7 h-7 text-white" />
                         </div>
-                        <h3 className="text-lg font-[700] text-black mb-2">Search Products</h3>
-                        <p className="text-sm text-black/60">
+                        <h3 className="text-lg font-[700] text-black dark:text-white mb-2">Search Products</h3>
+                        <p className="text-sm text-black/60 dark:text-white/60">
                             Find the perfect frames for you
                         </p>
                     </motion.div>
 
                     <motion.div
                         whileHover={{ scale: 1.05, y: -5 }}
-                        className="bg-white/80 backdrop-blur-sm border-2 border-green-200 rounded-2xl p-6 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-2 border-green-200 dark:border-green-900/50 rounded-2xl p-6 cursor-pointer shadow-lg hover:shadow-xl transition-all"
                         onClick={() => navigate('/cart')}
                     >
                         <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <ShoppingBag className="w-7 h-7 text-white" />
                         </div>
-                        <h3 className="text-lg font-[700] text-black mb-2">View Cart</h3>
-                        <p className="text-sm text-black/60">
+                        <h3 className="text-lg font-[700] text-black dark:text-white mb-2">View Cart</h3>
+                        <p className="text-sm text-black/60 dark:text-white/60">
                             Check out your saved items
                         </p>
                     </motion.div>
@@ -223,7 +223,7 @@ const NotFound = () => {
                     transition={{ delay: 1, duration: 0.5 }}
                     className="mt-16"
                 >
-                    <p className="text-black/40 italic">
+                    <p className="text-black/40 dark:text-white/40 italic">
                         "The only thing we didn't see coming was you ending up here!"
                     </p>
                 </motion.div>

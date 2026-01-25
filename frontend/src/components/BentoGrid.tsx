@@ -1,66 +1,38 @@
 import { motion } from 'framer-motion'
-import { Eye, Sparkles, Shield, Truck, Award, Star } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Eye, Sparkles, Shield, Truck, Award, Star, Heart } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from './ui/button'
 
-interface BentoCardProps {
+interface FeatureCardProps {
     title: string
     description: string
     icon: React.ReactNode
-    className?: string
-    gradient?: string
+    index?: number
 }
 
-const BentoCard = ({ title, description, icon, className, gradient }: BentoCardProps) => {
+const FeatureCard = ({ title, description, icon, index = 0 }: FeatureCardProps) => {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className={cn(
-                "group relative overflow-hidden rounded-3xl p-8 transition-all duration-300",
-                "bg-gradient-to-br hover:shadow-2xl hover:scale-[1.02]",
-                "ring-1 ring-white/15",
-                gradient,
-                className
-            )}
+            transition={{ duration: 0.4, delay: index * 0.1 }}
+            className="group relative bg-white dark:bg-gray-900 rounded-2xl p-6 lg:p-8 border border-amber-100 dark:border-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-xl transition-all duration-300"
         >
-            <div className="relative z-10">
-                <div className="mb-4 inline-flex items-center justify-center rounded-2xl bg-white/10 p-3 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                    <span className="block transition-transform duration-300 group-hover:-rotate-3">{icon}</span>
-                </div>
-                <h3 className="mb-2 text-2xl font-bold text-white">{title}</h3>
-                <p className="text-white/80">{description}</p>
+            {/* Icon */}
+            <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-200/50 dark:shadow-amber-900/50 group-hover:scale-110 transition-transform duration-300">
+                {icon}
             </div>
 
-            {/* Animated background effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <h3 className="text-lg font-semibold text-black dark:text-white mb-2 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+                {title}
+            </h3>
+            <p className="text-sm text-black/60 dark:text-white/60 leading-relaxed">
+                {description}
+            </p>
 
-            {/* Floating particles effect */}
-            <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                {[...Array(3)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute h-2 w-2 rounded-full bg-white/20"
-                        animate={{
-                            x: [0, 100, 0],
-                            y: [0, -100, 0],
-                            opacity: [0, 1, 0],
-                        }}
-                        transition={{
-                            duration: 3 + i,
-                            repeat: Infinity,
-                            delay: i * 0.5,
-                        }}
-                        style={{
-                            left: `${20 + i * 30}%`,
-                            top: `${50 + i * 10}%`,
-                        }}
-                    />
-                ))}
-            </div>
+            {/* Hover accent */}
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-amber-50 to-transparent dark:from-amber-900/20 rounded-tr-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </motion.div>
     )
 }
@@ -70,95 +42,80 @@ const BentoGrid = () => {
         {
             title: "Premium Quality",
             description: "Handcrafted lenses with precision engineering for ultimate clarity and comfort",
-            icon: <Award className="h-8 w-8 text-white" />,
-            gradient: "from-amber-500 to-amber-600",
-            className: "md:col-span-2 md:row-span-2"
+            icon: <Award className="h-6 w-6" />,
         },
         {
             title: "UV Protection",
             description: "100% UV protection to keep your eyes safe from harmful rays",
-            icon: <Shield className="h-8 w-8 text-white" />,
-            gradient: "from-amber-400 to-amber-600",
-            className: "md:col-span-1 md:row-span-1"
+            icon: <Shield className="h-6 w-6" />,
         },
         {
             title: "Virtual Try-On",
             description: "Experience our AI-powered virtual try-on technology",
-            icon: <Eye className="h-8 w-8 text-white" />,
-            gradient: "from-amber-500 to-amber-700",
-            className: "md:col-span-1 md:row-span-1"
+            icon: <Eye className="h-6 w-6" />,
         },
         {
             title: "Free Shipping",
-            description: "Complimentary shipping on all orders over $50",
-            icon: <Truck className="h-8 w-8 text-white" />,
-            gradient: "from-amber-500 to-amber-700",
-            className: "md:col-span-1 md:row-span-1"
+            description: "Complimentary shipping on all orders across India",
+            icon: <Truck className="h-6 w-6" />,
         },
         {
             title: "Premium Materials",
             description: "Lightweight titanium and acetate frames built to last",
-            icon: <Sparkles className="h-8 w-8 text-white" />,
-            gradient: "from-amber-400 to-amber-500",
-            className: "md:col-span-1 md:row-span-1"
+            icon: <Sparkles className="h-6 w-6" />,
         },
         {
             title: "5-Star Rated",
-            description: "Trusted by over 50,000+ satisfied customers worldwide",
-            icon: <Star className="h-8 w-8 text-white" />,
-            gradient: "from-amber-500 to-amber-700",
-            className: "md:col-span-2 md:row-span-1"
+            description: "Trusted by over 10,000+ satisfied customers",
+            icon: <Star className="h-6 w-6" />,
         },
     ]
 
     return (
-        <section className="relative overflow-hidden py-24 sm:py-32 lg:py-40 bg-gradient-to-b from-white via-amber-50/30 to-white">
-            {/* Subtle background glow */}
-            <div aria-hidden className="pointer-events-none absolute inset-0">
-                <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-amber-200/40 blur-3xl" />
-                <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-amber-300/30 blur-3xl" />
-            </div>
-            <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-amber-50/30 to-white dark:from-gray-950 dark:to-gray-900 transition-colors duration-300">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Section Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="mb-16 text-center"
+                    transition={{ duration: 0.5 }}
+                    className="text-center mb-12"
                 >
-                    <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur-sm px-4 py-2 text-xs font-semibold text-black/70 ring-1 ring-black/5">
-                        <Sparkles className="h-4 w-4 text-amber-600" />
-                        Built for comfort, designed for style
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium mb-4">
+                        <Heart className="h-4 w-4 fill-amber-600 dark:fill-amber-400" />
+                        Exclusively at VOYAR
                     </div>
-                    <h2 className="mb-4 text-4xl font-[700] text-black md:text-5xl tracking-tight">
-                        Why Choose{' '}
-                        <span className="bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">Voyar</span>
+                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black dark:text-white mb-4">
+                        Why Choose <span className="text-gradient-amber">Voyar</span>
                     </h2>
-                    <p className="mx-auto max-w-2xl text-base sm:text-lg text-black/60">
-                        Experience the perfect blend of style, comfort, and cutting-edge technology
+                    <p className="text-black/60 dark:text-white/60 max-w-2xl mx-auto">
+                        Get the perfect vision and style. Experience the difference with our premium eyewear collection.
                     </p>
                 </motion.div>
 
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:grid-rows-3">
+                {/* Feature Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-10">
                     {features.map((feature, index) => (
-                        <BentoCard key={index} {...feature} />
+                        <FeatureCard key={feature.title} {...feature} index={index} />
                     ))}
                 </div>
 
-                {/* Call to action */}
+                {/* Call to Action */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ delay: 0.5 }}
-                    className="mt-16 text-center"
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                    className="text-center"
                 >
-                    <Link to="/collections" className="inline-flex">
+                    <Link to="/collections">
                         <Button
                             size="lg"
-                            className="rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 px-8 py-6 text-base font-semibold transition-transform hover:scale-105"
+                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 dark:hover:text-white rounded-full px-8 py-6 text-base font-semibold shadow-lg shadow-amber-200/50 dark:shadow-amber-900/50 hover:shadow-amber-300/60 transition-all duration-300 hover:scale-105"
                         >
+                            <Sparkles className="mr-2 h-5 w-5" />
                             Explore Collection
-                            <Sparkles className="ml-2 h-5 w-5" />
                         </Button>
                     </Link>
                 </motion.div>
