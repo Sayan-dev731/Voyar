@@ -67,7 +67,7 @@ export default function Collections() {
         fetchProducts();
     }, []);
 
-    const categories = ['All', 'Sunglasses', 'Eyeglasses', 'Computer Glasses', 'Sports Glasses'];
+    const categories = ['All', 'Sunglasses', 'Eyeglasses', 'Computer Glasses', 'Formal Glasses'];
 
     // Handle search input change
     const handleSearchChange = (value: string) => {

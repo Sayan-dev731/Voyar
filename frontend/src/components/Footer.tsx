@@ -1,4 +1,4 @@
-import { Facebook, Twitter, Instagram, Youtube, Mail, MapPin } from 'lucide-react'
+import {  Instagram, Mail, MapPin } from 'lucide-react'
 
 export const Footer = () => {
     return (
@@ -14,30 +14,30 @@ export const Footer = () => {
                             Premium eyewear for modern living. Quality you can see, comfort you can feel.
                         </p>
                         <div className="flex space-x-3">
-                            <a
+                            {/* <a
                                 href="#"
                                 className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
                             >
                                 <Facebook className="h-4 w-4 text-amber-600" />
-                            </a>
-                            <a
+                            </a> */}
+                            {/* <a
                                 href="#"
                                 className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
                             >
                                 <Twitter className="h-4 w-4 text-amber-600" />
-                            </a>
+                            </a> */}
                             <a
-                                href="#"
+                                href="https://www.instagram.com/yourusername" // Replace 'yourusername' with your actual Instagram username
                                 className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
                             >
                                 <Instagram className="h-4 w-4 text-amber-600" />
                             </a>
-                            <a
+                            {/* <a
                                 href="#"
                                 className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center hover:bg-amber-100 hover:border-amber-400 transition-all duration-300"
                             >
                                 <Youtube className="h-4 w-4 text-amber-600" />
-                            </a>
+                            </a> */}
                         </div>
                     </div>
 
@@ -88,7 +88,7 @@ export const Footer = () => {
                             </li>
                             <li className="flex items-start">
                                 <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                                <span>Patna City-800008, Bihar, India</span>
+                                <span>Bhilai-490023, Chhattisgarh, India</span>
                             </li>
                         </ul>
                     </div>
@@ -96,7 +96,7 @@ export const Footer = () => {
 
                 {/* Bottom Bar */}
                 <div className="border-t border-amber-200/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-xs text-black/50">© 2024 Voyar. All rights reserved.</p>
+                    <p className="text-xs text-black/50">© 2025 Voyar. All rights reserved.</p>
                     <div className="flex flex-wrap justify-center gap-6">
                         <a href="#" className="text-xs text-black/50 hover:text-amber-600 transition-colors">
                             Privacy Policy

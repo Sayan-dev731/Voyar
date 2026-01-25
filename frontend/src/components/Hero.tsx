@@ -7,8 +7,8 @@ export const Hero = () => {
     const promoRightImages = useMemo(
         () => [
             '/images/DSC00834.JPG',
-            // '/images/20251013_040836.jpg',
-            // '/images/20251017_021641.jpg',
+            '/images/20251013_034812.jpg',
+            '/images/DSC00767.JPG',
         ],
         []
     )
