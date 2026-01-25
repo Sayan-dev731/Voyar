@@ -51,6 +51,7 @@ import {
 } from 'recharts'
 import type { Product } from '@/types/product'
 import { API_URL } from '@/config/api'
+import PaymentTimeline from '@/components/PaymentTimeline'
 
 interface ShiprocketData {
     orderId?: number
@@ -193,7 +194,6 @@ interface Stats {
 interface ProductFormData {
     name: string
     category: string
-    price: string
     image: string
     images: string[]
     description: string
@@ -209,15 +209,12 @@ interface ProductFormData {
         lensType: string
         uvProtection: string
     }
-    colors: { name: string; value: string; price: string; quantity: string }[]
-    stock: string
-    inStock: boolean
+    colors: { name: string; value: string; price: string; quantity: string; inStock: boolean }[]
 }
 
 const initialProductForm: ProductFormData = {
     name: '',
     category: 'Sunglasses',
-    price: '',
     image: '',
     images: [],
     description: '',
@@ -233,9 +230,7 @@ const initialProductForm: ProductFormData = {
         lensType: '',
         uvProtection: ''
     },
-    colors: [{ name: '', value: '#000000', price: '', quantity: '' }],
-    stock: '0',
-    inStock: true
+    colors: [{ name: '', value: '#000000', price: '', quantity: '0', inStock: true }]
 }
 
 // Helper function to convert Google Drive link to direct image URL
@@ -350,7 +345,6 @@ export const AdminDashboard = () => {
     // Order details modal state
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false)
-    const [refreshingRefund, setRefreshingRefund] = useState(false)
 
     // Order status update loading state
     const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null)
@@ -784,72 +778,6 @@ export const AdminDashboard = () => {
         }
     }
 
-    // Refresh refund status for selected order
-    const refreshRefundStatus = async () => {
-        if (!selectedOrder?._id) return
-
-        setRefreshingRefund(true)
-        const token = localStorage.getItem('adminToken')
-
-        try {
-            // Use the dedicated refund-status endpoint that checks Razorpay
-            const response = await fetch(`${API_URL}/payment/refund-status/${selectedOrder._id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-
-                // Update selectedOrder with latest refund data
-                setSelectedOrder({
-                    ...selectedOrder,
-                    refundStatus: data.refundStatus,
-                    refundId: data.refundId,
-                    refundAmount: data.refundAmount,
-                    refundInitiatedAt: data.refundInitiatedAt,
-                    refundCompletedAt: data.refundCompletedAt,
-                    refundNotes: data.message || selectedOrder.refundNotes,
-                    paymentStatus: data.refundStatus === 'completed' ? 'refunded' : selectedOrder.paymentStatus
-                })
-
-                // Update orders list
-                setOrders(orders.map(order =>
-                    order._id === selectedOrder._id
-                        ? {
-                            ...order,
-                            refundStatus: data.refundStatus,
-                            refundId: data.refundId,
-                            refundAmount: data.refundAmount,
-                            refundInitiatedAt: data.refundInitiatedAt,
-                            refundCompletedAt: data.refundCompletedAt,
-                            refundNotes: data.message || order.refundNotes,
-                            paymentStatus: data.refundStatus === 'completed' ? 'refunded' : order.paymentStatus
-                        }
-                        : order
-                ))
-
-                // Show toast based on Razorpay status
-                if (data.refundStatus === 'completed') {
-                    showToast('Refund completed! Amount will be credited to customer\'s bank within 5-7 working days.', 'success')
-                } else if (data.refundStatus === 'processing') {
-                    showToast(`Refund is still processing. Razorpay Status: ${data.razorpayStatus || 'processing'}`, 'info')
-                } else if (data.refundStatus === 'failed') {
-                    showToast('Refund failed. Please check Razorpay dashboard.', 'error')
-                } else {
-                    showToast('Refund status updated', 'success')
-                }
-            } else {
-                const errorData = await response.json()
-                showToast(errorData.message || 'Failed to fetch refund status', 'error')
-            }
-        } catch (error) {
-            console.error('Failed to refresh refund status:', error)
-            showToast('Failed to refresh refund status. Check console.', 'error')
-        } finally {
-            setRefreshingRefund(false)
-        }
-    }
-
     // ==================== Shiprocket Shipment Management ====================
 
     // Quick Ship - Create shipment, assign courier, and schedule pickup in one click
@@ -1263,7 +1191,6 @@ export const AdminDashboard = () => {
         setProductForm({
             name: product.name || '',
             category: product.category || 'Sunglasses',
-            price: String(product.price || ''),
             image: product.image || '',
             images: product.images || [],
             description: product.description || '',
@@ -1283,10 +1210,9 @@ export const AdminDashboard = () => {
                 name: c.name || '',
                 value: c.value || '#000000',
                 price: String(c.price || product.price || ''),
-                quantity: String(c.quantity || '0')
-            })) : [{ name: '', value: '#000000', price: String(product.price || ''), quantity: '0' }],
-            stock: String(product.stock || '0'),
-            inStock: product.inStock !== false
+                quantity: String(c.quantity || '0'),
+                inStock: c.inStock !== false && (c.quantity || 0) > 0
+            })) : [{ name: '', value: '#000000', price: String(product.price || ''), quantity: '0', inStock: false }]
         })
         setFormError('')
         setFormSuccess('')
@@ -1341,9 +1267,11 @@ export const AdminDashboard = () => {
     }
 
     const handleAddColor = () => {
+        // Get the first color's price as default, or empty
+        const defaultPrice = productForm.colors.length > 0 && productForm.colors[0].price ? productForm.colors[0].price : ''
         setProductForm(prev => ({
             ...prev,
-            colors: [...prev.colors, { name: '', value: '#000000', price: prev.price, quantity: '0' }]
+            colors: [...prev.colors, { name: '', value: '#000000', price: defaultPrice, quantity: '0', inStock: false }]
         }))
     }
 
@@ -1354,10 +1282,18 @@ export const AdminDashboard = () => {
         }))
     }
 
-    const handleColorChange = (index: number, field: 'name' | 'value' | 'price' | 'quantity', value: string) => {
+    const handleColorChange = (index: number, field: 'name' | 'value' | 'price' | 'quantity' | 'inStock', value: string | boolean) => {
         setProductForm(prev => ({
             ...prev,
-            colors: prev.colors.map((c, i) => i === index ? { ...c, [field]: value } : c)
+            colors: prev.colors.map((c, i) => {
+                if (i !== index) return c
+                // Auto-update inStock based on quantity
+                if (field === 'quantity') {
+                    const qty = Number(value) || 0
+                    return { ...c, quantity: value as string, inStock: qty > 0 }
+                }
+                return { ...c, [field]: value }
+            })
         }))
     }
 
@@ -1376,9 +1312,18 @@ export const AdminDashboard = () => {
         if (!productForm.category) {
             errors.category = 'Category is required'
         }
-        if (!productForm.price || isNaN(Number(productForm.price)) || Number(productForm.price) <= 0) {
-            errors.price = 'Valid price is required (must be greater than 0)'
+
+        // Validate color variants - at least one color with name and price required
+        const validColors = productForm.colors.filter(c => c.name.trim())
+        if (validColors.length === 0) {
+            errors.colors = 'At least one color variant with name is required'
+        } else {
+            const hasValidPrice = validColors.some(c => c.price && Number(c.price) > 0)
+            if (!hasValidPrice) {
+                errors.colors = 'At least one color variant must have a valid price (greater than 0)'
+            }
         }
+
         if (!productForm.image.trim()) {
             errors.image = 'Main product image URL is required'
         }
@@ -1403,25 +1348,38 @@ export const AdminDashboard = () => {
         setSaving(true)
         const token = localStorage.getItem('adminToken')
 
+        // Prepare color variants with proper data
+        const colorVariants = productForm.colors.filter(c => c.name.trim()).map(c => ({
+            name: c.name.trim(),
+            value: c.value,
+            price: Number(c.price) || 0,
+            quantity: Number(c.quantity) || 0,
+            inStock: c.inStock
+        }))
+
+        // Calculate base price as the minimum price from colors (or first color's price)
+        const basePrice = Math.min(...colorVariants.filter(c => c.price > 0).map(c => c.price)) || colorVariants[0]?.price || 0
+
+        // Calculate total stock from all color variants
+        const totalStock = colorVariants.reduce((sum, c) => sum + c.quantity, 0)
+
+        // Product is in stock if any color variant has quantity > 0
+        const isInStock = colorVariants.some(c => c.quantity > 0)
+
         // Prepare data
         const productData = {
             name: productForm.name.trim(),
             category: productForm.category,
-            price: Number(productForm.price),
+            price: basePrice,
             image: convertGoogleDriveLink(productForm.image.trim()),
             images: productForm.images.filter(img => img.trim()),
             description: productForm.description.trim(),
             detailedDescription: productForm.detailedDescription.trim(),
             features: productForm.features.filter(f => f.trim()),
             specifications: productForm.specifications,
-            colors: productForm.colors.filter(c => c.name.trim()).map(c => ({
-                name: c.name.trim(),
-                value: c.value,
-                price: Number(c.price) || Number(productForm.price),
-                quantity: Number(c.quantity) || 0
-            })),
-            stock: Number(productForm.stock) || 0,
-            inStock: productForm.inStock
+            colors: colorVariants,
+            stock: totalStock,
+            inStock: isInStock
         }
 
         try {
@@ -4638,63 +4596,6 @@ export const AdminDashboard = () => {
                                                     <option value="Sports Glasses">Sports Glasses</option>
                                                 </select>
                                             </div>
-                                            <div data-field="price">
-                                                <label
-                                                    className="block text-sm font-medium text-[#525252] mb-2"
-                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
-                                                >
-                                                    Base Price (₹) *
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={productForm.price}
-                                                    onChange={(e) => {
-                                                        setProductForm(prev => ({ ...prev, price: e.target.value }))
-                                                        if (fieldErrors.price) setFieldErrors(prev => ({ ...prev, price: '' }))
-                                                    }}
-                                                    className={`w-full px-4 py-3 bg-[#faf9f7] border rounded-xl focus:outline-none focus:border-[#c9a227] focus:bg-white transition-all text-[#0d0d0d] ${fieldErrors.price ? 'border-red-500 bg-red-50' : 'border-[rgba(0,0,0,0.08)]'}`}
-                                                    style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
-                                                    placeholder="0.00"
-                                                />
-                                                {fieldErrors.price && <p className="text-red-500 text-xs mt-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{fieldErrors.price}</p>}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-6">
-                                            <label
-                                                className="flex items-center gap-2 cursor-pointer"
-                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={productForm.inStock}
-                                                    onChange={(e) => setProductForm(prev => ({ ...prev, inStock: e.target.checked }))}
-                                                    className="w-4 h-4 accent-[#c9a227] rounded"
-                                                />
-                                                <span className="text-sm font-medium text-[#525252]">In Stock</span>
-                                            </label>
-                                            <div className="flex items-center gap-2">
-                                                <label
-                                                    className="text-sm font-medium text-[#525252]"
-                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
-                                                >
-                                                    Stock Qty:
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={productForm.stock}
-                                                    onChange={(e) => setProductForm(prev => ({
-                                                        ...prev,
-                                                        stock: e.target.value,
-                                                        inStock: Number(e.target.value) > 0
-                                                    }))}
-                                                    className="w-24 px-3 py-2 bg-[#faf9f7] border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-[#0d0d0d]"
-                                                    style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
-                                                    placeholder="0"
-                                                />
-                                            </div>
                                         </div>
 
                                         <div data-field="description">
@@ -4788,14 +4689,19 @@ export const AdminDashboard = () => {
                                     </div>
 
                                     {/* Colors */}
-                                    <div className="space-y-3">
+                                    <div className="space-y-3" data-field="colors">
                                         <div className="flex items-center justify-between">
-                                            <h3
-                                                className="font-medium text-[#0d0d0d]"
-                                                style={{ fontFamily: 'DM Sans, sans-serif' }}
-                                            >
-                                                Color Variants (Price & Quantity per Color)
-                                            </h3>
+                                            <div>
+                                                <h3
+                                                    className="font-medium text-[#0d0d0d]"
+                                                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                >
+                                                    Color Variants (Price & Stock per Color) *
+                                                </h3>
+                                                <p className="text-xs text-[#8a8a8a] mt-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                    Set price and stock for each color. Base price & total stock will be calculated automatically.
+                                                </p>
+                                            </div>
                                             <button
                                                 type="button"
                                                 onClick={handleAddColor}
@@ -4803,13 +4709,14 @@ export const AdminDashboard = () => {
                                                 style={{ fontFamily: 'DM Sans, sans-serif' }}
                                             >
                                                 <Plus className="h-3 w-3" />
-                                                Add
+                                                Add Color
                                             </button>
                                         </div>
+                                        {fieldErrors.colors && <p className="text-red-500 text-xs" style={{ fontFamily: 'DM Sans, sans-serif' }}>{fieldErrors.colors}</p>}
                                         {productForm.colors.map((color, index) => (
                                             <div
                                                 key={index}
-                                                className="p-4 rounded-xl space-y-3"
+                                                className={`p-4 rounded-xl space-y-3 ${color.inStock ? 'ring-1 ring-green-300' : ''}`}
                                                 style={{ background: '#faf9f7', border: '1px solid rgba(0,0,0,0.06)' }}
                                             >
                                                 <div className="flex gap-2 items-center">
@@ -4819,31 +4726,33 @@ export const AdminDashboard = () => {
                                                         onChange={(e) => handleColorChange(index, 'name', e.target.value)}
                                                         className="flex-1 px-4 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-[#0d0d0d]"
                                                         style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
-                                                        placeholder="Color name"
+                                                        placeholder="Color name (e.g., Matte Black)"
                                                     />
                                                     <input
                                                         type="color"
                                                         value={color.value}
                                                         onChange={(e) => handleColorChange(index, 'value', e.target.value)}
                                                         className="w-10 h-10 border border-[rgba(0,0,0,0.08)] rounded-xl cursor-pointer"
+                                                        title="Pick color"
                                                     />
                                                     {productForm.colors.length > 1 && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemoveColor(index)}
                                                             className="px-3 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-all"
+                                                            title="Remove color"
                                                         >
                                                             <X className="h-4 w-4" />
                                                         </button>
                                                     )}
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-2">
+                                                <div className="grid grid-cols-3 gap-2">
                                                     <div>
                                                         <label
                                                             className="block text-xs text-[#525252] mb-1"
                                                             style={{ fontFamily: 'DM Sans, sans-serif' }}
                                                         >
-                                                            Price (₹)
+                                                            Price (₹) *
                                                         </label>
                                                         <input
                                                             type="number"
@@ -4853,7 +4762,7 @@ export const AdminDashboard = () => {
                                                             onChange={(e) => handleColorChange(index, 'price', e.target.value)}
                                                             className="w-full px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-sm text-[#0d0d0d]"
                                                             style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
-                                                            placeholder="Price for this color"
+                                                            placeholder="0.00"
                                                         />
                                                     </div>
                                                     <div>
@@ -4861,7 +4770,7 @@ export const AdminDashboard = () => {
                                                             className="block text-xs text-[#525252] mb-1"
                                                             style={{ fontFamily: 'DM Sans, sans-serif' }}
                                                         >
-                                                            Quantity
+                                                            Stock Quantity
                                                         </label>
                                                         <input
                                                             type="number"
@@ -4870,12 +4779,44 @@ export const AdminDashboard = () => {
                                                             onChange={(e) => handleColorChange(index, 'quantity', e.target.value)}
                                                             className="w-full px-3 py-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl focus:outline-none focus:border-[#c9a227] text-sm text-[#0d0d0d]"
                                                             style={{ fontFamily: 'DM Sans, sans-serif', color: '#0d0d0d' }}
-                                                            placeholder="Stock quantity"
+                                                            placeholder="0"
                                                         />
+                                                    </div>
+                                                    <div className="flex items-end pb-1">
+                                                        <label
+                                                            className="flex items-center gap-2 cursor-pointer"
+                                                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={color.inStock}
+                                                                onChange={(e) => handleColorChange(index, 'inStock', e.target.checked)}
+                                                                className="w-4 h-4 accent-[#c9a227] rounded"
+                                                            />
+                                                            <span className={`text-xs font-medium ${color.inStock ? 'text-green-600' : 'text-[#8a8a8a]'}`}>
+                                                                {color.inStock ? 'In Stock' : 'Out of Stock'}
+                                                            </span>
+                                                        </label>
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
+                                        {/* Summary of all colors */}
+                                        {productForm.colors.filter(c => c.name.trim()).length > 0 && (
+                                            <div className="p-3 rounded-lg bg-[#f5f5f5] border border-[rgba(0,0,0,0.04)]">
+                                                <div className="flex justify-between text-xs" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                                    <span className="text-[#8a8a8a]">
+                                                        Total Colors: <span className="text-[#0d0d0d] font-medium">{productForm.colors.filter(c => c.name.trim()).length}</span>
+                                                    </span>
+                                                    <span className="text-[#8a8a8a]">
+                                                        Total Stock: <span className="text-[#0d0d0d] font-medium">{productForm.colors.reduce((sum, c) => sum + (Number(c.quantity) || 0), 0)}</span>
+                                                    </span>
+                                                    <span className="text-[#8a8a8a]">
+                                                        Min Price: <span className="text-[#0d0d0d] font-medium">₹{Math.min(...productForm.colors.filter(c => c.price && Number(c.price) > 0).map(c => Number(c.price))) || 0}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -6006,19 +5947,6 @@ export const AdminDashboard = () => {
                                                 <RefreshCw className="h-4 w-4 text-[#3b82f6]" />
                                                 Refund Details
                                             </h4>
-                                            {selectedOrder.refundStatus === 'processing' && (
-                                                <button
-                                                    onClick={refreshRefundStatus}
-                                                    disabled={refreshingRefund}
-                                                    className="flex items-center gap-1 px-2 py-1 text-xs text-[#3b82f6] hover:bg-[rgba(59,130,246,0.1)] rounded-lg transition-colors disabled:opacity-50"
-                                                    title="Refresh refund status from Razorpay"
-                                                >
-                                                    <RefreshCw
-                                                        className={`h-3 w-3 ${refreshingRefund ? 'animate-spin' : ''}`}
-                                                    />
-                                                    {refreshingRefund ? 'Checking...' : 'Refresh Status'}
-                                                </button>
-                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between">
@@ -6087,6 +6015,36 @@ export const AdminDashboard = () => {
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Payment Timeline Section - For Razorpay orders */}
+                                {selectedOrder.paymentMethod === 'razorpay' && selectedOrder.paymentStatus !== 'pending' && (
+                                    <div className="mt-6">
+                                        <h3 className="mb-4" style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, color: '#0d0d0d', fontSize: '1.125rem' }}>
+                                            Payment Timeline
+                                        </h3>
+                                        <PaymentTimeline
+                                            orderId={selectedOrder._id}
+                                            token={localStorage.getItem('adminToken') || ''}
+                                            paymentStatus={selectedOrder.paymentStatus || 'pending'}
+                                            refundStatus={selectedOrder.refundStatus}
+                                            onStatusUpdate={(newRefundStatus, newPaymentStatus) => {
+                                                // Update local selected order and orders list when timeline syncs
+                                                setSelectedOrder(prev => prev ? {
+                                                    ...prev,
+                                                    refundStatus: newRefundStatus as Order['refundStatus'],
+                                                    paymentStatus: newPaymentStatus as Order['paymentStatus']
+                                                } : null);
+                                                setOrders(prevOrders =>
+                                                    prevOrders.map(o =>
+                                                        o._id === selectedOrder._id
+                                                            ? { ...o, refundStatus: newRefundStatus as Order['refundStatus'], paymentStatus: newPaymentStatus as Order['paymentStatus'] }
+                                                            : o
+                                                    )
+                                                );
+                                            }}
+                                        />
                                     </div>
                                 )}
 

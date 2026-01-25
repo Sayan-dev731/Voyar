@@ -185,6 +185,39 @@ const orderSchema = new mongoose.Schema({
         reason: String,
         speed: String
     }],
+    // Detailed payment timeline for customer-facing display (like Razorpay dashboard)
+    paymentTimeline: [{
+        event: {
+            type: String,
+            enum: ['payment_created', 'payment_authorized', 'payment_captured', 'payment_failed',
+                'settlement_processed', 'refund_created', 'refund_processed', 'refund_failed'],
+            required: true
+        },
+        title: String,
+        description: String,
+        timestamp: Date,
+        completed: {
+            type: Boolean,
+            default: false
+        },
+        // Additional details
+        details: {
+            paymentId: String,
+            refundId: String,
+            settlementId: String,
+            amount: Number,
+            netAmount: Number,
+            method: String,
+            bank: String,
+            vpa: String,
+            wallet: String,
+            cardLast4: String,
+            utr: String,
+            arn: String,
+            errorCode: String,
+            errorDescription: String
+        }
+    }],
     // Shiprocket shipment tracking fields
     shiprocket: {
         orderId: {

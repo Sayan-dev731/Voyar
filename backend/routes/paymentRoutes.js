@@ -6,9 +6,10 @@ import {
     getOrderByToken,
     razorpayWebhook,
     createCODOrder,
-    getRefundStatus
+    getRefundStatus,
+    getPaymentTimeline
 } from '../controllers/paymentController.js';
-import { protect, authMiddleware } from '../middleware/auth.js';
+import { protect, authMiddleware, protectOrAdmin } from '../middleware/auth.js';
 
 // Security imports
 import { paymentLimiter } from '../middleware/rateLimiter.js';
@@ -100,8 +101,15 @@ router.post('/cod',
 /**
  * @route   GET /api/payment/refund-status/:orderId
  * @desc    Get refund status for an order
- * @access  Private (Admin)
+ * @access  Private (User or Admin)
  */
-router.get('/refund-status/:orderId', authMiddleware, getRefundStatus);
+router.get('/refund-status/:orderId', protectOrAdmin, getRefundStatus);
+
+/**
+ * @route   GET /api/payment/timeline/:orderId
+ * @desc    Get payment timeline for an order (Razorpay dashboard style)
+ * @access  Private (User or Admin)
+ */
+router.get('/timeline/:orderId', protectOrAdmin, getPaymentTimeline);
 
 export default router;

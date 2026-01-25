@@ -58,14 +58,16 @@ export const createOrder = async (req, res) => {
                 // Reduce color variant quantity
                 const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
                 if (colorIndex !== -1) {
-                    product.colors[colorIndex].quantity -= item.quantity;
+                    product.colors[colorIndex].quantity = Math.max(0, product.colors[colorIndex].quantity - item.quantity);
+                    product.colors[colorIndex].inStock = product.colors[colorIndex].quantity > 0;
                 }
                 // Update inStock based on all color variants
                 const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                product.stock = totalColorStock;
                 product.inStock = totalColorStock > 0;
             } else {
                 // Reduce main stock
-                product.stock -= item.quantity;
+                product.stock = Math.max(0, product.stock - item.quantity);
                 product.inStock = product.stock > 0;
             }
 
@@ -177,12 +179,14 @@ export const updateOrderStatus = async (req, res) => {
                     const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
                     if (colorIndex !== -1) {
                         product.colors[colorIndex].quantity += item.quantity;
+                        product.colors[colorIndex].inStock = product.colors[colorIndex].quantity > 0;
                     }
                     const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                    product.stock = totalColorStock;
                     product.inStock = totalColorStock > 0;
                 } else {
                     product.stock += item.quantity;
-                    product.inStock = true;
+                    product.inStock = product.stock > 0;
                 }
                 await product.save();
             }
@@ -413,12 +417,14 @@ export const cancelOrder = async (req, res) => {
                     const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
                     if (colorIndex !== -1) {
                         product.colors[colorIndex].quantity += item.quantity;
+                        product.colors[colorIndex].inStock = product.colors[colorIndex].quantity > 0;
                     }
                     const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                    product.stock = totalColorStock;
                     product.inStock = totalColorStock > 0;
                 } else {
                     product.stock += item.quantity;
-                    product.inStock = true;
+                    product.inStock = product.stock > 0;
                 }
                 await product.save();
             }

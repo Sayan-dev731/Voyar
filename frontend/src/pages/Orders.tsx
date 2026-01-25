@@ -14,7 +14,6 @@ import {
     ShoppingBag,
     Trash2,
     Ban,
-    RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/config/api';
 import { ConfirmationModal, Toast } from '@/components/ui/ConfirmationModal';
 import ShipmentTracker from '@/components/ShipmentTracker';
+import PaymentTimeline from '@/components/PaymentTimeline';
 
 interface TrackingActivity {
     date: string;
@@ -59,10 +59,12 @@ interface Order {
     paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
     paymentMethod: string;
     paymentId?: string;
+    razorpayPaymentId?: string;
     refundStatus?: 'not_applicable' | 'pending' | 'processing' | 'completed' | 'failed';
     refundId?: string;
     refundAmount?: number;
     refundInitiatedAt?: string;
+    refundCompletedAt?: string;
     refundNotes?: string;
     shiprocket?: ShiprocketData;
     shippingAddress: {
@@ -163,7 +165,6 @@ export default function Orders() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-    const [refreshingRefund, setRefreshingRefund] = useState<string | null>(null);
 
     // Modal states
     const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; orderId: string | null }>({
@@ -230,65 +231,6 @@ export default function Orders() {
 
     const toggleOrderExpand = (orderId: string) => {
         setExpandedOrder(expandedOrder === orderId ? null : orderId);
-    };
-
-    // Refresh refund status for a specific order
-    const refreshRefundStatus = async (orderId: string) => {
-        setRefreshingRefund(orderId);
-        try {
-            // Use the dedicated refund-status endpoint that checks Razorpay
-            const response = await fetch(`${API_URL}/payment/refund-status/${orderId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await response.json();
-            if (response.ok) {
-                // Update the specific order in state
-                setOrders(orders.map(order =>
-                    order._id === orderId
-                        ? {
-                            ...order,
-                            refundStatus: data.refundStatus,
-                            refundId: data.refundId,
-                            refundAmount: data.refundAmount,
-                            refundInitiatedAt: data.refundInitiatedAt,
-                            refundCompletedAt: data.refundCompletedAt,
-                            refundNotes: data.message,
-                            paymentStatus: data.refundStatus === 'completed' ? 'refunded' : order.paymentStatus
-                        }
-                        : order
-                ));
-
-                // Show toast if status changed
-                if (data.refundStatus === 'completed') {
-                    setToast({
-                        isOpen: true,
-                        message: 'Refund completed! The amount will be credited to your bank account within 5-7 working days.',
-                        type: 'success'
-                    });
-                } else if (data.refundStatus === 'processing') {
-                    setToast({
-                        isOpen: true,
-                        message: `Refund is still processing. Razorpay status: ${data.razorpayStatus || 'processing'}`,
-                        type: 'success'
-                    });
-                }
-            } else {
-                setToast({
-                    isOpen: true,
-                    message: data.message || 'Failed to fetch refund status',
-                    type: 'error'
-                });
-            }
-        } catch (error) {
-            console.error('Failed to refresh refund status:', error);
-            setToast({
-                isOpen: true,
-                message: 'Failed to refresh refund status',
-                type: 'error'
-            });
-        } finally {
-            setRefreshingRefund(null);
-        }
     };
 
     // Cancel order handler
@@ -666,19 +608,6 @@ export default function Orders() {
                                                         <div className="border-t border-amber-100 dark:border-amber-900/30 pt-3 mt-3">
                                                             <div className="flex items-center justify-between mb-2">
                                                                 <h4 className="text-sm font-semibold text-black dark:text-white">Refund Information</h4>
-                                                                {order.refundStatus === 'processing' && (
-                                                                    <button
-                                                                        onClick={() => refreshRefundStatus(order._id)}
-                                                                        disabled={refreshingRefund === order._id}
-                                                                        className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 disabled:opacity-50"
-                                                                        title="Refresh refund status"
-                                                                    >
-                                                                        <RefreshCw
-                                                                            className={`h-3 w-3 ${refreshingRefund === order._id ? 'animate-spin' : ''}`}
-                                                                        />
-                                                                        Refresh
-                                                                    </button>
-                                                                )}
                                                             </div>
                                                             <div className="space-y-2">
                                                                 <div className="flex justify-between">
@@ -806,6 +735,28 @@ export default function Orders() {
                                                     token={token || ''}
                                                     initialShiprocket={order.shiprocket}
                                                     orderStatus={order.status}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Payment Timeline - Show for Razorpay orders */}
+                                        {order.paymentMethod === 'razorpay' && order.paymentStatus !== 'pending' && (
+                                            <div className="p-4 sm:p-6 border-t border-amber-200/60 dark:border-amber-900/30">
+                                                <PaymentTimeline
+                                                    orderId={order._id}
+                                                    token={token || ''}
+                                                    paymentStatus={order.paymentStatus}
+                                                    refundStatus={order.refundStatus}
+                                                    onStatusUpdate={(newRefundStatus, newPaymentStatus) => {
+                                                        // Update local order state when timeline syncs with Razorpay API
+                                                        setOrders(prevOrders =>
+                                                            prevOrders.map(o =>
+                                                                o._id === order._id
+                                                                    ? { ...o, refundStatus: newRefundStatus as Order['refundStatus'], paymentStatus: newPaymentStatus as Order['paymentStatus'] }
+                                                                    : o
+                                                            )
+                                                        );
+                                                    }}
                                                 />
                                             </div>
                                         )}

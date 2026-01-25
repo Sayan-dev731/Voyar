@@ -577,9 +577,32 @@ export const addToCart = async (req, res) => {
         let availableStock = 0;
         if (selectedColor && product.colors && product.colors.length > 0) {
             const colorVariant = product.colors.find(c => c.name === selectedColor);
-            availableStock = colorVariant ? colorVariant.quantity : 0;
+            if (colorVariant) {
+                availableStock = colorVariant.quantity || 0;
+                // Check if this specific color variant is in stock
+                if ((colorVariant.inStock === false) || availableStock === 0) {
+                    return res.status(400).json({
+                        message: `Selected color "${selectedColor}" is out of stock.`,
+                        insufficientStock: true,
+                        availableStock: 0
+                    });
+                }
+            } else {
+                return res.status(400).json({
+                    message: `Selected color "${selectedColor}" not found.`,
+                    invalidColor: true
+                });
+            }
         } else {
+            // Fallback to product-level stock if no colors
             availableStock = product.stock || 0;
+            if (!product.inStock || availableStock === 0) {
+                return res.status(400).json({
+                    message: 'Product is out of stock.',
+                    insufficientStock: true,
+                    availableStock: 0
+                });
+            }
         }
 
         // Check if product already exists in cart

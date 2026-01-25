@@ -3,6 +3,7 @@ export interface ColorVariant {
     value: string
     price: number
     quantity: number
+    inStock?: boolean
 }
 
 export interface Product {

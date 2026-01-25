@@ -23,6 +23,29 @@ const getRazorpayInstance = () => {
     return razorpay;
 };
 
+// Helper function to add timeline event
+const addTimelineEvent = (order, eventType, title, description, details = {}, completed = true) => {
+    order.paymentTimeline = order.paymentTimeline || [];
+
+    // Check if event already exists (avoid duplicates)
+    const existingEvent = order.paymentTimeline.find(e =>
+        e.event === eventType &&
+        e.details?.paymentId === details.paymentId &&
+        e.details?.refundId === details.refundId
+    );
+
+    if (!existingEvent) {
+        order.paymentTimeline.push({
+            event: eventType,
+            title,
+            description,
+            timestamp: new Date(),
+            completed,
+            details
+        });
+    }
+};
+
 // Generate payment token
 const generatePaymentToken = () => {
     return crypto.randomBytes(32).toString('hex');
@@ -169,12 +192,14 @@ export const verifyPayment = async (req, res) => {
             if (item.selectedColor && product.colors && product.colors.length > 0) {
                 const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
                 if (colorIndex !== -1) {
-                    product.colors[colorIndex].quantity -= item.quantity;
+                    product.colors[colorIndex].quantity = Math.max(0, product.colors[colorIndex].quantity - item.quantity);
+                    product.colors[colorIndex].inStock = product.colors[colorIndex].quantity > 0;
                 }
                 const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                product.stock = totalColorStock;
                 product.inStock = totalColorStock > 0;
             } else {
-                product.stock -= item.quantity;
+                product.stock = Math.max(0, product.stock - item.quantity);
                 product.inStock = product.stock > 0;
             }
 
@@ -377,6 +402,24 @@ export const razorpayWebhook = async (req, res) => {
                         paymentId: payment.id,
                         amount: payment.amount / 100
                     });
+
+                    // Add to payment timeline - Payment Created
+                    addTimelineEvent(order, 'payment_created', 'Payment created', null, {
+                        paymentId: payment.id,
+                        amount: payment.amount / 100,
+                        method: payment.method,
+                        bank: payment.bank,
+                        vpa: payment.vpa,
+                        wallet: payment.wallet,
+                        cardLast4: payment.card?.last4
+                    });
+
+                    // Add to payment timeline - Payment Authorized
+                    addTimelineEvent(order, 'payment_authorized', 'Payment authorized', null, {
+                        paymentId: payment.id,
+                        amount: payment.amount / 100
+                    });
+
                     await order.save();
                     console.log(`[Webhook] Order ${order._id} - Payment authorized`);
                 }
@@ -401,6 +444,29 @@ export const razorpayWebhook = async (req, res) => {
                         paymentId: payment.id,
                         amount: payment.amount / 100
                     });
+
+                    // Add timeline events if not already present (in case authorized was missed)
+                    addTimelineEvent(order, 'payment_created', 'Payment created', null, {
+                        paymentId: payment.id,
+                        amount: payment.amount / 100,
+                        method: payment.method,
+                        bank: payment.bank,
+                        vpa: payment.vpa,
+                        wallet: payment.wallet,
+                        cardLast4: payment.card?.last4
+                    });
+
+                    addTimelineEvent(order, 'payment_authorized', 'Payment authorized', null, {
+                        paymentId: payment.id,
+                        amount: payment.amount / 100
+                    });
+
+                    // Add payment captured event
+                    addTimelineEvent(order, 'payment_captured', 'Payment captured', null, {
+                        paymentId: payment.id,
+                        amount: payment.amount / 100
+                    });
+
                     await order.save();
 
                     console.log(`[Webhook] Order ${order._id} - Payment captured, Amount: ₹${payment.amount / 100}`);
@@ -414,12 +480,14 @@ export const razorpayWebhook = async (req, res) => {
                             if (item.selectedColor && product.colors && product.colors.length > 0) {
                                 const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
                                 if (colorIndex !== -1) {
-                                    product.colors[colorIndex].quantity -= item.quantity;
+                                    product.colors[colorIndex].quantity = Math.max(0, product.colors[colorIndex].quantity - item.quantity);
+                                    product.colors[colorIndex].inStock = product.colors[colorIndex].quantity > 0;
                                 }
                                 const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                                product.stock = totalColorStock;
                                 product.inStock = totalColorStock > 0;
                             } else {
-                                product.stock -= item.quantity;
+                                product.stock = Math.max(0, product.stock - item.quantity);
                                 product.inStock = product.stock > 0;
                             }
                             await product.save();
@@ -464,6 +532,15 @@ export const razorpayWebhook = async (req, res) => {
                         errorDescription: payment.error_description
                     });
                     order.notes = `Payment failed: ${payment.error_description || payment.error_code || 'Unknown error'}`;
+
+                    // Add failed event to timeline
+                    addTimelineEvent(order, 'payment_failed', 'Payment failed',
+                        payment.error_description || payment.error_code || 'Payment could not be processed', {
+                        paymentId: payment.id,
+                        errorCode: payment.error_code,
+                        errorDescription: payment.error_description
+                    });
+
                     await order.save();
 
                     console.log(`[Webhook] Order ${order._id} - Payment failed: ${payment.error_description}`);
@@ -633,6 +710,14 @@ export const razorpayWebhook = async (req, res) => {
                         amount: refund.amount / 100,
                         speed: refund.speed_requested
                     });
+
+                    // Add to payment timeline
+                    addTimelineEvent(order, 'refund_created', 'Refund initiated',
+                        `Refund of ₹${refund.amount / 100} has been initiated`, {
+                        refundId: refund.id,
+                        amount: refund.amount / 100
+                    }, false); // Not completed yet
+
                     await order.save();
 
                     console.log(`[Webhook] Order ${order._id} - Refund created: ₹${refund.amount / 100}`);
@@ -661,6 +746,21 @@ export const razorpayWebhook = async (req, res) => {
                         amount: refund.amount / 100,
                         speed: refund.speed_processed
                     });
+
+                    // Add to payment timeline - Refund Processed
+                    addTimelineEvent(order, 'refund_processed', 'Refund',
+                        `Amount: ₹${refund.amount / 100}`, {
+                        refundId: refund.id,
+                        amount: refund.amount / 100,
+                        arn: refund.acquirer_data?.arn
+                    });
+
+                    // Mark refund_created as completed if it exists
+                    const createdEvent = order.paymentTimeline?.find(e => e.event === 'refund_created');
+                    if (createdEvent) {
+                        createdEvent.completed = true;
+                    }
+
                     await order.save();
                     console.log(`[Webhook] Order ${order._id} - Refund processed successfully: ₹${refund.amount / 100}`);
                 }
@@ -685,6 +785,13 @@ export const razorpayWebhook = async (req, res) => {
                         reason: failureReason
                     });
                     order.adminNotes = (order.adminNotes || '') + `\n❌ Refund ${refund.id} failed on ${new Date().toISOString()}: ${failureReason}`;
+
+                    // Add to payment timeline
+                    addTimelineEvent(order, 'refund_failed', 'Refund failed', failureReason, {
+                        refundId: refund.id,
+                        errorDescription: failureReason
+                    });
+
                     await order.save();
 
                     console.log(`[Webhook] Order ${order._id} - Refund failed: ${failureReason}`);
@@ -794,8 +901,12 @@ export const razorpayWebhook = async (req, res) => {
             // =====================================================
 
             case 'settlement.processed': {
-                console.log(`[Webhook] Settlement processed: ${payload.settlement?.entity?.id}`);
-                // Settlement events are for bank transfers to your account
+                const settlement = payload.settlement?.entity;
+                console.log(`[Webhook] Settlement processed: ${settlement?.id}`);
+
+                // Settlement events are for bank transfers - we don't link them to orders
+                // as they're merchant-level, but we log for reference
+                // In a more complex system, you could track this per-payment
                 break;
             }
 
@@ -888,12 +999,14 @@ export const createCODOrder = async (req, res) => {
             if (item.selectedColor && product.colors && product.colors.length > 0) {
                 const colorIndex = product.colors.findIndex(c => c.name === item.selectedColor);
                 if (colorIndex !== -1) {
-                    product.colors[colorIndex].quantity -= item.quantity;
+                    product.colors[colorIndex].quantity = Math.max(0, product.colors[colorIndex].quantity - item.quantity);
+                    product.colors[colorIndex].inStock = product.colors[colorIndex].quantity > 0;
                 }
                 const totalColorStock = product.colors.reduce((sum, c) => sum + c.quantity, 0);
+                product.stock = totalColorStock;
                 product.inStock = totalColorStock > 0;
             } else {
-                product.stock -= item.quantity;
+                product.stock = Math.max(0, product.stock - item.quantity);
                 product.inStock = product.stock > 0;
             }
             await product.save();
@@ -1014,8 +1127,7 @@ export const initiateRefund = async (order) => {
     }
 };
 
-// Get refund status - READ ONLY, does not update database
-// Database updates should happen ONLY via webhooks
+// Get refund status - returns stored data from webhooks
 export const getRefundStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -1033,49 +1145,175 @@ export const getRefundStatus = async (req, res) => {
             });
         }
 
-        // Fetch latest refund status from Razorpay
-        const razorpayInstance = getRazorpayInstance();
-        const refund = await razorpayInstance.refunds.fetch(order.refundId);
-
-        // Map Razorpay status to our display status
-        // Razorpay statuses: 'pending', 'processed', 'failed'
-        // Our statuses: 'pending', 'processing', 'completed', 'failed'
-        let displayStatus = order.refundStatus;
+        // Return stored refund data from webhooks
         let statusMessage = order.refundNotes;
-
-        // Use Razorpay's actual status for accurate display
-        if (refund.status === 'processed') {
-            displayStatus = 'completed';
-            statusMessage = `Refund completed. Amount: ₹${refund.amount / 100}. The amount will be credited to your bank account within 5-7 working days.`;
-        } else if (refund.status === 'pending') {
-            displayStatus = 'processing';
-            statusMessage = 'Refund is being processed by Razorpay. This usually takes 5-7 working days.';
-        } else if (refund.status === 'failed') {
-            displayStatus = 'failed';
-            statusMessage = `Refund failed: ${refund.notes?.failure_reason || 'Please check Razorpay dashboard'}`;
-        }
-
-        // Log if there's a mismatch between DB and Razorpay (webhook might have failed)
-        if (refund.status === 'processed' && order.refundStatus !== 'completed') {
-            console.log(`[Warning] Razorpay shows refund ${refund.id} as processed but DB shows ${order.refundStatus}. Webhook may have failed.`);
+        if (!statusMessage) {
+            if (order.refundStatus === 'completed') {
+                statusMessage = `Refund completed. Amount: ₹${order.refundAmount}. The amount will be credited to your bank account within 5-7 working days.`;
+            } else if (order.refundStatus === 'processing') {
+                statusMessage = 'Refund is being processed. This usually takes 5-7 working days.';
+            } else if (order.refundStatus === 'failed') {
+                statusMessage = 'Refund failed. Please contact support.';
+            }
         }
 
         res.json({
             success: true,
-            refundStatus: displayStatus,           // Display status based on Razorpay's actual status
-            razorpayStatus: refund.status,         // Live from Razorpay
-            databaseStatus: order.refundStatus,    // From our database (for debugging)
+            refundStatus: order.refundStatus,
             refundId: order.refundId,
-            refundAmount: refund.amount / 100,     // Use Razorpay's amount for accuracy
+            refundAmount: order.refundAmount,
             refundInitiatedAt: order.refundInitiatedAt,
-            refundCompletedAt: refund.status === 'processed' ? (order.refundCompletedAt || new Date()) : null,
+            refundCompletedAt: order.refundCompletedAt,
             message: statusMessage,
-            // Include webhook info for debugging
-            webhookReceived: order.webhookEvents?.some(e => e.event === 'refund.processed') || false
+            paymentStatus: order.paymentStatus
         });
 
     } catch (error) {
         console.error('Error fetching refund status:', error);
         res.status(500).json({ message: error.message || 'Failed to fetch refund status' });
+    }
+};
+// Get detailed payment timeline for an order - returns stored data from webhooks
+export const getPaymentTimeline = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        let order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Auto-sync with Razorpay API if refund is processing (to catch missed webhooks)
+        let syncedFromApi = false;
+        if (order.refundStatus === 'processing' && order.refundId) {
+            try {
+                const razorpayInstance = getRazorpayInstance();
+                const refund = await razorpayInstance.refunds.fetch(order.refundId);
+
+                if (refund && refund.status === 'processed') {
+                    // Webhook was missed - update order from API data
+                    order.refundStatus = 'completed';
+                    order.paymentStatus = 'refunded';
+                    order.refundCompletedAt = new Date(refund.created_at * 1000);
+                    order.refundNotes = `✅ Refund completed. Amount: ₹${refund.amount / 100}. The amount has been credited to customer's account.`;
+
+                    // Check if refund_processed event exists, if not add it
+                    const hasProcessedEvent = order.paymentTimeline?.some(e => e.event === 'refund_processed');
+                    if (!hasProcessedEvent) {
+                        order.paymentTimeline = order.paymentTimeline || [];
+                        order.paymentTimeline.push({
+                            event: 'refund_processed',
+                            title: 'Refund',
+                            description: `Amount: ₹${refund.amount / 100}`,
+                            timestamp: new Date(refund.created_at * 1000),
+                            completed: true,
+                            details: {
+                                refundId: refund.id,
+                                amount: refund.amount / 100,
+                                status: 'Processed',
+                                arn: refund.acquirer_data?.arn
+                            }
+                        });
+                    }
+
+                    // Mark refund_created as completed
+                    const createdEvent = order.paymentTimeline?.find(e => e.event === 'refund_created');
+                    if (createdEvent) {
+                        createdEvent.completed = true;
+                    }
+
+                    await order.save();
+                    syncedFromApi = true;
+                    console.log(`[Timeline Sync] Order ${order._id} - Refund status synced from Razorpay API: processed`);
+                } else if (refund && refund.status === 'failed') {
+                    // Refund failed - update
+                    order.refundStatus = 'failed';
+                    order.refundNotes = `❌ Refund failed. Please contact support.`;
+
+                    const hasFailedEvent = order.paymentTimeline?.some(e => e.event === 'refund_failed');
+                    if (!hasFailedEvent) {
+                        order.paymentTimeline = order.paymentTimeline || [];
+                        order.paymentTimeline.push({
+                            event: 'refund_failed',
+                            title: 'Refund failed',
+                            description: 'Refund could not be processed',
+                            timestamp: new Date(),
+                            completed: true,
+                            details: {
+                                refundId: refund.id,
+                                status: 'Failed'
+                            }
+                        });
+                    }
+
+                    await order.save();
+                    syncedFromApi = true;
+                }
+            } catch (syncError) {
+                console.error('[Timeline Sync] Error syncing refund status:', syncError.message);
+                // Continue with existing data if API sync fails
+            }
+        }
+
+        // Build timeline from stored events
+        let timeline = [];
+
+        if (order.paymentTimeline && order.paymentTimeline.length > 0) {
+            timeline = order.paymentTimeline.map(event => ({
+                event: event.event,
+                title: event.title,
+                description: event.description,
+                timestamp: event.timestamp,
+                completed: event.completed !== false,
+                details: {
+                    ...event.details,
+                    // Ensure status is properly set for refund events
+                    status: event.event === 'refund_processed' ? 'Processed' :
+                        event.event === 'refund_created' && event.completed ? 'Processed' :
+                            event.event === 'refund_created' && !event.completed ? 'Processing' :
+                                event.event === 'refund_failed' ? 'Failed' :
+                                    event.details?.status
+                }
+            }));
+        }
+
+        // Sort timeline by timestamp
+        timeline.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        // Format timestamps for display
+        const formattedTimeline = timeline.map(event => ({
+            ...event,
+            formattedTime: new Date(event.timestamp).toLocaleString('en-IN', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            })
+        }));
+
+        res.json({
+            success: true,
+            orderId: order._id,
+            paymentId: order.razorpayPaymentId,
+            razorpayOrderId: order.razorpayOrderId,
+            amount: order.totalAmount,
+            paymentStatus: order.paymentStatus,
+            refundStatus: order.refundStatus,
+            refundAmount: order.refundAmount,
+            refundId: order.refundId,
+            refundInitiatedAt: order.refundInitiatedAt,
+            refundCompletedAt: order.refundCompletedAt,
+            refundNotes: order.refundNotes,
+            timeline: formattedTimeline,
+            createdAt: order.createdAt,
+            syncedFromApi
+        });
+
+    } catch (error) {
+        console.error('Error fetching payment timeline:', error);
+        res.status(500).json({ message: error.message || 'Failed to fetch payment timeline' });
     }
 };
