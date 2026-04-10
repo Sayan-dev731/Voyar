@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Button } from './ui/button'
-import { Camera, Clock, Sparkles, Bell } from 'lucide-react'
+import { Camera, Sparkles, Clock } from 'lucide-react'
 
 export const VirtualTryOn = () => {
     const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -24,32 +23,32 @@ export const VirtualTryOn = () => {
     }, [tryOnImages.length])
 
     return (
-        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-white to-amber-50/30 dark:from-gray-900 dark:to-gray-950 overflow-hidden transition-colors duration-300">
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <section className="py-16 sm:py-20 lg:py-28 bg-white dark:bg-gray-950 overflow-hidden transition-colors duration-300">
+            <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10">
+                <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                     {/* Content */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.7 }}
                     >
                         {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium mb-6">
-                            <Clock className="h-4 w-4" />
+                        <div className="inline-flex items-center gap-2 px-4 py-2 border border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 text-[11px] tracking-[0.15em] uppercase mb-8 rounded-full">
+                            <Clock className="h-3.5 w-3.5" />
                             Coming Soon
                         </div>
 
-                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black dark:text-white mb-5">
-                            Virtual <span className="text-gradient-amber">Try-On</span>
+                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light text-black dark:text-white tracking-tight mb-6">
+                            Virtual Try-On
                         </h2>
-                        <p className="text-base sm:text-lg text-black/60 dark:text-white/60 mb-8 leading-relaxed">
+                        <p className="text-base text-black/50 dark:text-white/50 mb-10 leading-relaxed max-w-lg">
                             We're building a camera-powered try-on experience so you can preview frames instantly.
-                            Stay tuned—this feature will be live soon.
+                            Stay tuned — this feature will be live soon.
                         </p>
 
                         {/* Feature highlights */}
-                        <div className="grid grid-cols-3 gap-3 mb-8">
+                        <div className="grid grid-cols-3 gap-4 mb-10">
                             {[
                                 { icon: Camera, label: 'Camera Preview' },
                                 { icon: Sparkles, label: 'AI Powered' },
@@ -57,22 +56,20 @@ export const VirtualTryOn = () => {
                             ].map((feature) => (
                                 <div
                                     key={feature.label}
-                                    className="text-center p-4 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/30 hover:border-amber-200 dark:hover:border-amber-700 transition-colors"
+                                    className="text-center p-4 border border-amber-100 dark:border-amber-900/30 rounded-xl hover:border-amber-300 dark:hover:border-amber-700 transition-colors duration-300"
                                 >
-                                    <feature.icon className="h-6 w-6 text-amber-500 mx-auto mb-2" />
-                                    <span className="text-xs font-medium text-black/70 dark:text-white/70">{feature.label}</span>
+                                    <feature.icon className="h-5 w-5 text-amber-500 dark:text-amber-400 mx-auto mb-2.5" />
+                                    <span className="text-[11px] tracking-[0.05em] text-black/50 dark:text-white/50">{feature.label}</span>
                                 </div>
                             ))}
                         </div>
 
-                        <Button
-                            size="lg"
+                        <button
                             disabled
-                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold px-8 py-6 rounded-xl shadow-lg shadow-amber-200/50 dark:shadow-amber-900/50 opacity-60 cursor-not-allowed"
+                            className="px-8 py-3.5 bg-amber-100 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400 text-[13px] font-medium tracking-[0.04em] uppercase cursor-not-allowed rounded-full"
                         >
-                            <Bell className="mr-2 h-5 w-5" />
                             Notify Me When Ready
-                        </Button>
+                        </button>
                     </motion.div>
 
                     {/* Image Preview */}
@@ -80,10 +77,10 @@ export const VirtualTryOn = () => {
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
+                        transition={{ duration: 0.7, delay: 0.2 }}
                         className="relative"
                     >
-                        <div className="aspect-square rounded-2xl lg:rounded-3xl overflow-hidden bg-amber-50 dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-900/50 shadow-xl">
+                        <div className="aspect-square overflow-hidden bg-gray-50 dark:bg-gray-900">
                             <div className="relative w-full h-full">
                                 {tryOnImages.map((src, idx) => (
                                     <img
@@ -98,24 +95,20 @@ export const VirtualTryOn = () => {
                             </div>
 
                             {/* Overlay Label */}
-                            <div className="absolute bottom-4 left-4 right-4">
-                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-xl p-4 border border-amber-100 dark:border-amber-900/30 shadow-lg">
+                            <div className="absolute bottom-0 left-0 right-0 p-5">
+                                <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm p-4">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-semibold text-black dark:text-white">Virtual Try-On</p>
-                                            <p className="text-xs text-black/50 dark:text-white/50">Camera preview • Frame fit • Instant swap</p>
+                                            <p className="text-sm font-medium text-black dark:text-white">Virtual Try-On</p>
+                                            <p className="text-[11px] text-black/40 dark:text-white/40 tracking-wider">Camera preview • Frame fit • Instant swap</p>
                                         </div>
-                                        <span className="px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
+                                        <span className="px-3 py-1 border border-black/10 dark:border-white/10 text-[11px] tracking-[0.1em] uppercase text-black/50 dark:text-white/50">
                                             Soon
                                         </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Decorative corners */}
-                        <div className="absolute -top-3 -right-3 w-16 h-16 border-t-2 border-r-2 border-amber-300 dark:border-amber-700 rounded-tr-2xl" />
-                        <div className="absolute -bottom-3 -left-3 w-16 h-16 border-b-2 border-l-2 border-amber-300 dark:border-amber-700 rounded-bl-2xl" />
                     </motion.div>
                 </div>
             </div>

@@ -1,38 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
-import { ShoppingCart, Search, Menu, X, User, LogOut, Heart, ChevronDown, Phone, MapPin, Package } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ShoppingBag, Search, Menu, X, User, LogOut } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
-import { useWishlist } from '@/context/WishlistContext'
-import { ThemeToggle } from './ThemeToggle'
-
-interface CategoryItem {
-    label: string
-    href: string
-    badge?: string
-}
-
-interface MegaMenuData {
-    eyeglasses: CategoryItem[]
-    sunglasses: CategoryItem[]
-}
-
-const megaMenuData: MegaMenuData = {
-    eyeglasses: [
-        { label: 'Men', href: '/collections?category=eyeglasses&gender=men' },
-        { label: 'Women', href: '/collections?category=eyeglasses&gender=women' },
-        { label: '@999', href: '/collections?category=eyeglasses&price=999', badge: 'Sale' },
-        { label: 'Sports', href: '/collections?category=eyeglasses&style=sports' },
-    ],
-    sunglasses: [
-        { label: 'Men', href: '/collections?category=sunglasses&gender=men' },
-        { label: 'Women', href: '/collections?category=sunglasses&gender=women' },
-        { label: '@999', href: '/collections?category=sunglasses&price=999', badge: 'Sale' },
-        { label: 'Sports', href: '/collections?category=sunglasses&style=sports' },
-    ],
-}
 
 export const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false)
@@ -40,12 +12,9 @@ export const Navbar = () => {
     const [searchQuery, setSearchQuery] = useState('')
     const [showSearch, setShowSearch] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
-    const [activeDropdown, setActiveDropdown] = useState<'eyeglasses' | 'sunglasses' | null>(null)
-    const dropdownTimeoutRef = useRef<number | null>(null)
     const navigate = useNavigate()
     const { totalItems } = useCart()
     const { user, isAuthenticated, logout } = useAuth()
-    const { totalItems: wishlistItems } = useWishlist()
 
     useEffect(() => {
         const handleScroll = () => {
@@ -54,30 +23,6 @@ export const Navbar = () => {
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = () => {
-            setActiveDropdown(null)
-        }
-        if (activeDropdown) {
-            document.addEventListener('click', handleClickOutside)
-            return () => document.removeEventListener('click', handleClickOutside)
-        }
-    }, [activeDropdown])
-
-    const handleDropdownEnter = (menu: 'eyeglasses' | 'sunglasses') => {
-        if (dropdownTimeoutRef.current) {
-            clearTimeout(dropdownTimeoutRef.current)
-        }
-        setActiveDropdown(menu)
-    }
-
-    const handleDropdownLeave = () => {
-        dropdownTimeoutRef.current = window.setTimeout(() => {
-            setActiveDropdown(null)
-        }, 150)
-    }
 
     const handleLogout = () => {
         logout()
@@ -101,61 +46,32 @@ export const Navbar = () => {
 
     return (
         <>
-            {/* Top Info Bar */}
-            <div className="hidden lg:block bg-amber-50 dark:bg-gray-900 border-b border-amber-100 dark:border-amber-900/30 transition-colors duration-300">
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-9 text-xs">
-                        <div className="flex items-center gap-6 text-black/60 dark:text-white/60">
-                            <a href="tel:+919667194067" className="flex items-center gap-1.5 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
-                                <Phone className="h-3 w-3" />
-                                <span>+91 9667194067</span>
-                            </a>
-                            <span className="flex items-center gap-1.5">
-                                <MapPin className="h-3 w-3" />
-                                <span>Patna, Bihar</span>
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-6 text-black/60 dark:text-white/60">
-                            <Link to="/orders" className="flex items-center gap-1.5 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
-                                <Package className="h-3 w-3" />
-                                <span>Track Order</span>
-                            </Link>
-                            <Link to="/contact" className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
-                                Return & Exchange
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* Main Navbar */}
             <nav
                 className={cn(
-                    'sticky top-0 left-0 right-0 z-50 transition-all duration-300',
+                    'sticky top-0 left-0 right-0 z-50 transition-all duration-500',
                     isScrolled
-                        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-md border-b border-amber-100 dark:border-amber-900/30 shadow-sm'
-                        : 'bg-white dark:bg-gray-950 border-b border-amber-100 dark:border-amber-900/30'
+                        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl shadow-[0_1px_0_rgba(0,0,0,0.06)] border-b border-amber-100/50 dark:border-amber-900/20'
+                        : 'bg-white dark:bg-gray-950 border-b border-amber-100/30 dark:border-amber-900/10'
                 )}
             >
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10">
                     {/* Mobile header */}
                     <div className="lg:hidden">
-                        <div className="relative flex items-center h-16">
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                    aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-                                >
-                                    {isMobileMenuOpen ? (
-                                        <X className="h-5 w-5" />
-                                    ) : (
-                                        <Menu className="h-5 w-5" />
-                                    )}
-                                </Button>
-                            </div>
+                        <div className="relative flex items-center h-[60px]">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 text-black/80 dark:text-white/80 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                            >
+                                {isMobileMenuOpen ? (
+                                    <X className="h-5 w-5" />
+                                ) : (
+                                    <Menu className="h-5 w-5" />
+                                )}
+                            </Button>
 
                             <button
                                 type="button"
@@ -171,32 +87,16 @@ export const Navbar = () => {
                                 />
                             </button>
 
-                            <div className="ml-auto flex items-center gap-1">
+                            <div className="ml-auto flex items-center gap-0.5">
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                    className="h-10 w-10 text-black/80 dark:text-white/80 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                                     onClick={() => setShowSearch(!showSearch)}
                                     aria-label="Search"
                                 >
-                                    <Search className="h-5 w-5" />
-                                </Button>
-
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 relative"
-                                    onClick={() => navigate('/profile?tab=wishlist')}
-                                    aria-label="Wishlist"
-                                >
-                                    <Heart className="h-5 w-5" />
-                                    {wishlistItems > 0 && (
-                                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium">
-                                            {wishlistItems > 9 ? '9+' : wishlistItems}
-                                        </span>
-                                    )}
+                                    <Search className="h-[18px] w-[18px]" />
                                 </Button>
 
                                 {isAuthenticated ? (
@@ -204,38 +104,36 @@ export const Navbar = () => {
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                        className="h-10 w-10 text-black/80 dark:text-white/80 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                                         onClick={() => navigate('/profile')}
                                         aria-label="Profile"
                                     >
-                                        <User className="h-5 w-5" />
+                                        <User className="h-[18px] w-[18px]" />
                                     </Button>
                                 ) : (
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                        className="h-10 w-10 text-black/80 dark:text-white/80 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                                         onClick={() => navigate('/login')}
                                         aria-label="Login"
                                     >
-                                        <User className="h-5 w-5" />
+                                        <User className="h-[18px] w-[18px]" />
                                     </Button>
                                 )}
-
-                                <ThemeToggle />
 
                                 <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 relative"
+                                    className="h-10 w-10 text-black/80 dark:text-white/80 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 relative"
                                     onClick={() => navigate('/cart')}
                                     aria-label="Cart"
                                 >
-                                    <ShoppingCart className="h-5 w-5" />
+                                    <ShoppingBag className="h-[18px] w-[18px]" />
                                     {totalItems > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                                        <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-medium">
                                             {totalItems}
                                         </span>
                                     )}
@@ -244,188 +142,62 @@ export const Navbar = () => {
                         </div>
 
                         {/* Mobile Search bar */}
-                        {showSearch && (
-                            <div className="pb-3">
-                                <form onSubmit={handleSearch} className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Search products..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full h-12 rounded-xl bg-amber-50 dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 px-4 pr-12 text-sm text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 dark:focus-visible:ring-amber-500 focus-visible:border-amber-400"
-                                        autoFocus
-                                    />
-                                    <button
-                                        type="submit"
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-600 dark:text-amber-400"
-                                        aria-label="Search"
-                                    >
-                                        <Search className="h-5 w-5" />
-                                    </button>
-                                </form>
-                            </div>
-                        )}
+                        <div className={cn(
+                            "overflow-hidden transition-all duration-300 ease-out",
+                            showSearch ? "max-h-20 opacity-100 pb-3" : "max-h-0 opacity-0"
+                        )}>
+                            <form onSubmit={handleSearch} className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search products..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full h-11 bg-amber-50 dark:bg-gray-900 border border-amber-200 dark:border-amber-900/50 px-4 pr-12 text-sm text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40 outline-none focus:border-amber-400 dark:focus:border-amber-500 transition-colors rounded-xl"
+                                    autoFocus={showSearch}
+                                />
+                                <button
+                                    type="submit"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-600 dark:text-amber-400"
+                                    aria-label="Search"
+                                >
+                                    <Search className="h-4 w-4" />
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     {/* Desktop header */}
-                    <div className="hidden lg:flex items-center justify-between h-16">
-                        {/* Logo */}
-                        <div className="flex-shrink-0 cursor-pointer" onClick={handleLogoClick}>
-                            <div className="flex items-center gap-2">
-                                <img
-                                    src="/images/logo.jpeg"
-                                    alt="Voyar"
-                                    className="h-10 w-auto"
-                                    loading="eager"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Desktop Navigation with Mega Menus */}
-                        <div className="flex items-center space-x-1">
-                            {/* Eyeglasses Dropdown */}
-                            <div
-                                className="relative"
-                                onMouseEnter={() => handleDropdownEnter('eyeglasses')}
-                                onMouseLeave={handleDropdownLeave}
-                            >
-                                <button
-                                    className={cn(
-                                        "flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors rounded-lg",
-                                        activeDropdown === 'eyeglasses'
-                                            ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20"
-                                            : "text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                    )}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        setActiveDropdown(activeDropdown === 'eyeglasses' ? null : 'eyeglasses')
-                                    }}
-                                >
-                                    Eyeglasses
-                                    <ChevronDown className={cn(
-                                        "h-4 w-4 transition-transform duration-200",
-                                        activeDropdown === 'eyeglasses' && "rotate-180"
-                                    )} />
-                                </button>
-
-                                {/* Eyeglasses Mega Menu */}
-                                {activeDropdown === 'eyeglasses' && (
-                                    <div
-                                        className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-amber-100 dark:border-amber-900/30 py-2 z-50"
-                                        onMouseEnter={() => handleDropdownEnter('eyeglasses')}
-                                        onMouseLeave={handleDropdownLeave}
-                                    >
-                                        <div className="px-3 py-2 border-b border-amber-100 dark:border-amber-900/30 mb-1">
-                                            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Shop Eyeglasses</span>
-                                        </div>
-                                        {megaMenuData.eyeglasses.map((item) => (
-                                            <Link
-                                                key={item.label}
-                                                to={item.href}
-                                                className="flex items-center justify-between px-4 py-2.5 text-sm text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                                onClick={() => setActiveDropdown(null)}
-                                            >
-                                                <span>{item.label}</span>
-                                                {item.badge && (
-                                                    <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">
-                                                        {item.badge}
-                                                    </span>
-                                                )}
-                                            </Link>
-                                        ))}
-                                        <div className="border-t border-amber-100 dark:border-amber-900/30 mt-1 pt-1">
-                                            <Link
-                                                to="/collections?category=eyeglasses"
-                                                className="block px-4 py-2.5 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                                onClick={() => setActiveDropdown(null)}
-                                            >
-                                                View All Eyeglasses →
-                                            </Link>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Sunglasses Dropdown */}
-                            <div
-                                className="relative"
-                                onMouseEnter={() => handleDropdownEnter('sunglasses')}
-                                onMouseLeave={handleDropdownLeave}
-                            >
-                                <button
-                                    className={cn(
-                                        "flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors rounded-lg",
-                                        activeDropdown === 'sunglasses'
-                                            ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20"
-                                            : "text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                    )}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        setActiveDropdown(activeDropdown === 'sunglasses' ? null : 'sunglasses')
-                                    }}
-                                >
-                                    Sunglasses
-                                    <ChevronDown className={cn(
-                                        "h-4 w-4 transition-transform duration-200",
-                                        activeDropdown === 'sunglasses' && "rotate-180"
-                                    )} />
-                                </button>
-
-                                {/* Sunglasses Mega Menu */}
-                                {activeDropdown === 'sunglasses' && (
-                                    <div
-                                        className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-amber-100 dark:border-amber-900/30 py-2 z-50"
-                                        onMouseEnter={() => handleDropdownEnter('sunglasses')}
-                                        onMouseLeave={handleDropdownLeave}
-                                    >
-                                        <div className="px-3 py-2 border-b border-amber-100 dark:border-amber-900/30 mb-1">
-                                            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Shop Sunglasses</span>
-                                        </div>
-                                        {megaMenuData.sunglasses.map((item) => (
-                                            <Link
-                                                key={item.label}
-                                                to={item.href}
-                                                className="flex items-center justify-between px-4 py-2.5 text-sm text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                                onClick={() => setActiveDropdown(null)}
-                                            >
-                                                <span>{item.label}</span>
-                                                {item.badge && (
-                                                    <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">
-                                                        {item.badge}
-                                                    </span>
-                                                )}
-                                            </Link>
-                                        ))}
-                                        <div className="border-t border-amber-100 dark:border-amber-900/30 mt-1 pt-1">
-                                            <Link
-                                                to="/collections?category=sunglasses"
-                                                className="block px-4 py-2.5 text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                                onClick={() => setActiveDropdown(null)}
-                                            >
-                                                View All Sunglasses →
-                                            </Link>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Other Nav Links */}
+                    <div className="hidden lg:flex items-center justify-between h-[68px]">
+                        {/* Left - Navigation */}
+                        <div className="flex items-center gap-8">
                             <Link
                                 to="/collections"
-                                className="px-4 py-2 text-sm font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors rounded-lg"
+                                className="text-[13px] font-medium tracking-[0.04em] uppercase text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 transition-colors duration-300 relative group"
                             >
-                                New Arrivals
+                                Shop
+                                <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-amber-500 group-hover:w-full transition-all duration-300" />
                             </Link>
                             <Link
                                 to="/contact"
-                                className="px-4 py-2 text-sm font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors rounded-lg"
+                                className="text-[13px] font-medium tracking-[0.04em] uppercase text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 transition-colors duration-300 relative group"
                             >
                                 Contact
+                                <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-amber-500 group-hover:w-full transition-all duration-300" />
                             </Link>
                         </div>
 
-                        {/* Right Side Icons */}
-                        <div className="flex items-center space-x-1">
+                        {/* Center - Logo */}
+                        <div className="absolute left-1/2 -translate-x-1/2 cursor-pointer" onClick={handleLogoClick}>
+                            <img
+                                src="/images/logo.jpeg"
+                                alt="Voyar"
+                                className="h-10 w-auto"
+                                loading="eager"
+                            />
+                        </div>
+
+                        {/* Right - Icons */}
+                        <div className="flex items-center gap-1">
                             {/* Search */}
                             <Button
                                 variant="ghost"
@@ -433,22 +205,7 @@ export const Navbar = () => {
                                 className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                                 onClick={() => setShowSearch(!showSearch)}
                             >
-                                <Search className="h-5 w-5" />
-                            </Button>
-
-                            {/* Wishlist */}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors relative"
-                                onClick={() => navigate('/profile?tab=wishlist')}
-                            >
-                                <Heart className="h-5 w-5" />
-                                {wishlistItems > 0 && (
-                                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium">
-                                        {wishlistItems > 9 ? '9+' : wishlistItems}
-                                    </span>
-                                )}
+                                <Search className="h-[18px] w-[18px]" />
                             </Button>
 
                             {/* User Menu */}
@@ -460,11 +217,11 @@ export const Navbar = () => {
                                         className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                                         onClick={() => setShowUserMenu(!showUserMenu)}
                                     >
-                                        <User className="h-5 w-5" />
+                                        <User className="h-[18px] w-[18px]" />
                                     </Button>
 
                                     {showUserMenu && (
-                                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-amber-100 dark:border-amber-900/30 py-2 z-50">
+                                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-950 rounded-xl border border-amber-100 dark:border-amber-900/30 shadow-xl py-2 z-50 animate-scale-in">
                                             <div className="px-4 py-3 border-b border-amber-100 dark:border-amber-900/30">
                                                 <p className="text-sm font-medium text-black dark:text-white truncate">{user?.name}</p>
                                                 <p className="text-xs text-black/50 dark:text-white/50 truncate">{user?.email}</p>
@@ -502,26 +259,23 @@ export const Navbar = () => {
                             ) : (
                                 <Button
                                     variant="ghost"
-                                    className="text-sm font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                    className="text-[13px] font-medium tracking-[0.04em] uppercase text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                                     onClick={() => navigate('/login')}
                                 >
                                     Sign In
                                 </Button>
                             )}
 
-                            {/* Theme Toggle */}
-                            <ThemeToggle />
-
-                            {/* Cart */}
+                            {/* Cart - Bag Icon */}
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-10 w-10 text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors relative"
                                 onClick={() => navigate('/cart')}
                             >
-                                <ShoppingCart className="h-5 w-5" />
+                                <ShoppingBag className="h-[18px] w-[18px]" />
                                 {totalItems > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                                    <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-medium">
                                         {totalItems}
                                     </span>
                                 )}
@@ -531,149 +285,107 @@ export const Navbar = () => {
                 </div>
 
                 {/* Desktop Search Bar */}
-                {showSearch && (
-                    <div className="hidden lg:block border-t border-amber-100 dark:border-amber-900/30 bg-white dark:bg-gray-950">
-                        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                            <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
-                                <input
-                                    type="text"
-                                    placeholder="Search for eyeglasses, sunglasses..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full px-5 py-3 pl-12 pr-4 bg-amber-50 dark:bg-gray-800 border border-amber-200 dark:border-amber-900/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 dark:focus:ring-amber-500 focus:border-amber-400 transition-all text-sm text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40"
-                                    autoFocus
-                                />
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-600 dark:text-amber-400" />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowSearch(false)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40 hover:text-black/60 dark:hover:text-white/60"
-                                >
-                                    <X className="h-5 w-5" />
-                                </button>
-                            </form>
-                        </div>
+                <div className={cn(
+                    "hidden lg:block border-t border-amber-100 dark:border-amber-900/30 overflow-hidden transition-all duration-400 ease-out",
+                    showSearch ? "max-h-24 opacity-100" : "max-h-0 opacity-0 border-t-0"
+                )}>
+                    <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-4">
+                        <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
+                            <input
+                                type="text"
+                                placeholder="Search for eyeglasses, sunglasses..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full px-5 py-3 pl-12 bg-amber-50 dark:bg-gray-900 border border-amber-200 dark:border-amber-900/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all text-sm text-black dark:text-white placeholder:text-black/40 dark:placeholder:text-white/40"
+                                autoFocus={showSearch}
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            <button
+                                type="button"
+                                onClick={() => setShowSearch(false)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40 hover:text-amber-600 dark:hover:text-amber-400"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </form>
                     </div>
-                )}
+                </div>
 
                 {/* Mobile Menu */}
-                {isMobileMenuOpen && (
-                    <div className="lg:hidden border-t border-amber-100 dark:border-amber-900/30 bg-white dark:bg-gray-950 shadow-lg max-h-[70vh] overflow-y-auto">
-                        <div className="px-4 pt-4 pb-6">
-                            {/* Eyeglasses Section */}
-                            <div className="mb-4">
-                                <h3 className="px-3 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                                    Eyeglasses
-                                </h3>
-                                {megaMenuData.eyeglasses.map((item) => (
-                                    <Link
-                                        key={item.label}
-                                        to={item.href}
-                                        className="flex items-center justify-between px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                    >
-                                        <span>{item.label}</span>
-                                        {item.badge && (
-                                            <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </Link>
-                                ))}
-                            </div>
+                <div className={cn(
+                    "lg:hidden fixed inset-0 top-[60px] z-50 transition-all duration-500 ease-out",
+                    isMobileMenuOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
+                )}>
+                    <div
+                        className={cn(
+                            "absolute inset-0 bg-black/20 transition-opacity duration-500",
+                            isMobileMenuOpen ? "opacity-100" : "opacity-0"
+                        )}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    />
 
-                            {/* Sunglasses Section */}
-                            <div className="mb-4 border-t border-amber-100 dark:border-amber-900/30 pt-4">
-                                <h3 className="px-3 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                                    Sunglasses
-                                </h3>
-                                {megaMenuData.sunglasses.map((item) => (
-                                    <Link
-                                        key={item.label}
-                                        to={item.href}
-                                        className="flex items-center justify-between px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                    >
-                                        <span>{item.label}</span>
-                                        {item.badge && (
-                                            <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full">
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </Link>
-                                ))}
-                            </div>
+                    <div className={cn(
+                        "absolute top-0 left-0 right-0 bg-white dark:bg-gray-950 transition-transform duration-500 ease-out shadow-xl",
+                        isMobileMenuOpen ? "translate-y-0" : "-translate-y-full"
+                    )}>
+                        <div className="px-6 py-8 space-y-1">
+                            <Link
+                                to="/collections"
+                                className="block py-4 text-2xl font-light text-black dark:text-white border-b border-amber-100 dark:border-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 hover:pl-2 transition-all duration-300"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                Shop
+                            </Link>
+                            <Link
+                                to="/contact"
+                                className="block py-4 text-2xl font-light text-black dark:text-white border-b border-amber-100 dark:border-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 hover:pl-2 transition-all duration-300"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                Contact
+                            </Link>
+                            <Link
+                                to="/orders"
+                                className="block py-4 text-2xl font-light text-black dark:text-white border-b border-amber-100 dark:border-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 hover:pl-2 transition-all duration-300"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                Track Order
+                            </Link>
 
-                            {/* Other Links */}
-                            <div className="border-t border-amber-100 dark:border-amber-900/30 pt-4 space-y-1">
-                                <Link
-                                    to="/collections"
-                                    className="block px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    New Arrivals
-                                </Link>
-                                <Link
-                                    to="/orders"
-                                    className="block px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Track Order
-                                </Link>
-                                <Link
-                                    to="/contact"
-                                    className="block px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                    Contact Us
-                                </Link>
-                            </div>
-
-                            {/* Mobile User Options */}
-                            <div className="border-t border-amber-100 dark:border-amber-900/30 mt-4 pt-4">
+                            <div className="pt-6">
                                 {isAuthenticated ? (
                                     <>
-                                        <div className="px-3 py-2 mb-2">
-                                            <p className="text-sm font-medium text-black dark:text-white truncate">{user?.name}</p>
-                                            <p className="text-xs text-black/50 dark:text-white/50 truncate">{user?.email}</p>
+                                        <div className="pb-4 mb-4 border-b border-amber-100 dark:border-amber-900/30">
+                                            <p className="text-sm font-medium text-black dark:text-white">{user?.name}</p>
+                                            <p className="text-xs text-black/50 dark:text-white/50">{user?.email}</p>
                                         </div>
                                         <button
                                             onClick={() => {
                                                 navigate('/profile')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                                            className="block py-3 text-lg text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 transition-colors w-full text-left"
                                         >
                                             My Profile
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                navigate('/orders')
-                                                setIsMobileMenuOpen(false)
-                                            }}
-                                            className="w-full text-left px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                                        >
-                                            My Orders
                                         </button>
                                         <button
                                             onClick={() => {
                                                 handleLogout()
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-3 py-3 text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2"
+                                            className="block py-3 text-lg text-red-600 dark:text-red-400 w-full text-left flex items-center gap-2"
                                         >
                                             <LogOut className="h-4 w-4" />
                                             Logout
                                         </button>
                                     </>
                                 ) : (
-                                    <>
+                                    <div className="flex gap-4">
                                         <button
                                             onClick={() => {
                                                 navigate('/login')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-3 py-3 text-base font-medium text-black/70 dark:text-white/70 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                                            className="flex-1 py-3 text-center text-sm font-medium uppercase tracking-wider border border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition-all duration-300 rounded-xl"
                                         >
                                             Sign In
                                         </button>
@@ -682,16 +394,16 @@ export const Navbar = () => {
                                                 navigate('/signup')
                                                 setIsMobileMenuOpen(false)
                                             }}
-                                            className="w-full text-left px-3 py-3 text-base font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                                            className="flex-1 py-3 text-center text-sm font-medium uppercase tracking-wider bg-amber-500 text-white hover:bg-amber-600 transition-all duration-300 rounded-xl"
                                         >
-                                            Create Account
+                                            Sign Up
                                         </button>
-                                    </>
+                                    </div>
                                 )}
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
             </nav>
         </>
     )

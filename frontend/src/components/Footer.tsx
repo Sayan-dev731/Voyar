@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { Facebook, Instagram, Youtube, Mail, Phone, MapPin, Heart, Clock } from 'lucide-react'
+import { Facebook, Instagram, Youtube, Mail } from 'lucide-react'
 
 const socialLinks = [
     { icon: Facebook, href: '#', label: 'Facebook' },
@@ -8,175 +9,186 @@ const socialLinks = [
     { icon: Youtube, href: '#', label: 'YouTube' },
 ]
 
-export const Footer = () => {
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-        },
-    }
+const footerLinks = {
+    shop: [
+        { label: 'Men', href: '/collections?gender=men' },
+        { label: 'Women', href: '/collections?gender=women' },
+        { label: 'New Arrivals', href: '/collections' },
+        { label: 'Bestsellers', href: '/collections?sort=popular' },
+    ],
+    company: [
+        { label: 'About Us', href: '/about' },
+        { label: 'Contact', href: '/contact' },
+        { label: 'Blog', href: '/blog' },
+    ],
+    support: [
+        { label: 'Track Order', href: '/orders' },
+        { label: 'Shipping Policy', href: '/shipping' },
+        { label: 'Returns & Exchanges', href: '/returns' },
+        { label: 'Privacy Policy', href: '/privacy' },
+    ],
+}
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+export const Footer = () => {
+    const [email, setEmail] = useState('')
+    const [subscribed, setSubscribed] = useState(false)
+
+    const handleSubscribe = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (email.trim()) {
+            setSubscribed(true)
+            setEmail('')
+            setTimeout(() => setSubscribed(false), 3000)
+        }
     }
 
     return (
-        <footer className="bg-white dark:bg-gray-950 border-t border-amber-100 dark:border-amber-900/30 transition-colors duration-300">
+        <footer className="bg-black text-white">
+            {/* Newsletter Strip */}
+            <div className="border-b border-white/10">
+                <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-12 sm:py-16">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+                        <div>
+                            <h3 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">
+                                Ready to Find Your Perfect Pair?
+                            </h3>
+                            <p className="text-white/40 text-sm">
+                                Subscribe for exclusive offers, new arrivals, and eyewear tips.
+                            </p>
+                        </div>
+
+                        {subscribed ? (
+                            <motion.p
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-sm text-white/60"
+                            >
+                                Thank you for subscribing!
+                            </motion.p>
+                        ) : (
+                            <form onSubmit={handleSubscribe} className="flex w-full lg:w-auto">
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Enter your email"
+                                    className="flex-1 lg:w-[300px] px-5 py-3.5 bg-transparent border border-amber-500/30 text-white placeholder:text-white/30 text-sm outline-none focus:border-amber-400 transition-colors rounded-l-xl"
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-6 py-3.5 bg-amber-500 text-white text-[13px] font-medium tracking-[0.04em] uppercase hover:bg-amber-600 transition-colors shrink-0 rounded-r-xl"
+                                >
+                                    Subscribe
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {/* Main Footer Content */}
-            <motion.div
-                className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16"
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-            >
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
-                    {/* Brand & Social */}
-                    <motion.div variants={itemVariants} className="col-span-2 md:col-span-1">
-                        <Link to="/" className="inline-block mb-4">
+            <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-12 sm:py-16">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-10 lg:gap-16">
+                    {/* Brand */}
+                    <div className="col-span-2">
+                        <Link to="/" className="inline-block mb-5">
                             <img
                                 src="/images/logo.jpeg"
                                 alt="Voyar"
-                                className="h-10 w-auto"
+                                className="h-10 w-auto brightness-0 invert"
                             />
                         </Link>
-                        <p className="text-sm text-black/60 dark:text-white/60 mb-5 leading-relaxed">
-                            Get the perfect vision and style. Premium eyewear for modern living.
+                        <p className="text-white/40 text-sm mb-6 leading-relaxed max-w-xs">
+                            Premium eyewear for the modern individual. Crafted with precision, designed with purpose.
                         </p>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                             {socialLinks.map((social) => (
                                 <a
                                     key={social.label}
                                     href={social.href}
-                                    className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                                    className="w-9 h-9 rounded-full border border-amber-500/20 flex items-center justify-center text-amber-400/60 hover:text-amber-400 hover:border-amber-400/50 transition-all duration-300"
                                     aria-label={social.label}
                                 >
-                                    <social.icon className="h-5 w-5" />
+                                    <social.icon className="h-4 w-4" />
                                 </a>
                             ))}
                         </div>
-                    </motion.div>
+                    </div>
 
-                    {/* Policies */}
-                    <motion.div variants={itemVariants}>
-                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
-                            Policies
+                    {/* Shop */}
+                    <div>
+                        <h4 className="text-[11px] tracking-[0.2em] uppercase text-amber-400/50 mb-5">
+                            Shop
                         </h4>
                         <ul className="space-y-3">
-                            {[
-                                { label: 'Privacy Policy', href: '/privacy' },
-                                { label: 'Terms & Conditions', href: '/terms' },
-                                { label: 'Delivery & Shipping', href: '/shipping' },
-                                { label: 'Refund Policy', href: '/refund' },
-                                { label: 'Frame Guide', href: '/frame-guide' },
-                            ].map((link) => (
+                            {footerLinks.shop.map((link) => (
                                 <li key={link.label}>
                                     <Link
                                         to={link.href}
-                                        className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                                        className="text-sm text-white/50 hover:text-amber-400 transition-colors duration-300"
                                     >
                                         {link.label}
                                     </Link>
                                 </li>
                             ))}
                         </ul>
-                    </motion.div>
+                    </div>
 
-                    {/* Return & Exchange */}
-                    <motion.div variants={itemVariants}>
-                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
-                            Return & Exchange
+                    {/* Company */}
+                    <div>
+                        <h4 className="text-[11px] tracking-[0.2em] uppercase text-amber-400/50 mb-5">
+                            Company
                         </h4>
                         <ul className="space-y-3">
-                            <li>
-                                <Link
-                                    to="/returns"
-                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                                >
-                                    Return Portal
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    to="/orders"
-                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                                >
-                                    Track Your Order
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    to="/contact"
-                                    className="text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                                >
-                                    Contact Support
-                                </Link>
-                            </li>
+                            {footerLinks.company.map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        to={link.href}
+                                        className="text-sm text-white/50 hover:text-amber-400 transition-colors duration-300"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
-                    </motion.div>
+                    </div>
 
-                    {/* Contact Us */}
-                    <motion.div variants={itemVariants}>
-                        <h4 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
-                            Contact Us
+                    {/* Support */}
+                    <div>
+                        <h4 className="text-[11px] tracking-[0.2em] uppercase text-amber-400/50 mb-5">
+                            Support
                         </h4>
-                        <p className="text-sm text-black/60 dark:text-white/60 mb-4">
-                            Questions? We're here for you Monday - Friday 10am-6pm IST.
-                        </p>
                         <ul className="space-y-3">
-                            <li>
-                                <a
-                                    href="mailto:voyareyewear@gmail.com"
-                                    className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium transition-colors"
-                                >
-                                    <Mail className="h-4 w-4" />
-                                    voyareyewear@gmail.com
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="tel:+919667194067"
-                                    className="flex items-center gap-2 text-sm text-black/60 dark:text-white/60 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                                >
-                                    <Phone className="h-4 w-4" />
-                                    +91 9667194067
-                                </a>
-                            </li>
-                            <li className="flex items-start gap-2 text-sm text-black/60 dark:text-white/60">
-                                <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                                Mon - Fri: 10am - 6pm IST
-                            </li>
-                            <li className="flex items-start gap-2 text-sm text-black/60 dark:text-white/60">
-                                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                                Patna City-800008, Bihar, India
-                            </li>
+                            {footerLinks.support.map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        to={link.href}
+                                        className="text-sm text-white/50 hover:text-amber-400 transition-colors duration-300"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
-                    </motion.div>
+                    </div>
                 </div>
-            </motion.div>
+            </div>
 
             {/* Bottom Bar */}
-            <div className="border-t border-amber-100 dark:border-amber-900/30 bg-amber-50/50 dark:bg-gray-900/50">
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="border-t border-white/10">
+                <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6">
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <p className="text-xs text-black/50 dark:text-white/50 flex items-center gap-1">
-                            © 2024 Voyar Eyewear. Made with
-                            <Heart className="h-3 w-3 text-red-400 fill-red-400" />
-                            in India
+                        <p className="text-xs text-white/30">
+                            © 2025 Voyar Eyewear. All rights reserved.
                         </p>
-                        <div className="flex items-center gap-6">
-                            <span className="text-xs text-black/50 dark:text-white/50">Secure Payments</span>
-                            <div className="flex items-center gap-2">
-                                {/* Payment Icons Placeholder */}
-                                <div className="w-8 h-5 bg-amber-100 dark:bg-amber-900/50 rounded flex items-center justify-center text-xs text-amber-600 dark:text-amber-300 font-medium">
-                                    UPI
-                                </div>
-                                <div className="w-8 h-5 bg-amber-100 dark:bg-amber-900/50 rounded flex items-center justify-center text-xs text-amber-600 dark:text-amber-300 font-medium">
-                                    COD
-                                </div>
-                            </div>
+                        <div className="flex items-center gap-6 text-xs text-white/30">
+                            <Link to="/privacy" className="hover:text-amber-400/60 transition-colors">Privacy</Link>
+                            <Link to="/terms" className="hover:text-amber-400/60 transition-colors">Terms</Link>
+                            <a href="mailto:voyareyewear@gmail.com" className="flex items-center gap-1 hover:text-amber-400/60 transition-colors">
+                                <Mail className="h-3 w-3" />
+                                voyareyewear@gmail.com
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -184,4 +196,3 @@ export const Footer = () => {
         </footer>
     )
 }
-

@@ -80,21 +80,22 @@ interface Order {
     updatedAt: string;
 }
 
-// Helper function to convert Google Drive link
-const convertGoogleDriveLink = (url: string): string => {
+// Helper function to convert Google Drive link to direct CDN URL (no CORS issues)
+const convertGoogleDriveLink = (url: string, size = 'w1000'): string => {
     if (!url) return '/placeholder-image.jpg';
-    if (url.includes('drive.google.com/thumbnail')) return url;
 
     const drivePatterns = [
-        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/,
-        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)/,
-        /https:\/\/drive\.google\.com\/uc\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/file\/d\/([^/?]+)/,
+        /https:\/\/drive\.google\.com\/open\?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/uc\?(?:export=view&)?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/thumbnail\?(?:[^&]*&)?id=([^&]+)/,
+        /https:\/\/lh3\.googleusercontent\.com\/d\/([^=?&]+)/,
     ];
 
     for (const pattern of drivePatterns) {
         const match = url.match(pattern);
         if (match && match[1]) {
-            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            return `https://lh3.googleusercontent.com/d/${match[1]}=${size}`;
         }
     }
     return url;

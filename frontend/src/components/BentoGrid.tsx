@@ -1,7 +1,5 @@
 import { motion } from 'framer-motion'
-import { Eye, Sparkles, Shield, Truck, Award, Star, Heart } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { Button } from './ui/button'
+import { Shield, Droplets, Gem } from 'lucide-react'
 
 interface FeatureCardProps {
     title: string
@@ -13,26 +11,23 @@ interface FeatureCardProps {
 const FeatureCard = ({ title, description, icon, index = 0 }: FeatureCardProps) => {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: index * 0.1 }}
-            className="group relative bg-white dark:bg-gray-900 rounded-2xl p-6 lg:p-8 border border-amber-100 dark:border-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-xl transition-all duration-300"
+            transition={{ duration: 0.6, delay: index * 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+            className="group text-center p-8 sm:p-10"
         >
             {/* Icon */}
-            <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-200/50 dark:shadow-amber-900/50 group-hover:scale-110 transition-transform duration-300">
+            <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 group-hover:border-amber-400 dark:group-hover:border-amber-700 transition-colors duration-500">
                 {icon}
             </div>
 
-            <h3 className="text-lg font-semibold text-black dark:text-white mb-2 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+            <h3 className="text-lg font-medium text-black dark:text-white mb-3 tracking-tight">
                 {title}
             </h3>
-            <p className="text-sm text-black/60 dark:text-white/60 leading-relaxed">
+            <p className="text-sm text-black/50 dark:text-white/50 leading-relaxed max-w-xs mx-auto">
                 {description}
             </p>
-
-            {/* Hover accent */}
-            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-amber-50 to-transparent dark:from-amber-900/20 rounded-tr-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </motion.div>
     )
 }
@@ -40,85 +35,50 @@ const FeatureCard = ({ title, description, icon, index = 0 }: FeatureCardProps) 
 const BentoGrid = () => {
     const features = [
         {
-            title: "Premium Quality",
-            description: "Handcrafted lenses with precision engineering for ultimate clarity and comfort",
-            icon: <Award className="h-6 w-6" />,
-        },
-        {
             title: "UV Protection",
-            description: "100% UV protection to keep your eyes safe from harmful rays",
-            icon: <Shield className="h-6 w-6" />,
+            description: "Keep your eyes safe from harmful UVA & UVB rays. Whether you're on the beach, driving, or outdoors, our lenses protect your vision.",
+            icon: <Shield className="h-7 w-7 text-amber-600 dark:text-amber-400" />,
         },
         {
-            title: "Virtual Try-On",
-            description: "Experience our AI-powered virtual try-on technology",
-            icon: <Eye className="h-6 w-6" />,
+            title: "Anti-Glare Lenses",
+            description: "No more glare from roads, water, or reflective surfaces. Polarized lenses enhance contrast and sharpen details for everyday life.",
+            icon: <Droplets className="h-7 w-7 text-amber-600 dark:text-amber-400" />,
         },
         {
-            title: "Free Shipping",
-            description: "Complimentary shipping on all orders across India",
-            icon: <Truck className="h-6 w-6" />,
-        },
-        {
-            title: "Premium Materials",
-            description: "Lightweight titanium and acetate frames built to last",
-            icon: <Sparkles className="h-6 w-6" />,
-        },
-        {
-            title: "5-Star Rated",
-            description: "Trusted by over 10,000+ satisfied customers",
-            icon: <Star className="h-6 w-6" />,
+            title: "Scratch Resistant",
+            description: "Life happens — but your lenses shouldn't suffer. Our scratch-resistant coating ensures durability, keeping your glasses looking brand new.",
+            icon: <Gem className="h-7 w-7 text-amber-600 dark:text-amber-400" />,
         },
     ]
 
     return (
-        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-b from-amber-50/30 to-white dark:from-gray-950 dark:to-gray-900 transition-colors duration-300">
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-16 sm:py-20 lg:py-28 bg-white dark:bg-gray-950 transition-colors duration-300">
+            <div className="max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10">
                 {/* Section Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                    className="text-center mb-12"
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-10 sm:mb-16"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium mb-4">
-                        <Heart className="h-4 w-4 fill-amber-600 dark:fill-amber-400" />
-                        Exclusively at VOYAR
-                    </div>
-                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black dark:text-white mb-4">
-                        Why Choose <span className="text-gradient-amber">Voyar</span>
+                    <p className="text-[11px] tracking-[0.2em] uppercase text-amber-600 dark:text-amber-400 mb-3">
+                        // Every pair is built with advanced technology and crafted details
+                    </p>
+                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light text-black dark:text-white tracking-tight mb-5">
+                        Eyewear Designed for Clarity and Confidence
                     </h2>
-                    <p className="text-black/60 dark:text-white/60 max-w-2xl mx-auto">
-                        Get the perfect vision and style. Experience the difference with our premium eyewear collection.
+                    <p className="text-base text-black/50 dark:text-white/50 max-w-3xl mx-auto leading-relaxed">
+                        Our eyewear is more than just stylish frames — it's a blend of advanced lens technology, lightweight comfort, and premium craftsmanship. Designed to protect your eyes, elevate your look, and fit seamlessly into your lifestyle.
                     </p>
                 </motion.div>
 
                 {/* Feature Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-10">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-amber-200 dark:divide-amber-900/30 border border-amber-200 dark:border-amber-900/30 rounded-2xl overflow-hidden bg-white dark:bg-gray-900">
                     {features.map((feature, index) => (
                         <FeatureCard key={feature.title} {...feature} index={index} />
                     ))}
                 </div>
-
-                {/* Call to Action */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    className="text-center"
-                >
-                    <Link to="/collections">
-                        <Button
-                            size="lg"
-                            className="bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 dark:hover:text-white rounded-full px-8 py-6 text-base font-semibold shadow-lg shadow-amber-200/50 dark:shadow-amber-900/50 hover:shadow-amber-300/60 transition-all duration-300 hover:scale-105"
-                        >
-                            <Sparkles className="mr-2 h-5 w-5" />
-                            Explore Collection
-                        </Button>
-                    </Link>
-                </motion.div>
             </div>
         </section>
     )

@@ -233,34 +233,25 @@ const initialProductForm: ProductFormData = {
     colors: [{ name: '', value: '#000000', price: '', quantity: '0', inStock: true }]
 }
 
-// Helper function to convert Google Drive link to direct image URL
-const convertGoogleDriveLink = (url: string): string => {
+// Helper function to convert Google Drive link to direct CDN URL (no CORS issues)
+const convertGoogleDriveLink = (url: string, size = 'w1000'): string => {
     if (!url) return url;
 
-    // Check if it's already in thumbnail format
-    if (url.includes('drive.google.com/thumbnail')) {
-        return url;
-    }
-
-    // Patterns to extract Google Drive file ID
     const drivePatterns = [
-        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/,
-        /https:\/\/drive\.google\.com\/file\/d\/([^/]+)/,
+        /https:\/\/drive\.google\.com\/file\/d\/([^/?]+)/,
         /https:\/\/drive\.google\.com\/open\?id=([^&]+)/,
-        /https:\/\/drive\.google\.com\/uc\?id=([^&]+)/,
-        /https:\/\/drive\.google\.com\/uc\?export=view&id=([^&]+)/,
-        /https:\/\/drive\.google\.com\/thumbnail\?id=([^&]+)/
+        /https:\/\/drive\.google\.com\/uc\?(?:export=view&)?id=([^&]+)/,
+        /https:\/\/drive\.google\.com\/thumbnail\?(?:[^&]*&)?id=([^&]+)/,
+        /https:\/\/lh3\.googleusercontent\.com\/d\/([^=?&]+)/,
     ];
 
     for (const pattern of drivePatterns) {
         const match = url.match(pattern);
         if (match && match[1]) {
-            // Use thumbnail format which works better for rendering
-            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            return `https://lh3.googleusercontent.com/d/${match[1]}=${size}`;
         }
     }
 
-    // Return original URL if not a Google Drive link
     return url;
 }
 
@@ -2892,10 +2883,7 @@ export const AdminDashboard = () => {
                                                         >
                                                             {item.productImage ? (
                                                                 <img
-                                                                    src={item.productImage.includes('drive.google.com')
-                                                                        ? `https://drive.google.com/thumbnail?id=${item.productImage.match(/\/d\/([^/]+)/)?.[1] || item.productImage.match(/id=([^&]+)/)?.[1]}&sz=w200`
-                                                                        : item.productImage
-                                                                    }
+                                                                    src={convertGoogleDriveLink(item.productImage, 'w200')}
                                                                     alt={item.productName}
                                                                     className="w-full h-full object-cover"
                                                                     onError={(e) => {
@@ -5621,9 +5609,7 @@ export const AdminDashboard = () => {
                                     {selectedOrder.items.map((item, index: number) => {
                                         const product = item.product
                                         const imageUrl = item.productImage || product?.images?.[0];
-                                        const processedImageUrl = imageUrl?.includes('drive.google.com')
-                                            ? `https://drive.google.com/thumbnail?id=${imageUrl.match(/\/d\/([^/]+)/)?.[1] || imageUrl.match(/id=([^&]+)/)?.[1]}&sz=w200`
-                                            : imageUrl;
+                                        const processedImageUrl = convertGoogleDriveLink(imageUrl || '', 'w200') || undefined;
                                         return (
                                             <div
                                                 key={index}
